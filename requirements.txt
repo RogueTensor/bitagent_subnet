@@ -1,2 +1,6 @@
 bittensor
 torch
+transformers
+bs4
+langchain
+chromadb

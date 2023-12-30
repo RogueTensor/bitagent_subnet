@@ -1,7 +1,6 @@
 # The MIT License (MIT)
 # Copyright © 2023 Yuma Rao
-# TODO(developer): Set your name
-# Copyright © 2023 <your name>
+# Copyright © 2023 RogueTensor
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -17,60 +16,36 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import typing
+from typing import Optional, List
 import bittensor as bt
 
-# TODO(developer): Rewrite with your protocol definition.
+# TODO we should add another protocol for IsAlive
 
-# This is the protocol for the dummy miner and validator.
-# It is a simple request-response protocol where the validator sends a request
-# to the miner, and the miner responds with a dummy response.
-
-# ---- miner ----
-# Example usage:
-#   def dummy( synapse: Dummy ) -> Dummy:
-#       synapse.dummy_output = synapse.dummy_input + 1
-#       return synapse
-#   axon = bt.axon().attach( dummy ).serve(netuid=...).start()
-
-# ---- validator ---
-# Example usage:
-#   dendrite = bt.dendrite()
-#   dummy_output = dendrite.query( Dummy( dummy_input = 1 ) )
-#   assert dummy_output == 2
-
-
-class Dummy(bt.Synapse):
+class QnAProtocol(bt.Synapse):
     """
-    A simple dummy protocol representation which uses bt.Synapse as its base.
-    This protocol helps in handling dummy request and response communication between
-    the miner and the validator.
+    A simple BitQnA protocol representation which uses bt.Synapse as its base.
+    This protocol helps in handling validator request and miner response communication
 
     Attributes:
-    - dummy_input: An integer value representing the input request sent by the validator.
-    - dummy_output: An optional integer value which, when filled, represents the response from the miner.
+    - urls: list of urls for data context (urls can be empty, urls can contain wildcards)
+    - prompt: user prompt
+    - repsonse: a dict containing the response along with citations from the provided data context (urls)
+        - {response: str, citations: List[str]}
     """
 
     # Required request input, filled by sending dendrite caller.
-    dummy_input: int
+    urls: List[str]
+    prompt: str
 
     # Optional request output, filled by recieving axon.
-    dummy_output: typing.Optional[int] = None
+    response: Optional[dict] = {}
 
-    def deserialize(self) -> int:
+    def deserialize(self) -> dict:
         """
-        Deserialize the dummy output. This method retrieves the response from
-        the miner in the form of dummy_output, deserializes it and returns it
-        as the output of the dendrite.query() call.
+        Deserialize the miner response. 
 
         Returns:
-        - int: The deserialized response, which in this case is the value of dummy_output.
+        - dict: The deserialized response, which in this case is the miner's response.
 
-        Example:
-        Assuming a Dummy instance has a dummy_output value of 5:
-        >>> dummy_instance = Dummy(dummy_input=4)
-        >>> dummy_instance.dummy_output = 5
-        >>> dummy_instance.deserialize()
-        5
         """
-        return self.dummy_output
+        return self.response
