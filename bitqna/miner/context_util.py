@@ -60,7 +60,7 @@ def get_relevant_context_and_citations_from_urls(urls: List[str], prompt: str) -
     return [" ".join(results['documents'][0]), []]
 
 def __index_data_from_urls(urls: List[str]) -> Sequence:
-    collection = chroma_client.create_collection(name=generate_collection_name())
+    collection = chroma_client.create_collection(name=__generate_collection_name())
     for url in urls:
         page = requests.get(url)
         soup = __extract_text_from_html(page)
