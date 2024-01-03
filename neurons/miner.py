@@ -21,7 +21,7 @@ from typing import List, Tuple
 import bittensor as bt
 
 # Bittensor Miner Template:
-import template
+import bitqna
 from bitqna.miner.context_util import get_relevant_context_and_citations_from_urls
 from bitqna.miner.mistral_llm import prompt_llm
 
@@ -41,16 +41,16 @@ class Miner(BaseMinerNeuron):
         super(Miner, self).__init__(config=config)
 
     async def forward(
-        self, synapse: template.protocol.QnAProtocol
-    ) -> template.protocol.QnAProtocol:
+        self, synapse: bitqna.protocol.QnAProtocol
+    ) -> bitqna.protocol.QnAProtocol:
         """
         Processes the incoming BitQnA synapse and returns response.
 
         Args:
-            synapse (template.protocol.QnAProtocol): The synapse object containing the urls and prompt.
+            synapse (bitqna.protocol.QnAProtocol): The synapse object containing the urls and prompt.
 
         Returns:
-            template.protocol.QnAProtocol: The synapse object with the 'response' field set to the generated response and citations
+            bitqna.protocol.QnAProtocol: The synapse object with the 'response' field set to the generated response and citations
 
         """
         if not synapse.urls:
@@ -67,7 +67,7 @@ class Miner(BaseMinerNeuron):
         return synapse
 
     async def blacklist(
-        self, synapse: template.protocol.QnAProtocol
+        self, synapse: bitqna.protocol.QnAProtocol
     ) -> Tuple[bool, str]:
         """
         Determines whether an incoming request should be blacklisted and thus ignored. Your implementation should
@@ -78,7 +78,7 @@ class Miner(BaseMinerNeuron):
         requests before they are deserialized to avoid wasting resources on requests that will be ignored.
 
         Args:
-            synapse (template.protocol.QnAProtocol): A synapse object constructed from the headers of the incoming request.
+            synapse (bitqna.protocol.QnAProtocol): A synapse object constructed from the headers of the incoming request.
 
         Returns:
             Tuple[bool, str]: A tuple containing a boolean indicating whether the synapse's hotkey is blacklisted,
@@ -111,7 +111,7 @@ class Miner(BaseMinerNeuron):
         )
         return False, "Hotkey recognized!"
 
-    async def priority(self, synapse: template.protocol.QnAProtocol) -> float:
+    async def priority(self, synapse: bitqna.protocol.QnAProtocol) -> float:
         """
         The priority function determines the order in which requests are handled. More valuable or higher-priority
         requests are processed before others. You should design your own priority mechanism with care.
@@ -119,7 +119,7 @@ class Miner(BaseMinerNeuron):
         This implementation assigns priority to incoming requests based on the calling entity's stake in the metagraph.
 
         Args:
-            synapse (template.protocol.QnAProtocol): The synapse object that contains metadata about the incoming request.
+            synapse (bitqna.protocol.QnAProtocol): The synapse object that contains metadata about the incoming request.
 
         Returns:
             float: A priority score derived from the stake of the calling entity.
