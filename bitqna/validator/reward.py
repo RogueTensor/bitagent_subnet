@@ -34,5 +34,5 @@ def get_rewards(validator: BaseValidatorNeuron, task: Task, responses: List[str]
     """
     # Get all the reward results by iteratively calling your reward() function.
     return torch.FloatTensor(
-        [task.reward(response) for response in responses]
+        [task.reward(validator, response) for response in responses]
     ).to(validator.device)

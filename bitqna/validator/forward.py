@@ -38,7 +38,7 @@ async def forward(self):
     # get_random_uids is an example method, but you can replace it with your own.
     miner_uids = get_random_uids(self, k=1) #TODO min(self.config.neuron.sample_size, self.metagraph.n.item()))
 
-    task = get_random_task()
+    task = get_random_task(self)
 
     # The dendrite client queries the network.
     responses = self.dendrite.query(
