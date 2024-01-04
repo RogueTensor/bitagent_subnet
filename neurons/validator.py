@@ -24,7 +24,7 @@ import bittensor as bt
 
 # Bittensor Validator Template:
 import bitqna
-from bitqna.validator import forward
+from bitqna.validator import forward, initiate_validator
 
 # import base validator class which takes care of most of the boilerplate
 from template.base.validator import BaseValidatorNeuron
@@ -45,6 +45,7 @@ class Validator(BaseValidatorNeuron):
         self.load_state()
 
         # TODO(developer): Anything specific to your use case you can do here
+        initiate_validator(self)
 
     async def forward(self):
         """
