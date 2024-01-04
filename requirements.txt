@@ -4,3 +4,6 @@ transformers
 bs4
 langchain
 chromadb
+datasets
+sentencepiece
+accelerate
