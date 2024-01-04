@@ -1,7 +1,6 @@
 # The MIT License (MIT)
 # Copyright © 2023 Yuma Rao
-# TODO(developer): Set your name
-# Copyright © 2023 <your name>
+# Copyright © 2023 RogueTensor
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -19,30 +18,15 @@
 
 import torch
 from typing import List
+from bitqna.validator.tasks import Task
+from template.base.validator import BaseValidatorNeuron
 
-
-def reward(query: int, response: int) -> float:
-    """
-    Reward the miner response to the dummy request. This method returns a reward
-    value for the miner, which is used to update the miner's score.
-
-    Returns:
-    - float: The reward value for the miner.
-    """
-
-    return 1.0 if response == query * 2 else 0
-
-
-def get_rewards(
-    self,
-    query: int,
-    responses: List[float],
-) -> torch.FloatTensor:
+def get_rewards(validator: BaseValidatorNeuron, task: Task, responses: List[str]) -> torch.FloatTensor:
     """
     Returns a tensor of rewards for the given query and responses.
 
     Args:
-    - query (int): The query sent to the miner.
+    - task (Task): The task sent to the miner.
     - responses (List[float]): A list of responses from the miner.
 
     Returns:
@@ -50,5 +34,5 @@ def get_rewards(
     """
     # Get all the reward results by iteratively calling your reward() function.
     return torch.FloatTensor(
-        [reward(query, response) for response in responses]
-    ).to(self.device)
+        [task.reward(response) for response in responses]
+    ).to(validator.device)
