@@ -71,7 +71,7 @@ class GeneratedDataTask(Task):
         # current model takes 512 tokens, roughly 4 chars per token (per google PaLM 2), 1900 leaves us room for the rest of the prompt
         # TODO consider making random section of the text instead of always the first portion, just make sure it comes out to 2000ish
         truc_text = text[:1900]
-        input_text = f"TEXT: {truc_text}\n\nProvide a 1-sentence question for the provided TEXT making sure to leverage key words from the TEXT in the question.  Please do not ask about something vague such as: what's the passage about, or what's the game about.\n\n Response: "
+        input_text = f"TEXT: {truc_text}\n\nProvide a 1-sentence question for the provided TEXT making sure to leverage key words from the TEXT in the question.  Please do not ask questions similar to the following:\n- What is the topic of the article?\n- What's the passage about?\n- What's the game about?\n\nRespond with an insightful question leveraging keywords from the provided TEXT.\nResponse: "
         question = self.validator.validator_llm(input_text)
         return question
 
