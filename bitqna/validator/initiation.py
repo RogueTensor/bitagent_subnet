@@ -1,3 +1,20 @@
+# The MIT License (MIT)
+# Copyright © 2023 RogueTensor
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
+# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+# the Software.
+
+# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
+
 import threading
 import socketserver
 from http.server import SimpleHTTPRequestHandler
@@ -5,10 +22,8 @@ from bitqna.validator.dataset import Dataset
 from template.base.validator import BaseValidatorNeuron
 from transformers import T5Tokenizer, T5ForConditionalGeneration
 
-
 def initiate_validator(self):
     # load a simple LLM for evals
-    # TODO coullddddd make configurable
     self.tokenizer = T5Tokenizer.from_pretrained("google/flan-t5-large")
     self.model = T5ForConditionalGeneration.from_pretrained("google/flan-t5-large", device_map=self.device)
 
@@ -22,26 +37,5 @@ def initiate_validator(self):
 
     self.validator_llm = validator_llm
 
-    # WEB SERVER # TODO - some complications come from this, like having the validator open a port for these queries
-    # TODO add another protocol to make sure http server is up and the right tmp file can be accessed during initiation
-    # TODO handle any errors like port taken, etc
-    # TODO we can come back to this later if we need / want to - this allows the validator to host data on their own for url testing
-    # TODO in the meantime we can work with datas instead of urls in the protocol to get desired behavior
-    # TODO testing that they can retrieve and handle urls for data may be a valuable eval down the line
-    #def create_server():
-    #    # TODO launch simple http server with randomly selected text from datasets
-    #    # TODO make port configurable
-    #    PORT = 8888
-    #    handler = SimpleHTTPRequestHandler
-    #
-    #    # TODO set some sort of director to be configurable
-    #    with socketserver.TCPServer(("", PORT), handler) as httpd:
-    #        print("Server started at localhost:" + str(PORT))
-    #        httpd.serve_forever()
-    #
-    #threading.Thread(target=create_server).start()
-    # 
-
     # set our dataset for for starter text
     self.dataset = Dataset()
-

@@ -19,8 +19,6 @@
 from typing import Optional, List
 import bittensor as bt
 
-# TODO we should add another protocol for IsAlive
-
 class QnAProtocol(bt.Synapse):
     """
     A simple BitQnA protocol representation which uses bt.Synapse as its base.

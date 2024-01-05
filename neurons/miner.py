@@ -22,11 +22,11 @@ import bittensor as bt
 
 # Bittensor Miner Template:
 import bitqna
-from bitqna.miner.context_util import get_relevant_context_and_citations_from_urls
-from bitqna.miner.mistral_llm import prompt_llm
+from bitqna.miner.context_util import get_relevant_context_and_citations_from_synapse
 
 # import base miner class which takes care of most of the boilerplate
 from template.base.miner import BaseMinerNeuron
+from transformers import T5Tokenizer, T5ForConditionalGeneration
 
 class Miner(BaseMinerNeuron):
     """
@@ -39,6 +39,18 @@ class Miner(BaseMinerNeuron):
 
     def __init__(self, config=None):
         super(Miner, self).__init__(config=config)
+        self.tokenizer = T5Tokenizer.from_pretrained("google/flan-t5-large")
+        self.model = T5ForConditionalGeneration.from_pretrained("google/flan-t5-large", device_map=self.device)
+
+        def llm(input_text):
+            input_ids = self.tokenizer(input_text, return_tensors="pt").input_ids.to(self.device)
+            outputs = self.model.generate(input_ids, max_length=60)
+            result = self.tokenizer.decode(outputs[0])
+            # response is typically: <pad> text</s>
+            result = result.replace("<pad>","").replace("</s>","").strip()
+            return result
+
+        self.llm = llm
 
     async def forward(
         self, synapse: bitqna.protocol.QnAProtocol
@@ -53,13 +65,14 @@ class Miner(BaseMinerNeuron):
             bitqna.protocol.QnAProtocol: The synapse object with the 'response' field set to the generated response and citations
 
         """
-        if not synapse.urls:
+        if not synapse.urls and not synapse.datas:
             context = ""
             citations = []
         else:
-            context, citations = get_relevant_context_and_citations_from_urls(synapse.urls, synapse.prompt)
+            context, citations = get_relevant_context_and_citations_from_synapse(synapse)
 
-        llm_response = prompt_llm(synapse.prompt, context)
+        query_text = f"Given the following CONTEXT:\n\n{context}\n\nPlease provide the user with an answer to their question: {synapse.prompt}.\n\n Response: "
+        llm_response = self.llm(query_text)
 
         synapse.response["response"] = llm_response
         synapse.response["citations"] = citations

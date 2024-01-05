@@ -36,7 +36,7 @@ async def forward(self):
     """
     # Define how the validator selects a miner to query, how often, etc.
     # get_random_uids is an example method, but you can replace it with your own.
-    miner_uids = get_random_uids(self, k=1) #TODO min(self.config.neuron.sample_size, self.metagraph.n.item()))
+    miner_uids = get_random_uids(self, k=1)
 
     task = get_random_task(self)
 
@@ -46,8 +46,6 @@ async def forward(self):
         axons=[self.metagraph.axons[uid] for uid in miner_uids],
         # Construct a query. 
         synapse=task.synapse,
-        # TODO take this back out for 12 sec timeout (default)
-        timeout=40.0,
         # All responses have the deserialize function called on them before returning.
         # You are encouraged to define your own deserialization function.
         deserialize=False,
@@ -56,7 +54,6 @@ async def forward(self):
     # Log the results for monitoring purposes.
     bt.logging.info(f"Received responses: {responses}")
 
-    # TODO(developer): Define how the validator scores responses.
     # Adjust the scores based on responses from miners.
     rewards = get_rewards(self, task=task, responses=responses)
 

@@ -1,3 +1,20 @@
+# The MIT License (MIT)
+# Copyright © 2023 RogueTensor
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
+# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+# the Software.
+
+# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
+
 import random
 import requests
 from bs4 import BeautifulSoup
@@ -11,41 +28,17 @@ from chromadb.utils import embedding_functions
 from typing import List, Sequence
 from template.base.validator import BaseValidatorNeuron
 
+# SETUP VECTOR DATABASE for simple example of how a miner could work with incoming data
 chroma_client = chromadb.Client()
-
-# TODO these params should be configurable
-my_text_splitter = RecursiveCharacterTextSplitter(
+text_splitter = RecursiveCharacterTextSplitter(
     chunk_size = 200,
     chunk_overlap  = 30,
     length_function = len,
     is_separator_regex = False,
 )
 
-# TODO URLs can point to anything
-#       - initially we'd focus on requests with text/html
-#       - then grow to:
-#           - wildcard url like example.com/path/*
-#           - dropbox file(s) (or the like)
-#           - dropbox folder(s) (or the like)
-#           - gz/zip file(s) (or the like)
-#           - API end points for updated news (or the like)
-#           - audio streams
-#           - images
-#           - videos
-#           - etc.
-#
-# TODO for now check the url content type and handle accordingly
-# TODO Citations are impacted by the content type
-#       - citation for text/html would be a link to the highlighted content from the url
-#       - citation for video would be a link to the most relevant timestamp(s) of the video
-#       - citation for other types will vary
-#       - default would be to provide the url back 
-#           - as an example, for images, initially, the image would be the citation
-#               - e.g., 100 image urls are provided, only 10 are relevant, provide those 10 urls
-#           - but perhaps we reach a point where the citation is a selection of bounding boxes within
-#               - e.g., where's waldo?  he's by the ice cream truck - note that part of the image for citation
-
-
+# receive the validator request, put the data into vectorDB, 
+# ... query VDB for prompt-relevant context, build citations, return 
 def get_relevant_context_and_citations_from_synapse(synapse: BaseValidatorNeuron) -> List:
     urls = synapse.urls
     prompt = synapse.prompt
@@ -54,17 +47,8 @@ def get_relevant_context_and_citations_from_synapse(synapse: BaseValidatorNeuron
         # if urls is empty and datas is empty, we don't have anything to do wrt context/citations
         return []
 
-    # TODO n_results should be configurable
-    # TODO bring back URLs maybe
-    #collection = __index_data_from_urls(urls)
     collection = __index_data_from_datas(datas)
     results = collection.query(query_texts=[prompt],n_results=4)
-    # TODO citations - should be a link to the highlighted text from the url
-    # TODO example: http://example.com/page#text-to-highlight
-    # TODO test these links in chrom/firefox/edge/etc.
-    # return the relevant chunk data and the citation urls (TODO for citations)
-    # results look like:
-    # {'ids': [['id5747', 'id2621', 'id2377', 'id1176']], 'distances': [[1.8035337924957275, 1.8035337924957275, 1.8035337924957275, 1.8035337924957275]], 'metadatas': [[{'source': '20240105.bitqna.source.58503323543150500862821951203746894084'}, {'source': '20240105.bitqna.source.58503323543150500862821951203746894084'}, {'source': '20240105.bitqna.source.58503323543150500862821951203746894084'}, {'source': '20240105.bitqna.source.58503323543150500862821951203746894084'}]], 'embeddings': None, 'documents': [['h', 'h', 'h', 'h']], 'uris': None, 'data': None}
 
     citations = []
     context = ""
@@ -74,49 +58,21 @@ def get_relevant_context_and_citations_from_synapse(synapse: BaseValidatorNeuron
 
     return [context, citations]
 
+# on the fly collection creation
 def __index_data_from_datas(datas: List[dict]) -> Sequence:
     collection = chroma_client.create_collection(name=__generate_collection_name())
     for data in datas:
         source = data['source']
         context = data['context']
-        chunks = my_text_splitter.create_documents([context])
+        chunks = text_splitter.create_documents([context])
         docs = [c.page_content for c in chunks]
-        # TODO should we get more useful info to help with the citation links?
         collection.add(documents=docs, 
                        ids=["id"+str(i) for i in range(len(docs))],
                        metadatas=[{"source": source} for i in range(len(docs))])
 
     return collection
 
-# TODO URLs on hold
-#def __index_data_from_urls(urls: List[str]) -> Sequence:
-#    collection = chroma_client.create_collection(name=__generate_collection_name())
-#    for url in urls:
-#        page = requests.get(url)
-#        soup = __extract_text_from_html(page)
-#        chunks = text_splitter.create_documents([soup])
-#        docs = [c.page_content for c in chunks]
-#        # TODO should we get more useful info to help with the citation links?
-#        collection.add(documents=docs, 
-#                       ids=["id"+str(i) for i in range(len(docs))],
-#                       metadatas=[{"source": url} for i in range(len(docs))])
-#
-#    return collection
-
-# TODO URLs on hold
-#def __extract_text_from_html(page):
-#    soup = BeautifulSoup(page.text, 'lxml')
-#
-#    for script_or_style in soup(['script', 'style']):
-#        script_or_style.extract()
-#
-#    text = soup.get_text()
-#    lines = (line.strip() for line in text.splitlines())
-#    chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
-#    text = '\n'.join(chunk for chunk in chunks if chunk)
-#
-#    return text
-
+# random hash for colleciton name
 def __generate_collection_name() -> str:
     h = random.getrandbits(128)
     return f'bitqna.collection.{h}'
