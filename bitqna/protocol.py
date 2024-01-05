@@ -28,13 +28,17 @@ class QnAProtocol(bt.Synapse):
 
     Attributes:
     - urls: list of urls for data context (urls can be empty, urls can contain wildcards)
+    - datas: list of data {source & content} in a List of dicts
     - prompt: user prompt
     - repsonse: a dict containing the response along with citations from the provided data context (urls)
-        - {response: str, citations: List[str]}
+        - {response: str, citations: List[dict]}
+        - the citations are a list of dicts {source & content: relevant content chunk from the source}
+        - there are multiple citations, multiple returned dicts can contains the same source of reference
     """
 
     # Required request input, filled by sending dendrite caller.
     urls: List[str]
+    datas: List[dict]
     prompt: str
 
     # Optional request output, filled by recieving axon.

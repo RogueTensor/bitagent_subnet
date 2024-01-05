@@ -38,6 +38,7 @@ class Miner(BaseMinerNeuron):
     def __init__(self, config=None):
         super(Miner, self).__init__(config=config)
 
+    # TODO add mocking to config for the main miner.py neuron to handle
     # TODO for testing - add configs for changing things like how long it takes, how much text it spits out (lorem ipsum), if it provides citations or not, etc
     async def forward(
         self, synapse: bitqna.protocol.QnAProtocol

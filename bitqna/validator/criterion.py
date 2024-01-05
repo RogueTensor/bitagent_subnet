@@ -36,6 +36,20 @@ def does_not_take_a_long_time(validator: BaseValidatorNeuron, response: bt.Synap
     if process_time <= 15.0: return 0.25
     return -0.1
 
+def correct_citation_format(validator: BaseValidatorNeuron, response: bt.Synapse) -> float:
+    try:
+        citations = response.response['citations']
+        sources = [c['source'] for c in citations]
+        contexts = [c['context'] for c in citations]
+    except KeyError:
+        # no citations provided and no placeholder available
+        return -2.0
+
+    if len(sources) > 0 and len(contexts) == len(sources):
+        return 1.0
+
+    return 0.0
+
 def contains_number_citations(validator: BaseValidatorNeuron, response: bt.Synapse, min_citations=1, max_citations=None) -> float:
     try:
         citations = response.response['citations']
@@ -48,24 +62,12 @@ def contains_number_citations(validator: BaseValidatorNeuron, response: bt.Synap
     # placeholder for citations, but none
     return -0.25
 
-# TODO more general capability for testing validity of response
-def correct_citation_provided(validator: BaseValidatorNeuron, response: bt.Synapse) -> float:
+
+def contains_correct_number_of_citation_sources(validator: BaseValidatorNeuron, response: bt.Synapse, selected_datas: List[dict]=[], selected_urls: List[str]=[]) -> float:
     try:
         citations = response.response['citations']
-    except KeyError:
-        # no citations provided and no placeholder available
-        # but not being evaluated by this criterion (see contains_number_citations)
-        return 0.0
-
-    # TODO - must cite correct citation
-    input_text = f"Question: {prompt}\n\nAnswer: {completion}\n\nSolution: {solution}\n\n Is the answer correct based off the solution? Response:"
-    result = self.validator_llm(input_text)
-
-    return 0.0
-
-def contains_correct_citation_urls(validator: BaseValidatorNeuron, response: bt.Synapse, selected_urls: List[str]) -> float:
-    try:
-        citations = response.response['citations']
+        # TODO may need to do unique here
+        sources = set([c['source'] for c in citations])
     except KeyError:
         # no citations provided and no placeholder available
         # but not being evaluated by this criterion (see contains_number_citationS)
@@ -73,18 +75,60 @@ def contains_correct_citation_urls(validator: BaseValidatorNeuron, response: bt.
 
     # must cite correct citation urls
     score = 0.0
+
+    selected_sources = []
+    for data in selected_datas:
+        selected_sources.append(data['source'])
+
     for url in selected_urls:
-        if url in citations:
-            score += 1.0/len(selected_urls)
+        selected_sources.append(url)
+
+    for source in sources:
+        if source in selected_sources:
+            score += 1.5/len(selected_sources)
 
     return score
 
-def url_task_criteria(selected_texts: List[str], selected_urls: List[str], n_expected_citations:int) -> List[Criterion]:
+# TODO more general capability for testing validity of response
+def correct_response_provided(validator: BaseValidatorNeuron, response: bt.Synapse, selected_datas: List[dict]) -> float:
+    try:
+        citations = response.response['citations']
+        cited_sources = [c['source'] for c in citations]
+        cited_texts = [c['context'] for c in citations]
+        prompt = response.prompt
+        sources = [d['source'] for d in response.datas]
+        texts = [d['context'] for d in response.datas]
+        completion = response.response['response']
+    except KeyError:
+        # no citations provided and no placeholder available or maybe something wrong with the data sources
+        # but not being evaluated by this criterion (see contains_number_citations)
+        return 0.0
+
+    # TODO handle case for more selected datas than just 1
+    context = selected_datas[0]['context']
+    # TODO instead of yes or no, have it score the answer 1-10
+    input_text = f"Question: {prompt}\n\nAnswer: {completion}\n\nContext: {context}\n\n Is the answer to the question correct given the provided context, yes or no? Response:"
+    yes_or_no = validator.validator_llm(input_text)
+
+    if yes_or_no.strip().lower() == "yes":
+        return 1.0
+
+    return 0.0
+
+
+def gen_data_task_criteria(selected_datas: List[dict], n_expected_citations:int) -> List[Criterion]:
     return [
-        Criterion(name=f"Returns {n_expected_citations} citations", desc="", eval_fx=contains_number_citations, eval_args=[n_expected_citations, n_expected_citations]),
-        Criterion(name=f"Returns expected citation url(s)", desc="", eval_fx=contains_correct_citation_urls, eval_args=[selected_urls])
-        # TODO add another criterion that confirms validity of the answer to some extent (correct_citation_provided method?)
+        Criterion(name=f"Returns expected citation source(s)", desc="", eval_fx=contains_correct_number_of_citation_sources, eval_args=[selected_datas]),
+        Criterion(name=f"Returns expected citation chunk/text(s)", desc="", eval_fx=correct_response_provided, eval_args=[selected_datas]),
     ]
+
+    
+## URL Stuff, handle later ##
+#def url_task_criteria(selected_texts: List[str], selected_urls: List[str], n_expected_citations:int) -> List[Criterion]:
+#    return [
+#        Criterion(name=f"Returns expected citation url(s)", desc="", eval_fx=contains_correct_citation_urls, eval_args=[selected_urls])
+#        # TODO add another criterion that confirms validity of the answer to some extent (correct_citation_provided method?)
+#    ]
 
 default_criteria = [
     Criterion(name="Does not error", desc="", eval_fx=does_not_error), 
@@ -92,7 +136,10 @@ default_criteria = [
 ]
 
 # basic CITATION checks
-basic_citations = Criterion(name="Must have at least one citation", desc="", eval_fx=contains_number_citations, eval_args=[1, None])
+basic_citations = [
+    Criterion(name="Must have at least one citation", desc="", eval_fx=contains_number_citations, eval_args=[1, None]),
+    Criterion(name="Must have correct citation format", desc="", eval_fx=correct_citation_format),
+]
 basic_no_citations = Criterion(name="Must not return any citations", desc="", eval_fx=contains_number_citations, eval_args=[0, 0])
 
 # NOTE this is the content/format of response
@@ -103,6 +150,7 @@ basic_no_citations = Criterion(name="Must not return any citations", desc="", ev
     'header_size': 0,
     'name': 'QnAProtocol',
     'prompt': ...
+    'datas': ...
     'required_hash_fields': [   ],
     'response': {   'citations': [   ],
                     'response': ...  '},
