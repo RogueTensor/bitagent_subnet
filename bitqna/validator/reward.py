@@ -40,6 +40,6 @@ def get_rewards(validator: BaseValidatorNeuron, task: Task, responses: List[str]
     for response in responses:
         score, task_results = task.reward(validator, response)
         scores.append(score)
-        results.append("[bold]Task Results:[/bold]\n=====================\n"+"\n".join(task_results)+f"\n[bold]Total reward:[/bold] {score}")
+        results.append(f"[bold]Task: {task.name} Results:[/bold]\n=====================\n"+"\n".join(task_results)+f"\n[bold]Total reward:[/bold] {score}")
 
     return [torch.FloatTensor(scores).to(validator.device), results]
