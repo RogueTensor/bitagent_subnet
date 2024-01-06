@@ -56,19 +56,22 @@ def get_relevant_context_and_citations_from_synapse(synapse: BaseValidatorNeuron
         context += d
         citations.append({'context': d, 'source':results['metadatas'][0][i]['source']})
 
+    # after getting the results, we can delete the collection
+    chroma_client.delete_collection(collection.name)
+
     return [context, citations]
 
 # on the fly collection creation
 def __index_data_from_datas(datas: List[dict]) -> Sequence:
     collection = chroma_client.create_collection(name=__generate_collection_name())
-    for data in datas:
+    for x, data in enumerate(datas):
         source = data['source']
         context = data['context']
         chunks = text_splitter.create_documents([context])
         docs = [c.page_content for c in chunks]
         collection.add(documents=docs, 
-                       ids=["id"+str(i) for i in range(len(docs))],
-                       metadatas=[{"source": source} for i in range(len(docs))])
+                       ids=[f"id_data_{x}_{i}" for i in range(len(docs))],
+                       metadatas=[{"source": source} for _ in range(len(docs))])
 
     return collection
 
