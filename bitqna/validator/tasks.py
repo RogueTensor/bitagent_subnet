@@ -36,11 +36,14 @@ class Task():
         self.criteria=criteria
         self.synapse=QnAProtocol(prompt=prompt, urls=urls, datas=datas)
 
-    def reward(self, validator: BaseValidatorNeuron, response: str) -> float:
+    def reward(self, validator: BaseValidatorNeuron, response: str) -> [float, List[str]]:
         total_score = 0.0
+        results = []
         for criterion in self.criteria:
-            total_score += criterion.evaluate(validator, response)
-        return total_score
+            score, result = criterion.evaluate(validator, response)
+            total_score += score
+            results.append(result)
+        return [total_score, results]
 
     def __repr__(self):
         return pformat(vars(self), indent=4, width=1)

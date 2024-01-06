@@ -21,7 +21,7 @@ from typing import List
 from bitqna.validator.tasks import Task
 from template.base.validator import BaseValidatorNeuron
 
-def get_rewards(validator: BaseValidatorNeuron, task: Task, responses: List[str]) -> torch.FloatTensor:
+def get_rewards(validator: BaseValidatorNeuron, task: Task, responses: List[str]) -> [torch.FloatTensor, List[str]]:
     """
     Returns a tensor of rewards for the given query and responses.
 
@@ -31,8 +31,15 @@ def get_rewards(validator: BaseValidatorNeuron, task: Task, responses: List[str]
 
     Returns:
     - torch.FloatTensor: A tensor of rewards for the given query and responses.
+    - results: A list of feedback for the miner
     """
     # Get all the reward results by iteratively calling your reward() function.
-    return torch.FloatTensor(
-        [task.reward(validator, response) for response in responses]
-    ).to(validator.device)
+    
+    scores = []
+    results = []
+    for response in responses:
+        score, task_results = task.reward(validator, response)
+        scores.append(score)
+        results.append("[bold]Task Results:[/bold]\n=====================\n"+"\n".join(task_results)+f"\n[bold]Total reward:[/bold] {score}")
+
+    return [torch.FloatTensor(scores).to(validator.device), results]
