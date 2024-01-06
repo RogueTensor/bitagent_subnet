@@ -1,5 +1,6 @@
 # The MIT License (MIT)
 # Copyright © 2023 Yuma Rao
+# Copyright © 2023 RogueTensor
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -49,11 +50,17 @@ class BaseMinerNeuron(BaseNeuron):
 
         # Attach determiners which functions are called when servicing a request.
         bt.logging.info(f"Attaching forward function to miner axon.")
-        self.axon.attach(
-            forward_fn=self.forward,
-            blacklist_fn=self.blacklist,
-            priority_fn=self.priority,
-        )
+        # NOTE - only big change made to template miner - RogueTensor
+        for forward_capability in self.forward_capabilities:
+            forward_fn = forward_capability['forward']
+            blacklist_fn = forward_capability['blacklist']
+            priority_fn = forward_capability['priority']
+            self.axon.attach(
+                forward_fn=forward_fn,
+                blacklist_fn=blacklist_fn,
+                priority_fn=priority_fn,
+            )
+
         bt.logging.info(f"Axon created: {self.axon}")
 
         # Instantiate runners
