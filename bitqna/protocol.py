@@ -44,9 +44,9 @@ class QnAProtocol(bt.Synapse):
     """
 
     # Required request input, filled by sending dendrite caller.
-    urls: List[str]
-    datas: List[dict]
-    prompt: str
+    urls: Optional[List[str]] = []
+    datas: List[dict] = []
+    prompt: str = ""
 
     # Optional request output, filled by recieving axon.
     response: Optional[dict] = {}
