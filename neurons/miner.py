@@ -19,6 +19,7 @@
 import time
 from typing import List, Tuple
 import bittensor as bt
+from rich.console import Console
 
 # Bittensor Miner Template:
 import bitqna
@@ -27,6 +28,8 @@ from bitqna.miner.context_util import get_relevant_context_and_citations_from_sy
 # import base miner class which takes care of most of the boilerplate
 from template.base.miner import BaseMinerNeuron
 from transformers import T5Tokenizer, T5ForConditionalGeneration
+
+rich_console = Console()
 
 class Miner(BaseMinerNeuron):
     """
@@ -38,6 +41,10 @@ class Miner(BaseMinerNeuron):
     """
 
     def __init__(self, config=None):
+        self.forward_capabilities = [
+            {'forward': self.forward_for_task, 'blacklist': self.blacklist_for_task, 'priority': self.priority_for_task},
+            {'forward': self.forward_for_result, 'blacklist': self.blacklist_for_result, 'priority': self.priority_for_result},
+        ]
         super(Miner, self).__init__(config=config)
         self.tokenizer = T5Tokenizer.from_pretrained("google/flan-t5-large")
         self.model = T5ForConditionalGeneration.from_pretrained("google/flan-t5-large", device_map=self.device)
@@ -52,7 +59,7 @@ class Miner(BaseMinerNeuron):
 
         self.llm = llm
 
-    async def forward(
+    async def forward_for_task(
         self, synapse: bitqna.protocol.QnAProtocol
     ) -> bitqna.protocol.QnAProtocol:
         """
@@ -79,7 +86,14 @@ class Miner(BaseMinerNeuron):
 
         return synapse
 
-    async def blacklist(
+    async def forward_for_result(
+        self, synapse: bitqna.protocol.QnAResult
+    ) -> bitqna.protocol.QnAResult:
+        if self.config.logging.debug:
+            rich_console.print(synapse.results)
+        return synapse
+
+    async def blacklist_for_task(
         self, synapse: bitqna.protocol.QnAProtocol
     ) -> Tuple[bool, str]:
         """
@@ -124,7 +138,26 @@ class Miner(BaseMinerNeuron):
         )
         return False, "Hotkey recognized!"
 
-    async def priority(self, synapse: bitqna.protocol.QnAProtocol) -> float:
+    async def blacklist_for_result(
+        self, synapse: bitqna.protocol.QnAResult
+    ) -> Tuple[bool, str]:
+        """
+            see above
+        """
+        # TODO(developer): Define how miners should blacklist requests.
+        if synapse.dendrite.hotkey not in self.metagraph.hotkeys:
+            # Ignore requests from unrecognized entities.
+            bt.logging.trace(
+                f"Blacklisting unrecognized hotkey {synapse.dendrite.hotkey}"
+            )
+            return True, "Unrecognized hotkey"
+
+        bt.logging.trace(
+            f"Not Blacklisting recognized hotkey {synapse.dendrite.hotkey}"
+        )
+        return False, "Hotkey recognized!"
+
+    async def priority_for_task(self, synapse: bitqna.protocol.QnAProtocol) -> float:
         """
         The priority function determines the order in which requests are handled. More valuable or higher-priority
         requests are processed before others. You should design your own priority mechanism with care.
@@ -155,6 +188,26 @@ class Miner(BaseMinerNeuron):
             f"Prioritizing {synapse.dendrite.hotkey} with value: ", prirority
         )
         return prirority
+
+    async def priority_for_result(self, synapse: bitqna.protocol.QnAResult) -> float:
+        """
+            see above
+        """
+        # TODO(developer): Define how miners should prioritize requests.
+        caller_uid = self.metagraph.hotkeys.index(
+            synapse.dendrite.hotkey
+        )  # Get the caller index.
+        prirority = float(
+            self.metagraph.S[caller_uid]
+        )  # Return the stake as the priority.
+        bt.logging.trace(
+            f"Prioritizing {synapse.dendrite.hotkey} with value: ", prirority
+        )
+        return prirority
+
+    async def forward(self, synapse: bt.Synapse) -> bt.Synapse:
+        # not being used but required by ABC
+        pass
 
 
 # This is the main function, which runs the miner.
