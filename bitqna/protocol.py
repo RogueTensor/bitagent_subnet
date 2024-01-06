@@ -19,6 +19,15 @@
 from typing import Optional, List
 import bittensor as bt
 
+class QnAResult(bt.Synapse):
+    """
+    Provide feedback on last task request from validator to inform Miner of performance.
+    This is a one-way request does not require a response.
+    Attributes:
+    - results: string of results to be printed to the logs
+    """
+    results: str
+
 class QnAProtocol(bt.Synapse):
     """
     A simple BitQnA protocol representation which uses bt.Synapse as its base.
