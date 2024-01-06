@@ -48,6 +48,8 @@ function usage {
     echo "                           (default: 1)"
     echo "  --skip-launch    num     pass in 0 to skip validator and miner launching on the subnet"
     echo "                           (default: 1)"
+    echo "  --skip-launch_v  num     pass in 0 to skip validator on the subnet"
+    echo "                           (default: 1)"
     echo "  --only-launch    num     pass in 0 to skip everything but launching"
     echo "                           (default: 1)"
     echo ""
@@ -89,10 +91,15 @@ skip_reg=${skip_reg:-1}
 skip_val_reg=${skip_val_reg:-1}
 skip_miner_reg=${skip_miner_reg:-1}
 skip_launch=${skip_launch:-1}
+skip_launch_v=${skip_launch_v:-1}
 only_launch=${only_launch:-1}
 
 if [ $only_launch -eq 0 ]; then
-    echo "Skipping everything but launching validators and miners"
+    if [ $skip_launch_v -eq 0 ]; then
+        echo "Skipping everything but launching miners"
+    else
+        echo "Skipping everything but launching validators and miners"
+    fi
     skip_wallet=0
     skip_faucet=0
     skip_subnet=0
@@ -202,11 +209,13 @@ if [ $skip_launch -eq 1 ]; then
         python3 neurons/miner.py --netuid 1 --subtensor.chain_endpoint ws://127.0.0.1:9946 --wallet.name ${miner_coldkey_prefix}_$((i-1)) --wallet.hotkey ${miner_hotkey_prefix}_$((i-1)) --logging.debug --axon.port $((8090+i)) &
     done
     
+    if [ $skip_launch_v -eq 1 ]; then
 ############ START THE VALIDATORS ############
-    sleep 2 # brief pause to let the miners fully launch
+        sleep 2 # brief pause to let the miners fully launch
 
-    for i in $(seq $num_validators)
-    do
-        python3 neurons/validator.py --netuid 1 --subtensor.chain_endpoint ws://127.0.0.1:9946 --wallet.name ${validator_coldkey_prefix}_$((i-1)) --wallet.hotkey ${validator_hotkey_prefix}_$((i-1)) --logging.debug --axon.port $((8090+i+num_miners)) &
-    done
+        for i in $(seq $num_validators)
+        do
+            python3 neurons/validator.py --netuid 1 --subtensor.chain_endpoint ws://127.0.0.1:9946 --wallet.name ${validator_coldkey_prefix}_$((i-1)) --wallet.hotkey ${validator_hotkey_prefix}_$((i-1)) --logging.debug --axon.port $((8090+i+num_miners)) &
+        done
+    fi
 fi
