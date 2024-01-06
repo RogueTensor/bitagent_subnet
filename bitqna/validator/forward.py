@@ -23,6 +23,7 @@ from bitqna.validator.reward import get_rewards
 from template.utils.uids import get_random_uids
 
 from bitqna.validator.tasks import get_random_task
+from bitqna.protocol import QnAResult
 
 async def forward(self):
     """
@@ -55,7 +56,20 @@ async def forward(self):
     bt.logging.info(f"Received responses: {responses}")
 
     # Adjust the scores based on responses from miners.
-    rewards = get_rewards(self, task=task, responses=responses)
+    # also gets results for feedback to the miners
+    rewards, results = get_rewards(self, task=task, responses=responses)
+    
+    # The dendrite client queries the network.
+    for i,uid in enumerate(miner_uids):
+        _ = self.dendrite.query(
+            # Send the query to selected miner axons in the network.
+            axons=[self.metagraph.axons[uid]],
+            # Construct a query. 
+            synapse=QnAResult(results=results[i]),
+            # All responses have the deserialize function called on them before returning.
+            # You are encouraged to define your own deserialization function.
+            deserialize=False,
+        )
 
     bt.logging.info(f"Scored responses: {rewards}")
     # Update the scores based on the rewards. You may want to define your own update_scores function for custom behavior.
