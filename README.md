@@ -6,7 +6,7 @@
 
 ---
 
-## Part of the Incentivized Internet <!-- omit in toc -->
+## Q&A with Your Data <!-- omit in toc -->
 
 [Discord](https://discord.gg/bittensor) • [Network](https://taostats.io/) • [Research](https://bittensor.com/whitepaper)
 </div>
