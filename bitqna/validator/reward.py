@@ -38,8 +38,15 @@ def get_rewards(validator: BaseValidatorNeuron, task: Task, responses: List[str]
     scores = []
     results = []
     for response in responses:
-        score, task_results = task.reward(validator, response)
-        scores.append(score)
-        results.append(f"[bold]Task: {task.name} Results:[/bold]\n=====================\n"+"\n".join(task_results)+f"\n[bold]Total reward:[/bold] {score}")
+        score, max_possible_score, task_results = task.reward(validator, response)
+        normalized_score = score/max_possible_score
+        scores.append(normalized_score)
+        results.append(f"""
+[bold]Task: {task.name} Results:[/bold]
+=====================\n"""+
+"\n".join(task_results) + f"""
+[bold]Total reward:[/bold] {score}
+[bold]Total possible reward:[/bold] {max_possible_score}
+[bold]Normalized reward:[/bold] {normalized_score}""")
 
     return [torch.FloatTensor(scores).to(validator.device), results]
