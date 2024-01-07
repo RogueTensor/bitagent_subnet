@@ -26,10 +26,10 @@ The BitQnA project is driving to provide an advanced AI-driven Q&A platform that
 
 ### Key Features
 
-- Q&A with RAG, Cascading Summarization (map reduce) and Chain of Code
+- Q&A with [RAG](https://python.langchain.com/docs/use_cases/question_answering/), [Summarization](https://python.langchain.com/docs/use_cases/summarization) and [Chain of Code](https://chain-of-code.github.io/)
 - User provides their own data
 - No API requirements
-- Powers discord bots and web applications
+- Currently powers discord bots and web applications
   
 ---
 
