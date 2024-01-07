@@ -40,6 +40,8 @@ The BitQnA project is driving to provide an advanced AI-driven Q&A platform that
 - **Running on Bittensor testnet**: Follow the step-by-step instructions described in this section: [Running on the Test Network](./docs/running_on_testnet.md).
 - **Running on Bittensor mainnet**: Follow the step-by-step instructions described in this section: [Running on the Main Network](./docs/running_on_mainnet.md).
 
+---
+
 ## License
 This repository is licensed under the MIT License.
 ```text
