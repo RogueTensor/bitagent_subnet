@@ -13,7 +13,7 @@
 
 ---
 - [Introduction](#introduction)
-- [Get Running](#GetRunning)
+- [Running](#Running)
 - [License](#license)
 
 ## Introduction
@@ -29,7 +29,7 @@ The BitQnA project is driving to provide an advanced AI-driven Q&A platform that
   
 ---
 
-## Get Running
+## Running
 
 - You can run this subnet either as a subnet owner, as a subnet validator or as a subnet miner. 
 - **IMPORTANT:** Make sure you are aware of the minimum compute requirements for your subnet. See the [Minimum compute YAML configuration](./min_compute.yml).
