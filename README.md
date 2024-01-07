@@ -23,18 +23,19 @@
 
 The BitQnA project is driving to provide an advanced AI-driven Q&A platform that seamlessly integrates with diverse data sources, from text documents to multimedia, providing deep, contextually relevant answers in real-time. This system, independent of major AI APIs, is tailored for any downstream application, from legal research to IT support, and includes advanced features such as cascading summarization and Chain of Code reasoning.
 
+### Key Features
+
+- Q&A with RAG, Cascading Summarization (map reduce) and Chain of Code
+- User provides their own data
+- No API requirements
+- Powers a discord bot and web application
+  
 ---
 
 ## Installation
 
-### Before you proceed
-Before you proceed with the installation of the subnet, note the following: 
-
-- Use these instructions to run your subnet locally for your development and testing, or on Bittensor testnet or on Bittensor mainnet. 
-- **IMPORTANT**: We **strongly recommend** that you first run your subnet locally and complete your development and testing before running the subnet on Bittensor testnet. Furthermore, make sure that you next run your subnet on Bittensor testnet before running it on the Bittensor mainnet.
-- You can run your subnet either as a subnet owner, or as a subnet validator or as a subnet miner. 
+- You can run this subnet either as a subnet owner, as a subnet validator or as a subnet miner. 
 - **IMPORTANT:** Make sure you are aware of the minimum compute requirements for your subnet. See the [Minimum compute YAML configuration](./min_compute.yml).
-- Note that installation instructions differ based on your situation: For example, installing for local development and testing will require a few additional steps compared to installing for testnet. 
 
 ### Install
 
