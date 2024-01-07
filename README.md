@@ -14,9 +14,6 @@
 ---
 - [Introduction](#introduction)
 - [Installation](#installation)
-  - [Before you proceed](#before-you-proceed)
-  - [Install](#install)
-- [Writing your own incentive mechanism](#writing-your-own-incentive-mechanism)
 - [License](#license)
 
 ## Introduction
