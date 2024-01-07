@@ -36,7 +36,7 @@ The BitQnA project is driving to provide an advanced AI-driven Q&A platform that
 
 ## Get Running
 
-- You can run this subnet either as a subnet owner, as a subnet validator or as a subnet miner. 
+- Before getting too far, please make sure you've looked over the [Bittensor documentation](https://docs.bittensor.com/) for you needs.
 - **IMPORTANT:** Make sure you are aware of the minimum compute requirements for your subnet. See the [Minimum compute YAML configuration](./min_compute.yml).
 
 ### BitQnA
