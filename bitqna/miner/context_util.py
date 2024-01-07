@@ -48,7 +48,7 @@ def get_relevant_context_and_citations_from_synapse(synapse: BaseValidatorNeuron
         return []
 
     collection = __index_data_from_datas(datas)
-    results = collection.query(query_texts=[prompt],n_results=4)
+    results = collection.query(query_texts=[prompt],n_results=min(4, len(datas)))
 
     citations = []
     context = ""
