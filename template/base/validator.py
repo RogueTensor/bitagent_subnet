@@ -308,8 +308,16 @@ class BaseValidatorNeuron(BaseNeuron):
 
         # Compute forward pass rewards, assumes uids are mutually exclusive.
         # shape: [ metagraph.n ]
+        # THE OLD CODE resulted in this warning:
+        # validator.py:312: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).  
+        #    0, torch.tensor(uids).to(self.device), rewards
+        # ----
+        #scattered_rewards: torch.FloatTensor = self.scores.scatter(
+        #    0, torch.tensor(uids).to(self.device), rewards
+        #).to(self.device)
+        # ----
         scattered_rewards: torch.FloatTensor = self.scores.scatter(
-            0, torch.tensor(uids).to(self.device), rewards
+            0, uids.clone().detach().to(self.device), rewards
         ).to(self.device)
         bt.logging.debug(f"Scattered rewards: {rewards}")
 
