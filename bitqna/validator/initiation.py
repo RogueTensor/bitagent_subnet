@@ -20,10 +20,12 @@ import socketserver
 from http.server import SimpleHTTPRequestHandler
 from bitqna.validator.dataset import Dataset
 from template.base.validator import BaseValidatorNeuron
+import transformers
 from transformers import T5Tokenizer, T5ForConditionalGeneration
 
 def initiate_validator(self):
     # load a simple LLM for evals
+    transformers.logging.set_verbosity_error()
     self.tokenizer = T5Tokenizer.from_pretrained("google/flan-t5-large", legacy=False)
     self.model = T5ForConditionalGeneration.from_pretrained("google/flan-t5-large", device_map=self.device)
 

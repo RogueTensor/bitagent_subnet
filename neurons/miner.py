@@ -27,6 +27,7 @@ from bitqna.miner.context_util import get_relevant_context_and_citations_from_sy
 
 # import base miner class which takes care of most of the boilerplate
 from template.base.miner import BaseMinerNeuron
+import transformers
 from transformers import T5Tokenizer, T5ForConditionalGeneration
 
 rich_console = Console()
@@ -46,6 +47,7 @@ class Miner(BaseMinerNeuron):
             {'forward': self.forward_for_result, 'blacklist': self.blacklist_for_result, 'priority': self.priority_for_result},
         ]
         super(Miner, self).__init__(config=config)
+        transformers.logging.set_verbosity_error()
         self.tokenizer = T5Tokenizer.from_pretrained("google/flan-t5-large", legacy=False)
         self.model = T5ForConditionalGeneration.from_pretrained("google/flan-t5-large", device_map=self.device)
 
@@ -93,9 +95,8 @@ class Miner(BaseMinerNeuron):
             rich_console.print(synapse.results)
         return synapse
 
-    async def blacklist_for_task(
-        self, synapse: bitqna.protocol.QnAProtocol
-    ) -> Tuple[bool, str]:
+
+    async def __blacklist(self, synapse: bt.Synapse) -> Tuple[bool, str]:
         """
         Determines whether an incoming request should be blacklisted and thus ignored. Your implementation should
         define the logic for blacklisting requests based on your needs and desired security parameters.
@@ -125,6 +126,16 @@ class Miner(BaseMinerNeuron):
 
         Otherwise, allow the request to be processed further.
         """
+
+        # Check if the key has validator permit
+        if self.config.blacklist.force_validator_permit:
+            if synapse.dendrite.hotkey in self.metagraph.hotkeys:
+                uid = self.metagraph.hotkeys.index(synapse.dendrite.hotkey)
+                if not self.metagraph.validator_permit[uid]:
+                    return True, "validator permit required"
+            else:
+                return True, "validator permit required, but hotkey not registered"
+
         # TODO(developer): Define how miners should blacklist requests.
         if synapse.dendrite.hotkey not in self.metagraph.hotkeys:
             # Ignore requests from unrecognized entities.
@@ -138,26 +149,13 @@ class Miner(BaseMinerNeuron):
         )
         return False, "Hotkey recognized!"
 
-    async def blacklist_for_result(
-        self, synapse: bitqna.protocol.QnAResult
-    ) -> Tuple[bool, str]:
-        """
-            see above
-        """
-        # TODO(developer): Define how miners should blacklist requests.
-        if synapse.dendrite.hotkey not in self.metagraph.hotkeys:
-            # Ignore requests from unrecognized entities.
-            bt.logging.trace(
-                f"Blacklisting unrecognized hotkey {synapse.dendrite.hotkey}"
-            )
-            return True, "Unrecognized hotkey"
+    async def blacklist_for_task(self, synapse: bitqna.protocol.QnAProtocol) -> Tuple[bool, str]:
+        return await self.__blacklist(synapse)
 
-        bt.logging.trace(
-            f"Not Blacklisting recognized hotkey {synapse.dendrite.hotkey}"
-        )
-        return False, "Hotkey recognized!"
+    async def blacklist_for_result(self, synapse: bitqna.protocol.QnAResult) -> Tuple[bool, str]:
+        return await self.__blacklist(synapse)
 
-    async def priority_for_task(self, synapse: bitqna.protocol.QnAProtocol) -> float:
+    async def __priority(self, synapse: bt.Synapse) -> float:
         """
         The priority function determines the order in which requests are handled. More valuable or higher-priority
         requests are processed before others. You should design your own priority mechanism with care.
@@ -189,26 +187,15 @@ class Miner(BaseMinerNeuron):
         )
         return prirority
 
+    async def priority_for_task(self, synapse: bitqna.protocol.QnAProtocol) -> float:
+        return await self.__priority(synapse)
+
     async def priority_for_result(self, synapse: bitqna.protocol.QnAResult) -> float:
-        """
-            see above
-        """
-        # TODO(developer): Define how miners should prioritize requests.
-        caller_uid = self.metagraph.hotkeys.index(
-            synapse.dendrite.hotkey
-        )  # Get the caller index.
-        prirority = float(
-            self.metagraph.S[caller_uid]
-        )  # Return the stake as the priority.
-        bt.logging.trace(
-            f"Prioritizing {synapse.dendrite.hotkey} with value: ", prirority
-        )
-        return prirority
+        return await self.__priority(synapse)
 
     async def forward(self, synapse: bt.Synapse) -> bt.Synapse:
         # not being used but required by ABC
         pass
-
 
 # This is the main function, which runs the miner.
 if __name__ == "__main__":
