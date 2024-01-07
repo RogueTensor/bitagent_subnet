@@ -22,7 +22,7 @@ from pprint import pformat
 from typing import Callable, List
 from bitqna.protocol import QnAProtocol
 from template.base.validator import BaseValidatorNeuron
-from bitqna.validator.criterion import default_criteria, basic_no_citations, basic_citations, Criterion, gen_data_task_criteria
+from bitqna.validator.criterion import Criterion, default_criteria, basic_no_citations, basic_citations, gen_data_task_criteria, simple_context_aware
 
 # combines criterion/criteria for eval to form a task for the miner
 class Task():
@@ -30,20 +30,25 @@ class Task():
     synapse: QnAProtocol
 
     def __init__(self, name: str, prompt: str, desc: str = "", datas: List[dict] = [],
-                 urls: List[str] = [], criteria: List[Criterion] = default_criteria) -> None:
+                 urls: List[str] = [], criteria: List[Criterion] = default_criteria,
+                 citation_sources_should_contain: str=None, response_should_contain: str=None) -> None:
         self.name=name
         self.desc=desc
         self.criteria=criteria
+        self.citation_sources_should_contain=citation_sources_should_contain
+        self.response_should_contain=response_should_contain
         self.synapse=QnAProtocol(prompt=prompt, urls=urls, datas=datas)
 
-    def reward(self, validator: BaseValidatorNeuron, response: str) -> [float, List[str]]:
+    def reward(self, validator: BaseValidatorNeuron, response: str) -> [float, float, List[str]]:
         total_score = 0.0
+        total_possible = 0.0
         results = []
         for criterion in self.criteria:
-            score, result = criterion.evaluate(validator, response)
+            score, max_score, result = criterion.evaluate(self, validator, response)
             total_score += score
+            total_possible += max_score
             results.append(result)
-        return [total_score, results]
+        return [total_score, total_possible, results]
 
     def __repr__(self):
         return pformat(vars(self), indent=4, width=1)
@@ -65,7 +70,7 @@ class GeneratedDataTask(Task):
         selected_source = sources[selected_num]
         question = self.get_question_for_text(text=selected_text)
     
-        self.criteria=gen_data_task_criteria(selected_datas=[datas[selected_num]], n_expected_citations=n_expected_citations)
+        self.criteria=default_criteria+gen_data_task_criteria(selected_datas=[datas[selected_num]], n_expected_citations=n_expected_citations)
         self.synapse=QnAProtocol(prompt=question, urls=[], datas=datas)
 
     def generate_random_texts(self, n_texts: int = 3) -> [List[str], List[str]]:
@@ -84,21 +89,54 @@ class GeneratedDataTask(Task):
         # for the simple model, use less text, truncate
         # current model (T5) takes 512 tokens, roughly 4 chars per token (per google PaLM 2), 1900 leaves us room for the rest of the prompt
         truc_text = text[:1900]
-        input_text = f"TEXT: {truc_text}\n\nProvide a 1-sentence question for the provided TEXT making sure to leverage key words from the TEXT in the question.  Please do not ask questions similar to the following:\n- What is the topic of the article?\n- What's the passage about?\n- What's the game about?\n\nRespond with an insightful question leveraging keywords from the provided TEXT.\nResponse: "
+        input_text = f"""
+            TEXT: {truc_text}\n\n
+            NOTES: DO NOT ask questions similar to the following:\n
+                - What is the topic of the article?\n
+                - What is the topic of the passage?\n
+                - What is the source of the information?\n
+                - What is the name of the author?\n
+                - What is the purpose of the video?\n
+                - What is the purpose of the article?\n
+                - What's the passage about?\n
+                - What's the game about?\n\n
+
+            TASK: Provide a 1-sentence question for the provided TEXT making sure to leverage key words from the TEXT in the question.  
+            Respond only with an insightful question leveraging keywords from the provided TEXT.\n
+            Response:
+        """
         question = self.validator.validator_llm(input_text)
         return question
 
 basic_miner_tasks = [
-    Task(name="Responds without URL(s) or Datas",
+    Task(name="Responds with no citations",
          criteria=default_criteria+[basic_no_citations],
          prompt='who is the most famous ghost buster'),
     Task(name="Responds with at least one citation",
-         datas=[{'source': "simple test", "context":"foobar"}],
+         datas=[{'source': "simple test", "context":"The most famous ghost buster is Bob."}],
          criteria=default_criteria+basic_citations,
+         citation_sources_should_contain="simple test",
          prompt='who is the most famous ghost buster'),
+    Task(name="Responds with correct citation and data relevant to context",
+         datas=[{'source': "simple test", "context":"Frogs are mammals that live in trees and eat bacon."}],
+         criteria=default_criteria+basic_citations+[simple_context_aware],
+         citation_sources_should_contain="simple test",
+         response_should_contain="bacon",
+         prompt='What do frogs eat?'),
+    Task(name="Responds with correct citation and data relevant to context",
+         datas=[{'source': "simple test", "context":"Bees are mammals that live in trees and eat bacon."}],
+         citation_sources_should_contain="simple test",
+         criteria=default_criteria+basic_citations+[simple_context_aware],
+         response_should_contain="trees",
+         prompt='Where do bees live?'),
 ]
 
 def get_random_task(validator: BaseValidatorNeuron) -> Task:
     # for now just looking at validating responses and citations for 0+ data
-    return GeneratedDataTask(validator=validator, name="Responds with correct citation source and valid response")
-    #return random.choice(basic_miner_tasks)
+    return random.choices([
+        GeneratedDataTask(validator=validator, name="Responds with correct citation source and valid response"),
+        GeneratedDataTask(validator=validator, name="Responds with correct citation source and valid response from medium corpus", n_texts=8),
+        GeneratedDataTask(validator=validator, name="Responds with correct citation source and valid response from larger corpus", n_texts=20),
+        GeneratedDataTask(validator=validator, name="Responds with correct citation source and valid response from LARGE corpus", n_texts=50),
+        random.choice(basic_miner_tasks),
+        ], weights=[50,15,10,5,20])[0]
