@@ -13,7 +13,7 @@
 
 ---
 - [Introduction](#introduction)
-- [Get Running](#Get Running)
+- [Get Running](#GetRunning)
 - [License](#license)
 
 ## Introduction
