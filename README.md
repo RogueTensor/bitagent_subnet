@@ -25,7 +25,7 @@ The BitQnA project is driving to provide an advanced AI-driven Q&A platform that
 - Q&A with RAG, Cascading Summarization (map reduce) and Chain of Code
 - User provides their own data
 - No API requirements
-- Powers a discord bot and web application
+- Powers discord bots and web applications
   
 ---
 
