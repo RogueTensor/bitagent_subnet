@@ -27,7 +27,7 @@ class Dataset(Iterator):
         super().__init__()
         seed = random.randint(0, 1000)
         self.openwebtext = iter(
-            load_dataset("openwebtext", split="train", streaming=True).shuffle(
+            load_dataset("openwebtext", split="train", streaming=True,trust_remote_code=True).shuffle(
                 seed=seed, buffer_size=10000
             )
         )
@@ -37,6 +37,7 @@ class Dataset(Iterator):
                 "default",
                 split="train",
                 streaming=True,
+                trust_remote_code=True,
             ).shuffle(seed=seed, buffer_size=10000)
         )
 
