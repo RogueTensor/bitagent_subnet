@@ -64,7 +64,7 @@ You can use several flags to configure:
 - or if it registers wallets,
 - or just launches a miner
 ```bash
-$ ./scripts/setup_and_run.sh -h
+bitqna_subnet$ ./scripts/setup_and_run.sh -h
 
 Creates wallets for the subnet (owner, validators, miners), funds them, registers them, then starts them.
 
@@ -76,24 +76,24 @@ usage: ./scripts/setup_and_run.sh --num_validators num --num_miners num --subnet
                            (default: 2)
   --subnet_prefix  string  the prefix of the subnet wallets
                            (default: local_subnet_testing_bitqna)
-  --skip-wallet    num     pass in 0 to skip wallet creation
-                           (default: 1)
-  --skip-faucet    num     pass in 0 to skip wallet funding
-                           (default: 1)
-  --skip-subnet    num     pass in 0 to skip subnet creation
-                           (default: 1)
-  --skip-reg       num     pass in 0 to skip all registration to the subnet
-                           (default: 1)
-  --skip-val-reg   num     pass in 0 to skip validator registration to the subnet
-                           (default: 1)
-  --skip-miner-reg num     pass in 0 to skip miner registration to the subnet
-                           (default: 1)
-  --skip-launch    num     pass in 0 to skip validator and miner launching on the subnet
-                           (default: 1)
-  --skip-launch_v  num     pass in 0 to skip validator on the subnet
-                           (default: 1)
-  --only-launch    num     pass in 0 to skip everything but launching
-                           (default: 1)
+  --skip-wallet            skip wallet creation
+                           (default: run wallet creation)
+  --skip-faucet            skip wallet funding
+                           (default: fund wallets)
+  --skip-subnet            skip subnet creation
+                           (default: create subnet)
+  --skip-reg               skip all registration to the subnet
+                           (default: register wallets)
+  --skip-val-reg           skip validator registration to the subnet
+                           (default: register validator)
+  --skip-miner-reg         skip miner registration to the subnet
+                           (default: register miner)
+  --skip-launch            skip validator and miner launching on the subnet
+                           (default: launch validators and miners)
+  --skip-launch_v          skip validator launching on the subnet
+                           (default: launch validators)
+  --only-launch            skip everything but launching
+                           (default: do everything)
 
 Example: ./scripts/setup_and_run.sh --only-launch
 This will skip everything and just launch the already registered and funded validators and miners
