@@ -46,7 +46,7 @@ class Miner(BaseMinerNeuron):
             {'forward': self.forward_for_result, 'blacklist': self.blacklist_for_result, 'priority': self.priority_for_result},
         ]
         super(Miner, self).__init__(config=config)
-        self.tokenizer = T5Tokenizer.from_pretrained("google/flan-t5-large")
+        self.tokenizer = T5Tokenizer.from_pretrained("google/flan-t5-large", legacy=False)
         self.model = T5ForConditionalGeneration.from_pretrained("google/flan-t5-large", device_map=self.device)
 
         def llm(input_text):

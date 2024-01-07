@@ -24,7 +24,7 @@ from transformers import T5Tokenizer, T5ForConditionalGeneration
 
 def initiate_validator(self):
     # load a simple LLM for evals
-    self.tokenizer = T5Tokenizer.from_pretrained("google/flan-t5-large")
+    self.tokenizer = T5Tokenizer.from_pretrained("google/flan-t5-large", legacy=False)
     self.model = T5ForConditionalGeneration.from_pretrained("google/flan-t5-large", device_map=self.device)
 
     def validator_llm(input_text):
