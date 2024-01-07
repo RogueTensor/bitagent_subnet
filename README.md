@@ -14,9 +14,9 @@
 ---
 - [Introduction](#introduction)
 - [Get Running](#get-running)
-  - [Subtensor](#subtensor)
   - [BitQnA](#bitqna)
   - [Miner](#miner)
+    - [Miner Feedback](#miner-feedback)
   - [Validator](#validator)
 - [License](#license)
 
@@ -38,12 +38,6 @@ The BitQnA project is driving to provide an advanced AI-driven Q&A platform that
 
 - You can run this subnet either as a subnet owner, as a subnet validator or as a subnet miner. 
 - **IMPORTANT:** Make sure you are aware of the minimum compute requirements for your subnet. See the [Minimum compute YAML configuration](./min_compute.yml).
-
-### Subtensor
-
-- **Running locally**: Follow the step-by-step instructions described in this section: [Running Subnet Locally](./docs/running_on_staging.md).
-- **Running on Bittensor testnet**: Follow the step-by-step instructions described in this section: [Running on the Test Network](./docs/running_on_testnet.md).
-- **Running on Bittensor mainnet**: Follow the step-by-step instructions described in this section: [Running on the Main Network](./docs/running_on_mainnet.md).
 
 ### BitQnA
 This repository requires python3.8 or higher. To install, simply clone this repository and install the requirements.
