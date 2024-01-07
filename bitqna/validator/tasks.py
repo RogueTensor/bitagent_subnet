@@ -91,7 +91,7 @@ class GeneratedDataTask(Task):
         truc_text = text[:1900]
         input_text = f"""
             TEXT: {truc_text}\n\n
-            NOTES: DO NOT ask questions similar to the following:\n
+            QUESTIONS TO NEVER ASK: DO NOT ask questions similar or remotely similar to the following:\n
                 - What is the topic of the article?\n
                 - What is the topic of the passage?\n
                 - What is the source of the information?\n
