@@ -29,6 +29,7 @@ The BitQnA project is driving to provide an advanced AI-driven Q&A platform that
 - Q&A with [RAG](https://python.langchain.com/docs/use_cases/question_answering/), [Summarization](https://python.langchain.com/docs/use_cases/summarization) and [Chain of Code](https://chain-of-code.github.io/)
 - User provides their own data
 - No API requirements
+- Miner's receive [transparent feedback](#miner-feedback)
 - Currently powers discord bots and web applications
   
 ---
@@ -111,6 +112,16 @@ python3 neurons/miner.py --netuid 1 --subtensor.chain_endpoint ws://127.0.0.1:99
 # mainnet
 pm2 start neurons/miner.py --interpreter python3 -- --netuid 18 --subtensor.network <LOCAL/FINNEY/TEST> --wallet.name <COLDKEY> --wallet.hotkey <HOTKEY> --axon.port <PORT>
 ```
+
+#### Miner Feedback
+As a miner, you receive tasks, you get rewarded, but often you do not know what you're being graded on.
+BitQnA offers transparent feedback, so you know what you're up against.
+
+Here's an example of a well performed task:
+![miner feedback - good example](./docs/examples/output_to_miner.png)
+
+Here's an example of a poorly performed task:
+![miner feedback - bad example](./docs/examples/bad_output_to_miner.png)
 
 ### Validator
 If you just want to run the validator without the [script](./scripts/setup_and_run.sh) or are connecting to mainnet:
