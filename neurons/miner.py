@@ -17,19 +17,21 @@
 # DEALINGS IN THE SOFTWARE.
 
 import time
+import argparse
+import importlib
 from typing import List, Tuple
 import bittensor as bt
 from rich.console import Console
 
 # Bittensor Miner Template:
 import bitqna
-from bitqna.miner.context_util import get_relevant_context_and_citations_from_synapse
+# Sync calls set weights and also resyncs the metagraph.
+from template.utils.config import add_args as util_add_args
+from template.utils.config import config as util_config
+
 
 # import base miner class which takes care of most of the boilerplate
 from template.base.miner import BaseMinerNeuron
-import transformers
-from transformers import T5Tokenizer, T5ForConditionalGeneration
-
 rich_console = Console()
 
 class Miner(BaseMinerNeuron):
@@ -41,25 +43,35 @@ class Miner(BaseMinerNeuron):
     This class provides reasonable default behavior for a miner such as blacklisting unrecognized hotkeys, prioritizing requests based on stake, and forwarding requests to the forward function. Modify, if you need to define custom capability.
     """
 
+    @classmethod
+    def add_args(cls, parser: argparse.ArgumentParser):
+        util_add_args(cls, parser)
+        parser.add_argument(
+            "--miner",
+            type=str,
+            default="t5",
+            choices=["t5", "mock"],
+            help="Name/path of model to load."
+        )
+
     def __init__(self, config=None):
         self.forward_capabilities = [
             {'forward': self.forward_for_task, 'blacklist': self.blacklist_for_task, 'priority': self.priority_for_task},
             {'forward': self.forward_for_result, 'blacklist': self.blacklist_for_result, 'priority': self.priority_for_result},
         ]
+        if not config:
+            config = util_config(self)
+
         super(Miner, self).__init__(config=config)
-        transformers.logging.set_verbosity_error()
-        self.tokenizer = T5Tokenizer.from_pretrained("google/flan-t5-large", legacy=False)
-        self.model = T5ForConditionalGeneration.from_pretrained("google/flan-t5-large", device_map=self.device)
 
-        def llm(input_text):
-            input_ids = self.tokenizer(input_text, return_tensors="pt").input_ids.to(self.device)
-            outputs = self.model.generate(input_ids, max_length=60)
-            result = self.tokenizer.decode(outputs[0])
-            # response is typically: <pad> text</s>
-            result = result.replace("<pad>","").replace("</s>","").strip()
-            return result
+        # Dynamic module import based on the 'miner' argument
+        miner_name = f"bitqna.miners.{config.miner}_miner" # if config and config.miner else "bitqna.miners.t5_miner"
+        miner_module = importlib.import_module(miner_name)
 
-        self.llm = llm
+        self.miner_init = miner_module.miner_init
+        self.miner_process = miner_module.miner_process
+
+        self.miner_init(self)
 
     async def forward_for_task(
         self, synapse: bitqna.protocol.QnAProtocol
@@ -74,17 +86,8 @@ class Miner(BaseMinerNeuron):
             bitqna.protocol.QnAProtocol: The synapse object with the 'response' field set to the generated response and citations
 
         """
-        if not synapse.urls and not synapse.datas:
-            context = ""
-            citations = []
-        else:
-            context, citations = get_relevant_context_and_citations_from_synapse(synapse)
 
-        query_text = f"Given the following CONTEXT:\n\n{context}\n\nPlease provide the user with an answer to their question: {synapse.prompt}.\n\n Response: "
-        llm_response = self.llm(query_text)
-
-        synapse.response["response"] = llm_response
-        synapse.response["citations"] = citations
+        synapse = self.miner_process(self, synapse)
 
         return synapse
 
