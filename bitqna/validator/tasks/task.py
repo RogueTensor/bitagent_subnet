@@ -55,12 +55,12 @@ class Task():
 
 
 def get_random_task(validator: BaseValidatorNeuron) -> Task:
-    from bitqna.validator.tasks import GeneratedDataTask, basic_qna_miner_tasks
+    from bitqna.validator.tasks import GeneratedQnATask, basic_qna_miner_tasks
     # for now just looking at validating responses and citations for 0+ data
     return random.choices([
-        GeneratedDataTask(validator=validator, name="Responds with correct citation source and valid response"),
-        GeneratedDataTask(validator=validator, name="Responds with correct citation source and valid response from medium corpus", n_texts=8),
-        GeneratedDataTask(validator=validator, name="Responds with correct citation source and valid response from larger corpus", n_texts=20),
-        GeneratedDataTask(validator=validator, name="Responds with correct citation source and valid response from LARGE corpus", n_texts=50),
+        GeneratedQnATask(validator=validator, name="Responds with correct citation source and valid response"),
+        GeneratedQnATask(validator=validator, name="Responds with correct citation source and valid response from medium corpus", n_texts=8),
+        GeneratedQnATask(validator=validator, name="Responds with correct citation source and valid response from larger corpus", n_texts=20),
+        GeneratedQnATask(validator=validator, name="Responds with correct citation source and valid response from LARGE corpus", n_texts=50),
         random.choice(basic_qna_miner_tasks),
         ], weights=[50,15,10,5,20])[0]
