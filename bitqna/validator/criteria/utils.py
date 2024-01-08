@@ -17,9 +17,9 @@
 
 received_reward_template="\nYou received {} of {} reward."
 
-def bad_message(text: str) -> str:
-    return ":cross_mark: [red]" + text + "[/red]"
+def bad_message(text: str, color: str="red") -> str:
+    return f":cross_mark: [{color}]{text}[/{color}]"
 
-def good_message(text: str) -> str:
-    return ":white_heavy_check_mark: [green]" + text + "[/green]"
+def good_message(text: str, color: str="green") -> str:
+    return f":white_heavy_check_mark: [{color}]{text}[/{color}]"
 
