@@ -16,7 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 from bitqna.validator.tasks import Task
-from bitqna.validator.criterion import default_criteria, basic_no_citations, basic_citations, simple_context_aware
+from bitqna.validator.criteria import default_criteria, basic_no_citations, basic_citations, simple_context_aware
 
 basic_qna_miner_tasks = [
     Task(name="Q&A - Responds with no citations",

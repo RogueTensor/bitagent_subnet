@@ -21,7 +21,7 @@ from typing import List
 from bitqna.protocol import QnAProtocol
 from bitqna.validator.tasks import Task
 from template.base.validator import BaseValidatorNeuron
-from bitqna.validator.criterion import default_criteria, gen_data_task_criteria
+from bitqna.validator.criteria import default_criteria, gen_data_task_criteria
 
 # generated task for n_texts of data looking for n_expected_citations of relevant citations (sources and contexts)
 class GeneratedDataTask(Task):

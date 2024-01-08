@@ -21,7 +21,7 @@ import bittensor as bt
 from pprint import pformat
 from typing import Callable, List
 from bitqna.protocol import QnAProtocol
-from bitqna.validator.criterion import Criterion, default_criteria
+from bitqna.validator.criteria import Criterion, default_criteria
 from template.base.validator import BaseValidatorNeuron
 
 # combines criterion/criteria for eval to form a task for the miner
