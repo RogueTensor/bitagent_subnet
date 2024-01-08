@@ -42,7 +42,7 @@ def get_rewards(validator: BaseValidatorNeuron, task: Task, responses: List[str]
         normalized_score = score/max_possible_score
         scores.append(normalized_score)
         results.append(f"""
-[bold]Task: {task.name} Results:[/bold]
+[bold]Task: {task.name}[/bold]\n[bold]Results:[/bold]
 =====================\n"""+
 "\n".join(task_results) + f"""
 [bold]Total reward:[/bold] {score}
