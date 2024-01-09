@@ -170,7 +170,11 @@ def correct_response_provided(task, validator: BaseValidatorNeuron, response: bt
         reward = max_reward
         feedback = good_message(f"You responded with a valid response from the provided context.")
         return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
-
-    reward = 0.0
-    feedback = bad_message(f"You failed to respond with a valid response from the provided context.")
-    return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
+    elif yes_or_no.strip().lower() == "no":
+        reward = 0.0
+        feedback = bad_message(f"You failed to respond with a valid response from the provided context.")
+        return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
+    else:
+        reward = 0.5
+        feedback = bad_message(f"You failed to respond with a comparable response.", color="yellow")
+        return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
