@@ -18,7 +18,7 @@
 import time
 import random
 from typing import List
-from bitqna.protocol import QnAProtocol
+from bitqna.protocol import QnATask
 from bitqna.validator.tasks import Task
 from template.base.validator import BaseValidatorNeuron
 from bitqna.validator.criteria import default_criteria, gen_data_task_criteria
@@ -41,13 +41,13 @@ class GeneratedQnATask(Task):
         question = self.get_question_for_text(text=selected_text)
     
         self.criteria=default_criteria+gen_data_task_criteria(selected_datas=[datas[selected_num]], n_expected_citations=n_expected_citations)
-        self.synapse=QnAProtocol(prompt=question, urls=[], datas=datas)
+        self.synapse=QnATask(prompt=question, urls=[], datas=datas)
 
     def generate_random_texts(self, n_texts: int = 3) -> [List[str], List[str]]:
         # get n random data
         output = []
         for _ in range(n_texts):
-            text = next(self.validator.dataset)["text"]
+            text = next(self.validator.qna_dataset)["text"]
             text = text[:500]
             # arbitrary and random source ids
             h = random.getrandbits(128)
