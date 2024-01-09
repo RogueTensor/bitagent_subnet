@@ -17,6 +17,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import time
+import torch
 
 # Bittensor
 import bittensor as bt
@@ -58,10 +59,34 @@ class Validator(BaseValidatorNeuron):
         # TODO(developer): Rewrite this function based on your protocol definition.
         return await forward(self)
 
+    def save_state(self):
+        """Saves the state of the validator to a file."""
+        bt.logging.info("Saving validator state.")
+
+        # Save the state of the validator to file.
+        torch.save(
+            {
+                "step": self.step,
+                "scores": self.scores,
+                "hotkeys": self.hotkeys,
+            },
+            self.config.neuron.full_path + "/state.pt",
+        )
+
+    def load_state(self):
+        """Loads the state of the validator from a file."""
+        bt.logging.info("Loading validator state.")
+
+        # Load the state of the validator from file.
+        state = torch.load(self.config.neuron.full_path + "/state.pt")
+        self.step = state["step"]
+        self.scores = state["scores"]
+        self.hotkeys = state["hotkeys"]
+
 
 # The main function parses the configuration and runs the validator.
 if __name__ == "__main__":
     with Validator() as validator:
         while True:
             bt.logging.info("Validator running...", time.time())
-            time.sleep(5)
+            time.sleep(15)
