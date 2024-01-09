@@ -19,16 +19,7 @@
 from typing import Optional, List
 import bittensor as bt
 
-class QnAResult(bt.Synapse):
-    """
-    Provide feedback on last task request from validator to inform Miner of performance.
-    This is a one-way request does not require a response.
-    Attributes:
-    - results: string of results to be printed to the logs
-    """
-    results: str
-
-class QnAProtocol(bt.Synapse):
+class QnATask(bt.Synapse):
     """
     A simple BitQnA protocol representation which uses bt.Synapse as its base.
     This protocol helps in handling validator request and miner response communication
@@ -51,12 +42,11 @@ class QnAProtocol(bt.Synapse):
     # Optional request output, filled by recieving axon.
     response: Optional[dict] = {}
 
-    def deserialize(self) -> dict:
-        """
-        Deserialize the miner response. 
-
-        Returns:
-        - dict: The deserialized response, which in this case is the miner's response.
-
-        """
-        return self.response
+class QnAResult(bt.Synapse):
+    """
+    Provide feedback on last task request from validator to inform Miner of performance.
+    This is a one-way request does not require a response.
+    Attributes:
+    - results: string of results to be printed to the logs
+    """
+    results: str
