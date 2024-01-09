@@ -74,16 +74,16 @@ class Miner(BaseMinerNeuron):
         self.miner_init(self)
 
     async def forward_for_task(
-        self, synapse: bitqna.protocol.QnAProtocol
-    ) -> bitqna.protocol.QnAProtocol:
+        self, synapse: bitqna.protocol.QnATask
+    ) -> bitqna.protocol.QnATask:
         """
         Processes the incoming BitQnA synapse and returns response.
 
         Args:
-            synapse (bitqna.protocol.QnAProtocol): The synapse object containing the urls and prompt.
+            synapse (bitqna.protocol.QnATask): The synapse object containing the urls and prompt.
 
         Returns:
-            bitqna.protocol.QnAProtocol: The synapse object with the 'response' field set to the generated response and citations
+            bitqna.protocol.QnATask: The synapse object with the 'response' field set to the generated response and citations
 
         """
 
@@ -109,7 +109,7 @@ class Miner(BaseMinerNeuron):
         requests before they are deserialized to avoid wasting resources on requests that will be ignored.
 
         Args:
-            synapse (bitqna.protocol.QnAProtocol): A synapse object constructed from the headers of the incoming request.
+            synapse (bitqna.protocol.QnATask): A synapse object constructed from the headers of the incoming request.
 
         Returns:
             Tuple[bool, str]: A tuple containing a boolean indicating whether the synapse's hotkey is blacklisted,
@@ -152,7 +152,7 @@ class Miner(BaseMinerNeuron):
         )
         return False, "Hotkey recognized!"
 
-    async def blacklist_for_task(self, synapse: bitqna.protocol.QnAProtocol) -> Tuple[bool, str]:
+    async def blacklist_for_task(self, synapse: bitqna.protocol.QnATask) -> Tuple[bool, str]:
         return await self.__blacklist(synapse)
 
     async def blacklist_for_result(self, synapse: bitqna.protocol.QnAResult) -> Tuple[bool, str]:
@@ -166,7 +166,7 @@ class Miner(BaseMinerNeuron):
         This implementation assigns priority to incoming requests based on the calling entity's stake in the metagraph.
 
         Args:
-            synapse (bitqna.protocol.QnAProtocol): The synapse object that contains metadata about the incoming request.
+            synapse (bitqna.protocol.QnATask): The synapse object that contains metadata about the incoming request.
 
         Returns:
             float: A priority score derived from the stake of the calling entity.
@@ -190,7 +190,7 @@ class Miner(BaseMinerNeuron):
         )
         return prirority
 
-    async def priority_for_task(self, synapse: bitqna.protocol.QnAProtocol) -> float:
+    async def priority_for_task(self, synapse: bitqna.protocol.QnATask) -> float:
         return await self.__priority(synapse)
 
     async def priority_for_result(self, synapse: bitqna.protocol.QnAResult) -> float:
@@ -200,9 +200,15 @@ class Miner(BaseMinerNeuron):
         # not being used but required by ABC
         pass
 
+    # no idea what to save for a miner
+    def save_state(self):
+        pass
+    def load_state(self):
+        pass
+
 # This is the main function, which runs the miner.
 if __name__ == "__main__":
     with Miner() as miner:
         while True:
             bt.logging.info("Miner running...", time.time())
-            time.sleep(5)
+            time.sleep(15)
