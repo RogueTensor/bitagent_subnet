@@ -37,7 +37,7 @@ def miner_init(self, config=None):
 
     self.llm = llm
 
-def miner_process(self, synapse: bitqna.protocol.QnAProtocol) -> bitqna.protocol.QnAProtocol:
+def miner_process(self, synapse: bitqna.protocol.QnATask) -> bitqna.protocol.QnATask:
     if not synapse.urls and not synapse.datas:
         context = ""
         citations = []
