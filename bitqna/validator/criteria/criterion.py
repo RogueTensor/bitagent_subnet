@@ -22,6 +22,7 @@ from template.base.validator import BaseValidatorNeuron
 from bitqna.validator.criteria.utils import good_message, bad_message, received_reward_template
 from bitqna.validator.criteria.default_criteria import *
 from bitqna.validator.criteria.qna_criteria import *
+from bitqna.validator.criteria.summary_criteria import *
 
 # building block for the criteria used to evaluate the miner's response
 class Criterion():
@@ -48,6 +49,11 @@ def gen_data_task_criteria(selected_datas: List[dict], n_expected_citations:int)
     return [
         Criterion(name=f"Returns expected citation source(s)", desc="", eval_fx=contains_correct_number_of_citation_sources, eval_args=[selected_datas]),
         Criterion(name=f"Returns valid response", desc="", eval_fx=correct_response_provided, eval_args=[selected_datas]),
+    ]
+
+def summary_task_criteria(summary: str) -> List[Criterion]:
+    return [
+        Criterion(name="Return valid summary", desc="", eval_fx=correct_summary_provided, eval_args=[summary]),
     ]
 
 # simple, defaults
