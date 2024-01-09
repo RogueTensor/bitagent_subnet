@@ -18,7 +18,7 @@
 import threading
 import socketserver
 from http.server import SimpleHTTPRequestHandler
-from bitqna.validator.dataset import Dataset
+from bitqna.validator.dataset import QnADataset, SummaryDataset
 from template.base.validator import BaseValidatorNeuron
 import transformers
 from transformers import T5Tokenizer, T5ForConditionalGeneration
@@ -40,4 +40,5 @@ def initiate_validator(self):
     self.validator_llm = validator_llm
 
     # set our dataset for for starter text
-    self.dataset = Dataset()
+    self.qna_dataset = QnADataset()
+    self.summary_dataset = SummaryDataset()
