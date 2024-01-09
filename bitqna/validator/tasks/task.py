@@ -20,14 +20,14 @@ import random
 import bittensor as bt
 from pprint import pformat
 from typing import Callable, List
-from bitqna.protocol import QnAProtocol
+from bitqna.protocol import QnATask
 from bitqna.validator.criteria import Criterion, default_criteria
 from template.base.validator import BaseValidatorNeuron
 
 # combines criterion/criteria for eval to form a task for the miner
 class Task():
     criteria: List[Criterion]
-    synapse: QnAProtocol
+    synapse: QnATask
 
     def __init__(self, name: str, prompt: str, desc: str = "", datas: List[dict] = [],
                  urls: List[str] = [], criteria: List[Criterion] = default_criteria,
@@ -37,7 +37,7 @@ class Task():
         self.criteria=criteria
         self.citation_sources_should_contain=citation_sources_should_contain
         self.response_should_contain=response_should_contain
-        self.synapse=QnAProtocol(prompt=prompt, urls=urls, datas=datas)
+        self.synapse=QnATask(prompt=prompt, urls=urls, datas=datas)
 
     def reward(self, validator: BaseValidatorNeuron, response: str) -> [float, float, List[str]]:
         total_score = 0.0
@@ -55,12 +55,13 @@ class Task():
 
 
 def get_random_task(validator: BaseValidatorNeuron) -> Task:
-    from bitqna.validator.tasks import GeneratedQnATask, basic_qna_miner_tasks
+    from bitqna.validator.tasks import SummaryTask, GeneratedQnATask, basic_qna_miner_tasks
     # for now just looking at validating responses and citations for 0+ data
     return random.choices([
         GeneratedQnATask(validator=validator, name="Responds with correct citation source and valid response"),
         GeneratedQnATask(validator=validator, name="Responds with correct citation source and valid response from medium corpus", n_texts=8),
         GeneratedQnATask(validator=validator, name="Responds with correct citation source and valid response from larger corpus", n_texts=20),
         GeneratedQnATask(validator=validator, name="Responds with correct citation source and valid response from LARGE corpus", n_texts=50),
+        SummaryTask(validator=validator, name="Responds with correct summary"),
         random.choice(basic_qna_miner_tasks),
-        ], weights=[50,15,10,5,20])[0]
+        ], weights=[20,15,10,5,20,20])[0]
