@@ -24,19 +24,19 @@ import bittensor as bt
 from rich.console import Console
 
 # Bittensor Miner Template:
-import bitqna
+import bitagent
 # Sync calls set weights and also resyncs the metagraph.
-from template.utils.config import add_args as util_add_args
-from template.utils.config import config as util_config
+from common.utils.config import add_args as util_add_args
+from common.utils.config import config as util_config
 
 
 # import base miner class which takes care of most of the boilerplate
-from template.base.miner import BaseMinerNeuron
+from common.base.miner import BaseMinerNeuron
 rich_console = Console()
 
 class Miner(BaseMinerNeuron):
     """
-    BitQnA miner neuron class. You may also want to override the blacklist and priority functions according to your needs.
+    BitAgent miner neuron class. You may also want to override the blacklist and priority functions according to your needs.
 
     This class inherits from the BaseMinerNeuron class, which in turn inherits from BaseNeuron. The BaseNeuron class takes care of routine tasks such as setting up wallet, subtensor, metagraph, logging directory, parsing config, etc. You can override any of the methods in BaseNeuron if you need to customize the behavior.
 
@@ -65,7 +65,7 @@ class Miner(BaseMinerNeuron):
         super(Miner, self).__init__(config=config)
 
         # Dynamic module import based on the 'miner' argument
-        miner_name = f"bitqna.miners.{config.miner}_miner" # if config and config.miner else "bitqna.miners.t5_miner"
+        miner_name = f"bitagent.miners.{config.miner}_miner" # if config and config.miner else "bitagent.miners.t5_miner"
         miner_module = importlib.import_module(miner_name)
 
         self.miner_init = miner_module.miner_init
@@ -74,16 +74,16 @@ class Miner(BaseMinerNeuron):
         self.miner_init(self)
 
     async def forward_for_task(
-        self, synapse: bitqna.protocol.QnATask
-    ) -> bitqna.protocol.QnATask:
+        self, synapse: bitagent.protocol.QnATask
+    ) -> bitagent.protocol.QnATask:
         """
-        Processes the incoming BitQnA synapse and returns response.
+        Processes the incoming BitAgent synapse and returns response.
 
         Args:
-            synapse (bitqna.protocol.QnATask): The synapse object containing the urls and prompt.
+            synapse (bitagent.protocol.QnATask): The synapse object containing the urls and prompt.
 
         Returns:
-            bitqna.protocol.QnATask: The synapse object with the 'response' field set to the generated response and citations
+            bitagent.protocol.QnATask: The synapse object with the 'response' field set to the generated response and citations
 
         """
 
@@ -92,8 +92,8 @@ class Miner(BaseMinerNeuron):
         return synapse
 
     async def forward_for_result(
-        self, synapse: bitqna.protocol.QnAResult
-    ) -> bitqna.protocol.QnAResult:
+        self, synapse: bitagent.protocol.QnAResult
+    ) -> bitagent.protocol.QnAResult:
         if self.config.logging.debug:
             rich_console.print(synapse.results)
         return synapse
@@ -109,7 +109,7 @@ class Miner(BaseMinerNeuron):
         requests before they are deserialized to avoid wasting resources on requests that will be ignored.
 
         Args:
-            synapse (bitqna.protocol.QnATask): A synapse object constructed from the headers of the incoming request.
+            synapse (bitagent.protocol.QnATask): A synapse object constructed from the headers of the incoming request.
 
         Returns:
             Tuple[bool, str]: A tuple containing a boolean indicating whether the synapse's hotkey is blacklisted,
@@ -152,10 +152,10 @@ class Miner(BaseMinerNeuron):
         )
         return False, "Hotkey recognized!"
 
-    async def blacklist_for_task(self, synapse: bitqna.protocol.QnATask) -> Tuple[bool, str]:
+    async def blacklist_for_task(self, synapse: bitagent.protocol.QnATask) -> Tuple[bool, str]:
         return await self.__blacklist(synapse)
 
-    async def blacklist_for_result(self, synapse: bitqna.protocol.QnAResult) -> Tuple[bool, str]:
+    async def blacklist_for_result(self, synapse: bitagent.protocol.QnAResult) -> Tuple[bool, str]:
         return await self.__blacklist(synapse)
 
     async def __priority(self, synapse: bt.Synapse) -> float:
@@ -166,7 +166,7 @@ class Miner(BaseMinerNeuron):
         This implementation assigns priority to incoming requests based on the calling entity's stake in the metagraph.
 
         Args:
-            synapse (bitqna.protocol.QnATask): The synapse object that contains metadata about the incoming request.
+            synapse (bitagent.protocol.QnATask): The synapse object that contains metadata about the incoming request.
 
         Returns:
             float: A priority score derived from the stake of the calling entity.
@@ -190,10 +190,10 @@ class Miner(BaseMinerNeuron):
         )
         return prirority
 
-    async def priority_for_task(self, synapse: bitqna.protocol.QnATask) -> float:
+    async def priority_for_task(self, synapse: bitagent.protocol.QnATask) -> float:
         return await self.__priority(synapse)
 
-    async def priority_for_result(self, synapse: bitqna.protocol.QnAResult) -> float:
+    async def priority_for_result(self, synapse: bitagent.protocol.QnAResult) -> float:
         return await self.__priority(synapse)
 
     async def forward(self, synapse: bt.Synapse) -> bt.Synapse:

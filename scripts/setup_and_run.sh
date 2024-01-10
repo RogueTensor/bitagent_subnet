@@ -33,7 +33,7 @@ function usage {
     echo "  --num_miners     num     number of miners to launch"
     echo "                           (default: 2)"
     echo "  --subnet_prefix  string  the prefix of the subnet wallets"
-    echo "                           (default: local_subnet_testing_bitqna)"
+    echo "                           (default: local_subnet_testing_bitagent)"
     echo "  --skip-wallet            skip wallet creation"
     echo "                           (default: run wallet creation)"
     echo "  --skip-faucet            skip wallet funding"
@@ -89,7 +89,7 @@ done
 ### SET DEFAULTS
 num_validators=${num_validators:-1}
 num_miners=${num_miners:-2}
-subnet_prefix=${subnet_prefix:-local_subnet_testing_bitqna}
+subnet_prefix=${subnet_prefix:-local_subnet_testing_bitagent}
 skip_wallet=${skip_wallet:-1}
 skip_faucet=${skip_faucet:-1}
 skip_subnet=${skip_subnet:-1}

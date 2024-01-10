@@ -62,12 +62,12 @@ with codecs.open(
     version_string = version_match.group(1)
 
 setup(
-    name="bitqna_subnet_20",
+    name="bitagent_subnet_20",
     version=version_string,
-    description="BitQnA Subnet - bringing Q&A to your data with our capability",
+    description="BitAgent Subnet - Q&A and Tasking with Your Data and Your World",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/RogueTensor/bitqna_subnet",
+    url="https://github.com/RogueTensor/bitagent_subnet",
     author="RogueTensor",
     packages=find_packages(),
     include_package_data=True,

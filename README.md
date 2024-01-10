@@ -95,7 +95,7 @@ usage: ./scripts/setup_and_run.sh --num_validators num --num_miners num --subnet
   --num_miners     num     number of miners to launch
                            (default: 2)
   --subnet_prefix  string  the prefix of the subnet wallets
-                           (default: local_subnet_testing_bitqna)
+                           (default: local_subnet_testing_bitagent)
   --skip-wallet            skip wallet creation
                            (default: run wallet creation)
   --skip-faucet            skip wallet funding

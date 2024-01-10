@@ -23,15 +23,15 @@ import torch
 import bittensor as bt
 
 # Bittensor Validator Template:
-import bitqna
-from bitqna.validator import forward, initiate_validator
+import bitagent
+from bitagent.validator import forward, initiate_validator
 
 # import base validator class which takes care of most of the boilerplate
-from template.base.validator import BaseValidatorNeuron
+from common.base.validator import BaseValidatorNeuron
 
 class Validator(BaseValidatorNeuron):
     """
-    BitQnA validator neuron class.
+    BitAgent validator neuron class.
 
     This class inherits from the BaseValidatorNeuron class, which in turn inherits from BaseNeuron. The BaseNeuron class takes care of routine tasks such as setting up wallet, subtensor, metagraph, logging directory, parsing config, etc. You can override any of the methods in BaseNeuron if you need to customize the behavior.
 
