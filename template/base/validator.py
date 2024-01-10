@@ -316,8 +316,14 @@ class BaseValidatorNeuron(BaseNeuron):
         #    0, torch.tensor(uids).to(self.device), rewards
         #).to(self.device)
         # ----
-        scattered_rewards: torch.FloatTensor = self.scores.scatter(
-            0, uids.clone().detach().to(self.device), rewards
+        # was this but with CPU/GPU run into problem
+        #scattered_rewards: torch.FloatTensor = self.scores.scatter(
+        #    0, uids.clone().detach().to(self.device), rewards
+        #).to(self.device)
+        # ----
+        bt.logging.debug(f"Scattered rewards: {rewards}")
+        scattered_rewards: torch.FloatTensor = self.scores.to(self.device).scatter(
+            0, uids.clone().detach().to(self.device), rewards.to(self.device)
         ).to(self.device)
         bt.logging.debug(f"Scattered rewards: {rewards}")
 
