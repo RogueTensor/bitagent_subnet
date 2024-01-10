@@ -37,7 +37,12 @@ async def forward(self):
     """
     # Define how the validator selects a miner to query, how often, etc.
     # get_random_uids is an example method, but you can replace it with your own.
-    miner_uids = get_random_uids(self, k=min(self.config.neuron.sample_size, self.metagraph.n.item()))
+    try:
+        miner_uids = get_random_uids(self, k=min(self.config.neuron.sample_size, self.metagraph.n.item()))
+    except Exception as e:
+        bt.logging.warning(f"Error setting miner_uids: {e}")
+        bt.logging.warning("Defaulting to 1 uid, k=1")
+        miner_uids = get_random_uids(self, k=1)
 
     task = get_random_task(self)
 
