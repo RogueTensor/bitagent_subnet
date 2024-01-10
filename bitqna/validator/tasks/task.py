@@ -64,4 +64,4 @@ def get_random_task(validator: BaseValidatorNeuron) -> Task:
         GeneratedQnATask(validator=validator, name="Responds with correct citation source and valid response from LARGE corpus", n_texts=50),
         SummaryTask(validator=validator, name="Responds with correct summary"),
         random.choice(basic_qna_miner_tasks),
-        ], weights=[20,15,10,5,20,20])[0]
+        ], weights=[20,20,15,5,20,10])[0]
