@@ -163,7 +163,7 @@ def correct_response_provided(task, validator: BaseValidatorNeuron, response: bt
         return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
 
     context = selected_datas[0]['context']
-    input_text = f"Question: {prompt}\n\nAnswer: {completion}\n\nContext: {context}\n\n Is the answer to the question correct given the provided context, yes or no? Response:"
+    input_text = f"Question: {prompt}\n\nAnswer: {completion}\n\nContext: {context}\n\nIs the answer to the question correct given the provided context, yes or no? Response:"
     yes_or_no = validator.validator_llm(input_text)
 
     if yes_or_no.strip().lower() == "yes":
