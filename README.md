@@ -26,22 +26,22 @@ BitAgent has 2 core thrusts:
 
 1) **Q&A/Tasking** - comes in a few flavors - a) with your data in real time (BYOD), b) summarization of large data (BYOD), c) logic-based reasoning and d) agency (tool execution, operation performance)
 Examples: 
-     A)  Fill in this form, from this source data, to match the tone and professionalism of these prior examples
-     A)  Plot the occurrence of key topics as they accumulate in this data
-     A)  Provide metrics to align with these requirements and provide a test suite in python
-     A)  Grab the last 3 weeks of publications from arxiv that have to do with Generative AI and provide a summary for each
-     A)  We just received this support ticket, here's our knowledge base, please update the ticket with a procedure for the tier 1 support to follow
+     - Fill in this form, from this source data, to match the tone and professionalism of these prior examples
+     - Plot the occurrence of key topics as they accumulate in this data
+     - Provide metrics to align with these requirements and provide a test suite in python
+     - Grab the last 3 weeks of publications from arxiv that have to do with Generative AI and provide a summary for each
+     - We just received this support ticket, here's our knowledge base, please update the ticket with a procedure for the tier 1 support to follow
 
 2) **Integrated Orchestration** - this is task completion initiated by natural language for application
 Examples:
-    A.  You're using the browser plugin/extension built on this subnet (Coming Soon) - you can Q&A from that website about that website
-    A.  Again with the subnet's browser plugin - you're on a really complex web page and you just can't concentrate, it's too intense - you head over to the browser plugin and you click on the provided ELI5 (explain like I'm 5) button to convert all the complex text on the page to easy-to-understand text.
-    A.  Again, with the plugin, you're on amazon and you're met with a TON of reviews, most of which look fake - your task to the subnet (via natural language to the plugin) is to "Hide all the reviews on this page that appear fake."
-    A.  Again, with our browser plugin, you're in YouTube and this video isn't getting to the point, so you task the subnet to "Skip ahead to the second instance where they begin talking about whatever"
-    A.  This time you own your own company, let's say you own an IT support company that works with legal firms, dentist offices, etc.  You've collected a knowledge base over many years and you never know what requests will come through.  A few seconds ago, a new, verified request came in from the head of HR at some legal firm, letting you know that <so-in-so> just joined the team and needs their accounts and access setup.  Using our subnet API, you can have the subnet be your first line of defense, by doing the tasks that you give it access to perform. 
+    - You're using the browser plugin/extension built on this subnet (Coming Soon) - you can Q&A from that website about that website
+    - Again with the subnet's browser plugin - you're on a really complex web page and you just can't concentrate, it's too intense - you head over to the browser plugin and you click on the provided ELI5 (explain like I'm 5) button to convert all the complex text on the page to easy-to-understand text.
+    - Again, with the plugin, you're on amazon and you're met with a TON of reviews, most of which look fake - your task to the subnet (via natural language to the plugin) is to "Hide all the reviews on this page that appear fake."
+    - Again, with our browser plugin, you're in YouTube and this video isn't getting to the point, so you task the subnet to "Skip ahead to the second instance where they begin talking about whatever"
+    - This time you own your own company, let's say you own an IT support company that works with legal firms, dentist offices, etc.  You've collected a knowledge base over many years and you never know what requests will come through.  A few seconds ago, a new, verified request came in from the head of HR at some legal firm, letting you know that <so-in-so> just joined the team and needs their accounts and access setup.  Using our subnet API, you can have the subnet be your first line of defense, by doing the tasks that you give it access to perform. 
 
 To be successful, Thrust 2 requires all aspects of Thrust 1, so we're working initial efforts in those areas.
-However our future vision is to leverage and integrate other subnets for Thrust 1 a & b (potentially others) and provide SOTA (state-of-the-art) capabilities in the other areas.
+However our future vision is to leverage and integrate other subnets for some of Thrust 1 and provide SOTA (state-of-the-art) capabilities in the other areas.
 
 ### Key Features
 
