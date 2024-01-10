@@ -44,7 +44,10 @@ def miner_process(self, synapse: bitqna.protocol.QnATask) -> bitqna.protocol.QnA
     else:
         context, citations = get_relevant_context_and_citations_from_synapse(synapse)
 
-    query_text = f"Given the following CONTEXT:\n\n{context}\n\nPlease provide the user with an answer to their question: {synapse.prompt}.\n\n Response: "
+    query_text = f"Please provide the user with an answer to their question: {synapse.prompt}.\n\n Response: "
+    if context:
+        query_text = f"Given the following CONTEXT:\n\n{context}\n\n{query_text}"
+
     llm_response = self.llm(query_text)
 
     synapse.response["response"] = llm_response
