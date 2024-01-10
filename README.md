@@ -26,11 +26,11 @@ BitAgent has 2 core thrusts:
 
 1) **Q&A/Tasking** - comes in a few flavors - a) with your data in real time (BYOD), b) summarization of large data (BYOD), c) logic-based reasoning and d) agency (tool execution, operation performance)
 Examples: 
-     a) Fill in this form, from this source data, to match the tone and professionalism of these prior examples
-     b) Plot the occurrence of key topics as they accumulate in this data
-     c) Provide metrics to align with these requirements and provide a test suite in python
-     d) Grab the last 3 weeks of publications from arxiv that have to do with Generative AI and provide a summary for each
-     e) We just received this support ticket, here's our knowledge base, please update the ticket with a procedure for the tier 1 support to follow
+     A. Fill in this form, from this source data, to match the tone and professionalism of these prior examples
+     A. Plot the occurrence of key topics as they accumulate in this data
+     A. Provide metrics to align with these requirements and provide a test suite in python
+     A. Grab the last 3 weeks of publications from arxiv that have to do with Generative AI and provide a summary for each
+     A. We just received this support ticket, here's our knowledge base, please update the ticket with a procedure for the tier 1 support to follow
 
 2) **Integrated Orchestration** - this is task completion initiated by natural language for application
 Examples:
