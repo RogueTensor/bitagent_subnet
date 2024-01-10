@@ -22,7 +22,7 @@ parser = argparse.ArgumentParser(description='create wallet, given hotkey and co
 parser.add_argument('--hotkey_name', type=str, required=True)
 parser.add_argument('--coldkey_name', type=str, required=True)
 parser.add_argument('--num', type=int, required=False, default=1)
-parser.add_argument('--local', type=bool, required=False, default=True)
+parser.add_argument('--local', action=argparse.BooleanOptionalAction)
 
 args = parser.parse_args()
 
