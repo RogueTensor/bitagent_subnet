@@ -46,7 +46,7 @@ However our future vision is to leverage and integrate other subnets for some of
 ### Key Features
 
 - Downstream application towards this vision are in the works:
-  - Discord bot - to, at a minimum, provide an answer to the seemingly daily (hours?) question about getting testnet tao ;)
+  - Discord bot - to, at a minimum, provide an answer to the seemingly daily (hourly?) question about getting testnet tao ;)
   - Web and Form Filler application
   - Browser plugin (see examples above)
 - BYOD and real-time ingestion 
