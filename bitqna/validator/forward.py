@@ -58,8 +58,12 @@ async def forward(self):
     # Adjust the scores based on responses from miners.
     # also gets results for feedback to the miners
     rewards, results = get_rewards(self, task=task, responses=responses)
+
+    bt.logging.info(f"Scored responses: {rewards}")
+    # Update the scores based on the rewards. You may want to define your own update_scores function for custom behavior.
+    self.update_scores(rewards, miner_uids)
     
-    # The dendrite client queries the network.
+    # The dendrite client queries the network to send feedback to the miner
     for i,uid in enumerate(miner_uids):
         _ = self.dendrite.query(
             # Send the query to selected miner axons in the network.
@@ -70,7 +74,3 @@ async def forward(self):
             # You are encouraged to define your own deserialization function.
             deserialize=False,
         )
-
-    bt.logging.info(f"Scored responses: {rewards}")
-    # Update the scores based on the rewards. You may want to define your own update_scores function for custom behavior.
-    self.update_scores(rewards, miner_uids)
