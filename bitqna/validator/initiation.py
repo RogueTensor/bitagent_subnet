@@ -15,8 +15,10 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import random
 import threading
 import socketserver
+from faker import Faker
 from http.server import SimpleHTTPRequestHandler
 from bitqna.validator.dataset import QnADataset, SummaryDataset
 from template.base.validator import BaseValidatorNeuron
@@ -42,3 +44,7 @@ def initiate_validator(self):
     # set our dataset for for starter text
     self.qna_dataset = QnADataset()
     self.summary_dataset = SummaryDataset()
+
+    # faker data
+    self.fake = Faker()
+    Faker.seed(random.randint(0,2000))

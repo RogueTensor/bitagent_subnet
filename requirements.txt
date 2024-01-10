@@ -7,3 +7,4 @@ chromadb
 datasets
 sentencepiece
 accelerate
+faker
