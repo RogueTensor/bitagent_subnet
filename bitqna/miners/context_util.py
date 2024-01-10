@@ -45,7 +45,17 @@ def get_relevant_context_and_citations_from_synapse(synapse: BaseValidatorNeuron
     datas = synapse.datas
     if not urls and not datas:
         # if urls is empty and datas is empty, we don't have anything to do wrt context/citations
-        return []
+        return [None, None]
+
+    # sometimes we get empty source and context, handle that
+    have_real_data = False
+    for data in datas:
+        if data["context"].strip():
+            have_real_data = True
+            break
+
+    if not have_real_data:
+        return [None, None]
 
     collection = __index_data_from_datas(datas)
     results = collection.query(query_texts=[prompt],n_results=min(4, len(datas)))
@@ -67,11 +77,15 @@ def __index_data_from_datas(datas: List[dict]) -> Sequence:
     for x, data in enumerate(datas):
         source = data['source']
         context = data['context']
-        chunks = text_splitter.create_documents([context])
-        docs = [c.page_content for c in chunks]
-        collection.add(documents=docs, 
-                       ids=[f"id_data_{x}_{i}" for i in range(len(docs))],
-                       metadatas=[{"source": source} for _ in range(len(docs))])
+        # only if we have context coming in
+        if context.strip():
+            if not source.strip():
+                source = "Unknown Source"
+            chunks = text_splitter.create_documents([context])
+            docs = [c.page_content for c in chunks]
+            collection.add(documents=docs, 
+                           ids=[f"id_data_{x}_{i}" for i in range(len(docs))],
+                           metadatas=[{"source": source} for _ in range(len(docs))])
 
     return collection
 
