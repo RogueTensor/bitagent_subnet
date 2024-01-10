@@ -52,6 +52,12 @@ function usage {
     echo "                           (default: launch validators)"
     echo "  --only-launch            skip everything but launching"
     echo "                           (default: do everything)"
+    echo "  --test-net               do the same things, but for testnet"
+    echo "                           (default: false, local)"
+    echo "  --main-net               do the same things, but for mainnet"
+    echo "                           (default: false, local)"
+    echo "  --netuid                 the netuid to work with"
+    echo "                           (default: 1 for local, change if main or test)"
     echo ""
     echo "Example: ./scripts/setup_and_run.sh --only-launch"
     echo "This will skip everything and just launch the already registered and funded validators and miners"
@@ -93,6 +99,9 @@ skip_miner_reg=${skip_miner_reg:-1}
 skip_launch=${skip_launch:-1}
 skip_launch_v=${skip_launch_v:-1}
 only_launch=${only_launch:-1}
+test_net=${test_net:-1}
+main_net=${main_net:-1}
+netuid=${netuid:-1}
 
 if [ $only_launch -eq 0 ]; then
     if [ $skip_launch_v -eq 0 ]; then
@@ -108,6 +117,50 @@ if [ $only_launch -eq 0 ]; then
     skip_miner_reg=0
 fi
 
+local_var="--local"
+# DO NOT LOCAL THINGS
+# skip using faucet if not local
+# skip creating subnet if not local
+if [[ $test_net -eq 0 || $main_net -eq 0 ]]; then
+    local_var="--no-local" # means we'll put in a password for our wallets
+    skip_faucet=0
+    skip_subnet=0
+fi
+
+# do LOCAL things
+if [[ $test_net -eq 1 && $main_net -eq 1 ]]; then
+    echo "####################################################################################"
+    echo "You're running on local"
+    echo "####################################################################################"
+    subnet_network="--subtensor.chain_endpoint ws://127.0.0.1:9946"
+fi
+
+# working on test net
+if [[ $test_net -eq 0 ]]; then
+    echo "####################################################################################"
+    echo "You're running on test net"
+    echo "####################################################################################"
+    subnet_network="--subtensor.network test"
+    if [[ $netuid -eq 1 ]]; then
+        echo "####################################################################################"
+        echo "You're going to test net and have set netuid == 1"
+        echo "####################################################################################"
+    fi
+fi
+
+# working on main net
+if [[ $main_net -eq 0 ]]; then
+    echo "####################################################################################"
+    echo "You're running on main / finney"
+    echo "####################################################################################"
+    subnet_network="--subtensor.network finney"
+    if [[ $netuid -eq 1 ]]; then
+        echo "####################################################################################"
+        echo "You're going to main net and have set netuid == 1"
+        echo "####################################################################################"
+    fi
+fi
+
 owner_coldkey="${subnet_prefix}_coldkey_owner"
 validator_coldkey_prefix="${subnet_prefix}_coldkey_validator"
 validator_hotkey_prefix="${subnet_prefix}_hotkey_validator"
@@ -117,16 +170,19 @@ miner_hotkey_prefix="${subnet_prefix}_hotkey_miner"
 if [ $skip_wallet -eq 1 ]; then
     prefix=$(dirname "$0")
 
-    ### CREATE OWNER
-    python3 ${prefix}/create_wallet.py --coldkey_name ${owner_coldkey} --hotkey_name ${subnet_prefix}_hotkey_owner --local True
+    if [[ $test_net -eq 1 && $main_net -eq 1 ]]; then
+        # only create an owner if it's localnet
+        ### CREATE OWNER
+        python3 ${prefix}/create_wallet.py --coldkey_name ${owner_coldkey} --hotkey_name ${subnet_prefix}_hotkey_owner $local_var
+    fi
 
     ### CREATE num_validators validators
     # this will return an index at the end like _0 for the first and _1 for the second and so on after the passed in key name
-    python3 ${prefix}/create_wallet.py --coldkey_name ${validator_coldkey_prefix} --hotkey_name ${validator_hotkey_prefix} --num $num_validators --local True
+    python3 ${prefix}/create_wallet.py --coldkey_name ${validator_coldkey_prefix} --hotkey_name ${validator_hotkey_prefix} --num $num_validators $local_var
 
     ### CREATE num_miners miners
     # this will return an index at the end like _0 for the first and _1 for the second and so on after the passed in key name
-    python3 ${prefix}/create_wallet.py --coldkey_name ${miner_coldkey_prefix} --hotkey_name ${miner_hotkey_prefix} --num $num_miners --local True
+    python3 ${prefix}/create_wallet.py --coldkey_name ${miner_coldkey_prefix} --hotkey_name ${miner_hotkey_prefix} --num $num_miners $local_var
 fi
 
 ############ FUND THE WALLETS ############
@@ -175,8 +231,8 @@ if [ $skip_reg -eq 1 ]; then
         for i in $(seq $num_validators)
         do
             expect -c "
-                spawn btcli subnet register --wallet.name ${validator_coldkey_prefix}_$((i-1)) --wallet.hotkey ${validator_hotkey_prefix}_$((i-1)) --subtensor.chain_endpoint ws://127.0.0.1:9946
-                expect -re \"Enter netuid\" {send \"1\r\";}
+                spawn btcli subnet register --wallet.name ${validator_coldkey_prefix}_$((i-1)) --wallet.hotkey ${validator_hotkey_prefix}_$((i-1)) $subnet_network
+                expect -re \"Enter netuid\" {send \"$netuid\r\";}
                 expect -re \"want to continue?\" {send \"y\r\";}
                 expect -re \"register on subnet:1\" {send \"y\r\"; interact} 
             "
@@ -188,8 +244,8 @@ if [ $skip_reg -eq 1 ]; then
         for i in $(seq $num_miners)
         do
             expect -c "
-                spawn btcli subnet register --wallet.name ${miner_coldkey_prefix}_$((i-1)) --wallet.hotkey ${miner_hotkey_prefix}_$((i-1)) --subtensor.chain_endpoint ws://127.0.0.1:9946
-                expect -re \"Enter netuid\" {send \"1\r\";}
+                spawn btcli subnet register --wallet.name ${miner_coldkey_prefix}_$((i-1)) --wallet.hotkey ${miner_hotkey_prefix}_$((i-1)) $subnet_network
+                expect -re \"Enter netuid\" {send \"$netuid\r\";}
                 expect -re \"want to continue?\" {send \"y\r\";}
                 expect -re \"register on subnet:1\" {send \"y\r\"; interact} 
             "
@@ -206,7 +262,7 @@ if [ $skip_launch -eq 1 ]; then
     echo "####################################################################################"
     for i in $(seq $num_miners)
     do
-        python3 neurons/miner.py --netuid 1 --subtensor.chain_endpoint ws://127.0.0.1:9946 --wallet.name ${miner_coldkey_prefix}_$((i-1)) --wallet.hotkey ${miner_hotkey_prefix}_$((i-1)) --logging.debug --axon.port $((8090+i)) &
+        python3 neurons/miner.py --netuid $netuid $subnet_network --wallet.name ${miner_coldkey_prefix}_$((i-1)) --wallet.hotkey ${miner_hotkey_prefix}_$((i-1)) --logging.debug --axon.port $((8090+i)) &
     done
     
     if [ $skip_launch_v -eq 1 ]; then
@@ -215,7 +271,7 @@ if [ $skip_launch -eq 1 ]; then
 
         for i in $(seq $num_validators)
         do
-            python3 neurons/validator.py --netuid 1 --subtensor.chain_endpoint ws://127.0.0.1:9946 --wallet.name ${validator_coldkey_prefix}_$((i-1)) --wallet.hotkey ${validator_hotkey_prefix}_$((i-1)) --logging.debug --axon.port $((8090+i+num_miners)) &
+            python3 neurons/validator.py --netuid $netuid $subnet_network --wallet.name ${validator_coldkey_prefix}_$((i-1)) --wallet.hotkey ${validator_hotkey_prefix}_$((i-1)) --logging.debug --axon.port $((8090+i+num_miners)) &
         done
     fi
 fi
