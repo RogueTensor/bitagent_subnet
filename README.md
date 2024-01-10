@@ -84,7 +84,7 @@ You can use several flags to configure:
 - or if it registers wallets,
 - or just launches a miner
 ```bash
-bitagent_subnet$ ./scripts/setup_and_run.sh -h
+bitagent_subnet$ ./scripts/setup_and_run.sh --help
 
 Creates wallets for the subnet (owner, validators, miners), funds them, registers them, then starts them.
 
@@ -95,7 +95,7 @@ usage: ./scripts/setup_and_run.sh --num_validators num --num_miners num --subnet
   --num_miners     num     number of miners to launch
                            (default: 2)
   --subnet_prefix  string  the prefix of the subnet wallets
-                           (default: local_subnet_testing_bitagent)
+                           (default: local_subnet_testing_bitqna)
   --skip-wallet            skip wallet creation
                            (default: run wallet creation)
   --skip-faucet            skip wallet funding
@@ -114,6 +114,12 @@ usage: ./scripts/setup_and_run.sh --num_validators num --num_miners num --subnet
                            (default: launch validators)
   --only-launch            skip everything but launching
                            (default: do everything)
+  --test-net               do the same things, but for testnet
+                           (default: false, local)
+  --main-net               do the same things, but for mainnet
+                           (default: false, local)
+  --netuid                 the netuid to work with
+                           (default: 1 for local, change if main or test)
 
 Example: ./scripts/setup_and_run.sh --only-launch
 This will skip everything and just launch the already registered and funded validators and miners
