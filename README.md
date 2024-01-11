@@ -15,9 +15,10 @@
 - [Introduction](#introduction)
 - [Get Running](#get-running)
   - [BitAgent](#bitagent)
+  - [Validator](#validator)
   - [Miner](#miner)
     - [Miner Feedback](#miner-feedback)
-  - [Validator](#validator)
+  - [Advanced](#advanced)
 - [License](#license)
 
 ## Introduction
@@ -68,6 +69,39 @@ cd bitagent_subnet
 python -m pip install -r requirements.txt
 python -m pip install -e .
 ```
+
+### Validator
+If you just want to run the validator without the [script](./scripts/setup_and_run.sh) or are connecting to mainnet:
+```bash
+# for testing
+python3 neurons/validator.py --netuid 1 --subtensor.chain_endpoint ws://127.0.0.1:9946 --wallet.name <COLDKEY> --wallet.hotkey <HOTKEY>
+# for mainnet
+pm2 start neurons/validator.py --interpreter python3 -- --netuid 20 --subtensor.network <LOCAL/FINNEY/TEST> --wallet.name <COLDKEY> --wallet.hotkey <HOTKEY> --axon.port <PORT>
+# for mainnet with AUTO UPDATES (recommended)
+pm2 start run.sh --name bitagent_validators_autoupdate -- --wallet.name <your-wallet-name> --wallet.hotkey <your-wallet-hot-key> --netuid 20
+```
+
+### Miner
+If you just want to run the miner without the [script](./scripts/setup_and_run.sh) or are connecting to mainnet:
+```bash
+# for testing
+python3 neurons/miner.py --netuid 1 --subtensor.chain_endpoint ws://127.0.0.1:9946 --wallet.name <COLDKEY> --wallet.hotkey <HOTKEY>
+# for mainnet
+pm2 start neurons/miner.py --interpreter python3 -- --netuid 20 --subtensor.network <LOCAL/FINNEY/TEST> --wallet.name <COLDKEY> --wallet.hotkey <HOTKEY> --axon.port <PORT>
+```
+
+#### Miner Feedback
+As a miner, you receive tasks, you get rewarded, but often you do not know what you're being graded on.
+BitAgent offers transparent feedback (in debug mode), so you know what you're up against.
+
+Here's an example of a well performed task:
+![miner feedback - good example](./docs/examples/output_to_miner.png)
+
+Here's an example of a poorly performed task:
+![miner feedback - bad example](./docs/examples/bad_output_to_miner.png)
+
+### Advanced
+If you have a need to create and fund wallets for your own testing ...
 
 After getting the [subtensor package started and a subnet up and running](./docs/running_on_staging.md) (for staging/local) - you can use this [script](./scripts/setup_and_run.sh) to:
 - create wallets (for owner, validators, miners),
@@ -123,36 +157,6 @@ usage: ./scripts/setup_and_run.sh --num_validators num --num_miners num --subnet
 
 Example: ./scripts/setup_and_run.sh --only-launch
 This will skip everything and just launch the already registered and funded validators and miners
-```
-
-### Miner
-If you just want to run the miner without the [script](./scripts/setup_and_run.sh) or are connecting to mainnet:
-```bash
-# for testing
-python3 neurons/miner.py --netuid 1 --subtensor.chain_endpoint ws://127.0.0.1:9946 --wallet.name <COLDKEY> --wallet.hotkey <HOTKEY>
-# for mainnet
-pm2 start neurons/miner.py --interpreter python3 -- --netuid 20 --subtensor.network <LOCAL/FINNEY/TEST> --wallet.name <COLDKEY> --wallet.hotkey <HOTKEY> --axon.port <PORT>
-```
-
-#### Miner Feedback
-As a miner, you receive tasks, you get rewarded, but often you do not know what you're being graded on.
-BitAgent offers transparent feedback (in debug mode), so you know what you're up against.
-
-Here's an example of a well performed task:
-![miner feedback - good example](./docs/examples/output_to_miner.png)
-
-Here's an example of a poorly performed task:
-![miner feedback - bad example](./docs/examples/bad_output_to_miner.png)
-
-### Validator
-If you just want to run the validator without the [script](./scripts/setup_and_run.sh) or are connecting to mainnet:
-```bash
-# for testing
-python3 neurons/validator.py --netuid 1 --subtensor.chain_endpoint ws://127.0.0.1:9946 --wallet.name <COLDKEY> --wallet.hotkey <HOTKEY>
-# for mainnet
-pm2 start neurons/validator.py --interpreter python3 -- --netuid 20 --subtensor.network <LOCAL/FINNEY/TEST> --wallet.name <COLDKEY> --wallet.hotkey <HOTKEY> --axon.port <PORT>
-# for mainnet with AUTO UPDATES (recommended)
-pm2 start run.sh --name bitagent_validators_autoupdate -- --wallet.name <your-wallet-name> --wallet.hotkey <your-wallet-hot-key> --netuid 20
 ```
 ---
 
