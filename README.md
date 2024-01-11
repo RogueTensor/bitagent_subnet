@@ -76,7 +76,7 @@ After getting the [subtensor package started and a subnet up and running](./docs
 - start miners and validators
 
 ```bash
-./script/setup_and_run.sh
+./scripts/setup_and_run.sh
 ```
 You can use several flags to configure:
 - the number of miners or validators it sets up,
