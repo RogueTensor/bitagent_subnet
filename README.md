@@ -6,7 +6,7 @@
 
 ---
 
-## Q&A and Tasking with Your Data and Your World <!-- omit in toc -->
+## Tasking and Q&A with Your Data and Your World <!-- omit in toc -->
 
 [Discord](https://discord.gg/bittensor) • [Network](https://taostats.io/) • [Research](https://bittensor.com/whitepaper)
 </div>
