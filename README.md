@@ -42,7 +42,7 @@ examples:
     - This time you own your own company, let's say you own an IT support company that works with legal firms, dentist offices, etc.  You've collected a knowledge base over many years and you never know what requests will come through.  A few seconds ago, a new, verified request came in from the head of HR at some legal firm, letting you know that <so-in-so> just joined the team and needs their accounts and access setup.  Using our subnet API, you can have the subnet be your first line of defense, by doing the tasks that you give it access to perform. 
 
 To be successful, Thrust 2 requires all aspects of Thrust 1, so we're working initial efforts in those areas.
-However our future vision is to leverage and integrate other subnets for some of Thrust 1 and provide SOTA (state-of-the-art) capabilities in the other areas.
+However our future vision is to leverage and integrate other subnets for some/all of Thrust 1 and provide SOTA (state-of-the-art) capabilities in the other areas.
 
 ### Key Features
 
