@@ -76,7 +76,7 @@ After getting the [subtensor package started and a subnet up and running](./docs
 - start miners and validators
 
 ```bash
-./script/setup_and_run.sh
+./scripts/setup_and_run.sh
 ```
 You can use several flags to configure:
 - the number of miners or validators it sets up,
@@ -151,6 +151,8 @@ If you just want to run the validator without the [script](./scripts/setup_and_r
 python3 neurons/validator.py --netuid 1 --subtensor.chain_endpoint ws://127.0.0.1:9946 --wallet.name <COLDKEY> --wallet.hotkey <HOTKEY>
 # for mainnet
 pm2 start neurons/validator.py --interpreter python3 -- --netuid 20 --subtensor.network <LOCAL/FINNEY/TEST> --wallet.name <COLDKEY> --wallet.hotkey <HOTKEY> --axon.port <PORT>
+# for mainnet with AUTO UPDATES (recommended)
+pm2 start run.sh --name bitagent_validators_autoupdate -- --wallet.name <your-wallet-name> --wallet.hotkey <your-wallet-hot-key> --netuid 20
 ```
 ---
 
