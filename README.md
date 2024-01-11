@@ -15,9 +15,10 @@
 - [Introduction](#introduction)
 - [Get Running](#get-running)
   - [BitAgent](#bitagent)
+  - [Validator](#validator)
   - [Miner](#miner)
     - [Miner Feedback](#miner-feedback)
-  - [Validator](#validator)
+  - [Advanced](#advanced)
 - [License](#license)
 
 ## Introduction
