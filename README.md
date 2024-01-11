@@ -50,9 +50,11 @@ However our future vision is to leverage and integrate other subnets for some of
   - Discord bot - to, at a minimum, provide an answer to the seemingly daily (hourly?) question about getting testnet tao ;)
   - Web and Form Filler application
   - Browser plugin (see examples above)
-- BYOD and real-time ingestion 
+- Leveraging concepts from [voyager](https://voyager.minedojo.org/) / [blenderGPT](https://github.com/gd3kr/BlenderGPT) / [chain of code](https://chain-of-code.github.io/) for real world applications
+- BYOD and real-time ingestion / operation
 - No API requirements
 - Miner's receive [transparent feedback](#miner-feedback)
+- And a BONUS for getting this far - are you tired of waiting for registration slots?  Check out [register.sh](./scripts/register.sh)
   
 ---
 
