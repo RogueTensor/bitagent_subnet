@@ -17,7 +17,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 # TODO(developer): Change this value when updating your code base.
-# Define the version of the template module.
+# Define the version of the common module.
 __version__ = "0.1.0"
 version_split = __version__.split(".")
 __spec_version__ = (
