@@ -24,16 +24,16 @@
 
 BitAgent has 2 core thrusts:
 
-1) **Q&A/Tasking** - comes in a few flavors - a) with your data in real time (BYOD), b) summarization of large data (BYOD), c) logic-based reasoning and d) agency (tool execution, operation performance)
-Examples: 
+1) **Q&A/Tasking** - comes in a few flavors - a) with your data in real time (BYOD), b) summarization of large data (BYOD), c) logic-based reasoning and d) agency (tool execution, operation performance), 
+examples: 
      - Fill in this form, from this source data, to match the tone and professionalism of these prior examples
      - Plot the occurrence of key topics as they accumulate in this data
      - Provide metrics to align with these requirements and provide a test suite in python
      - Grab the last 3 weeks of publications from arxiv that have to do with Generative AI and provide a summary for each
      - We just received this support ticket, here's our knowledge base, please update the ticket with a procedure for the tier 1 support to follow
 
-2) **Integrated Orchestration** - this is task completion initiated by natural language for application
-Examples:
+2) **Integrated Orchestration** - this is task completion initiated by natural language for application, 
+examples:
     - You're using the browser plugin/extension built on this subnet (Coming Soon) - you can Q&A from that website about that website
     - Again with the subnet's browser plugin - you're on a really complex web page and you just can't concentrate, it's too intense - you head over to the browser plugin and you click on the provided ELI5 (explain like I'm 5) button to convert all the complex text on the page to easy-to-understand text.
     - Again, with the plugin, you're on amazon and you're met with a TON of reviews, most of which look fake - your task to the subnet (via natural language to the plugin) is to "Hide all the reviews on this page that appear fake."
