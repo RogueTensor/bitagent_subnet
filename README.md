@@ -128,7 +128,7 @@ This will skip everything and just launch the already registered and funded vali
 ### Miner
 If you just want to run the miner without the [script](./scripts/setup_and_run.sh) or are connecting to mainnet:
 ```bash
-# for staging/local
+# for testing
 python3 neurons/miner.py --netuid 1 --subtensor.chain_endpoint ws://127.0.0.1:9946 --wallet.name <COLDKEY> --wallet.hotkey <HOTKEY>
 # for mainnet
 pm2 start neurons/miner.py --interpreter python3 -- --netuid 20 --subtensor.network <LOCAL/FINNEY/TEST> --wallet.name <COLDKEY> --wallet.hotkey <HOTKEY> --axon.port <PORT>
@@ -147,7 +147,7 @@ Here's an example of a poorly performed task:
 ### Validator
 If you just want to run the validator without the [script](./scripts/setup_and_run.sh) or are connecting to mainnet:
 ```bash
-# for staging/local
+# for testing
 python3 neurons/validator.py --netuid 1 --subtensor.chain_endpoint ws://127.0.0.1:9946 --wallet.name <COLDKEY> --wallet.hotkey <HOTKEY>
 # for mainnet
 pm2 start neurons/validator.py --interpreter python3 -- --netuid 20 --subtensor.network <LOCAL/FINNEY/TEST> --wallet.name <COLDKEY> --wallet.hotkey <HOTKEY> --axon.port <PORT>
