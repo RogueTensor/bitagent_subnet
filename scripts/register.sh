@@ -78,10 +78,11 @@ do
     for hotkey in "${hotkeys[@]}"; do
         # if hotkey does not exist, create it
         if [ ! -f ~/.bittensor/wallets/${coldkey}/hotkeys/$hotkey ]; then
-            echo "##############################################################################"
+            echo "#######################################################################################"
             echo "$hotkey not found! Creating it under $coldkey. Make sure to grab the mnemonic."
             echo "NOTE: mnemonic info will be logged to mnemonics.txt"
-            echo "##############################################################################"
+            echo "WARNING: make sure to clear out the mnemonics.txt file and don't leave it on the system"
+            echo "#######################################################################################"
             btcli w new_hotkey --wallet.name $coldkey --wallet.hotkey $hotkey 2>&1 >> mnemonics.txt
         fi
 
