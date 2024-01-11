@@ -76,6 +76,15 @@ netuid=${netuid:-20}
 while true
 do
     for hotkey in "${hotkeys[@]}"; do
+        # if hotkey does not exist, create it
+        if [ ! -f ~/.bittensor/wallets/${coldkey}/hotkeys/$hotkey ]; then
+            echo "##############################################################################"
+            echo "$hotkey not found! Creating it under $coldkey. Make sure to grab the mnemonic."
+            echo "NOTE: mnemonic info will be logged to mnemonics.txt"
+            echo "##############################################################################"
+            btcli w new_hotkey --wallet.name $coldkey --wallet.hotkey $hotkey 2>&1 >> mnemonics.txt
+        fi
+
         expect -c "
             spawn btcli subnet register --wallet.name $coldkey --wallet.hotkey $hotkey --subtensor.network finney --netuid $netuid
             expect -re \"want to continue?\" {send \"y\r\";}
