@@ -6,7 +6,7 @@
 
 ---
 
-## Q&A and Tasking with Your Data and Your World <!-- omit in toc -->
+## Tasking and Q&A with Your Data and Your World <!-- omit in toc -->
 
 [Discord](https://discord.gg/bittensor) • [Network](https://taostats.io/) • [Research](https://bittensor.com/whitepaper)
 </div>
@@ -68,6 +68,11 @@ git clone https://github.com/RogueTensor/bitagent_subnet
 cd bitagent_subnet
 python -m pip install -r requirements.txt
 python -m pip install -e .
+```
+
+Then make sure to register your intended wallet (coldkey, hotkey) to subnet 20:
+```bash
+btcli subnet register --wallet.name $coldkey --wallet.hotkey $hotkey --subtensor.network finney --netuid 20
 ```
 
 ### Validator
