@@ -17,8 +17,23 @@
 # DEALINGS IN THE SOFTWARE.
 
 #example:
-#   ./scripts/register.sh --coldkey roguetensor.main.cold --password "<password with special chars escaped>" --hotkeys roguetensor.main.hot roguetensor.main.hot2
+#   ./scripts/register.sh --coldkey <YOUR COLDKEY> --password "<password with special chars escaped>" --hotkeys <YOUR HOTKEY1> <YOUR HOTKEY2>
 # NOTE if you pass in the password here, you'll want to put a space in front of the command (like above) so that it won't save to history
+# RISK ^^^ look at the NOTE above
+
+#########################
+# WHAT THIS SCRIPT DOES #
+# USE AT YOUR OWN RISK  #
+#########################
+# You need a wallet for a coldkey, that's YOUR COLDKEY
+# You need some amount of Tao in that wallet, enough to register to the subnet you want to register to
+# THEN
+# Pass in the hotkey(s) you want to register (they don't have to exist - we'll create them for you) [See example above]
+# Let the script do the rest
+# -- sends "y" keys when needed to confirm registration
+# -- sends your password when needed to decrypt the wallet/send tao
+# -- keeps trying until you stop it (even if it's successfully registered)
+# RISK: this script is unsupervised and WILL spend your Tao, please review and determine for yourself if this is a RISK you are willing to take
 
 ############ GET THE ARGS ############
 programname=$0
