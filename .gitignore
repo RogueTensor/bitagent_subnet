@@ -161,3 +161,4 @@ cython_debug/
 
 testing/
 env/
+app.config.js
