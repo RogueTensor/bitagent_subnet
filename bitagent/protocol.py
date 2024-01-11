@@ -50,3 +50,6 @@ class QnAResult(bt.Synapse):
     - results: string of results to be printed to the logs
     """
     results: str
+
+class IsAlive(bt.Synapse):
+    response: bool
