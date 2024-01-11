@@ -46,9 +46,9 @@ However our future vision is to leverage and integrate other subnets for some/al
 
 ### Key Features
 
-- Downstream application towards this vision are in the works:
+- Downstream applications towards this vision are in the works:
   - Discord bot - to, at a minimum, provide an answer to the seemingly daily (hourly?) question about getting testnet tao ;)
-  - Web and Form Filler application
+  - Web and Form Filler applications
   - Browser plugin (see examples above)
 - Leveraging concepts from [voyager](https://voyager.minedojo.org/) / [blenderGPT](https://github.com/gd3kr/BlenderGPT) / [chain of code](https://chain-of-code.github.io/) for real world applications
 - BYOD and real-time ingestion / operation
