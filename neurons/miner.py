@@ -58,6 +58,7 @@ class Miner(BaseMinerNeuron):
         self.forward_capabilities = [
             {'forward': self.forward_for_task, 'blacklist': self.blacklist_for_task, 'priority': self.priority_for_task},
             {'forward': self.forward_for_result, 'blacklist': self.blacklist_for_result, 'priority': self.priority_for_result},
+            {'forward': self.forward_for_alive, 'blacklist': self.blacklist_for_alive, 'priority': self.priority_for_alive},
         ]
         if not config:
             config = util_config(self)
@@ -96,6 +97,12 @@ class Miner(BaseMinerNeuron):
     ) -> bitagent.protocol.QnAResult:
         if self.config.logging.debug:
             rich_console.print(synapse.results)
+        return synapse
+
+    async def forward_for_alive(
+        self, synapse: bitagent.protocol.IsAlive
+    ) -> bitagent.protocol.IsAlive:
+        synapse.response = True
         return synapse
 
 
@@ -158,6 +165,9 @@ class Miner(BaseMinerNeuron):
     async def blacklist_for_result(self, synapse: bitagent.protocol.QnAResult) -> Tuple[bool, str]:
         return await self.__blacklist(synapse)
 
+    async def blacklist_for_alive(self, synapse: bitagent.protocol.IsAlive) -> Tuple[bool, str]:
+        return await self.__blacklist(synapse)
+
     async def __priority(self, synapse: bt.Synapse) -> float:
         """
         The priority function determines the order in which requests are handled. More valuable or higher-priority
@@ -194,6 +204,9 @@ class Miner(BaseMinerNeuron):
         return await self.__priority(synapse)
 
     async def priority_for_result(self, synapse: bitagent.protocol.QnAResult) -> float:
+        return await self.__priority(synapse)
+
+    async def priority_for_alive(self, synapse: bitagent.protocol.IsAlive) -> float:
         return await self.__priority(synapse)
 
     async def forward(self, synapse: bt.Synapse) -> bt.Synapse:
