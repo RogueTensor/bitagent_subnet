@@ -72,7 +72,7 @@ python -m pip install -e .
 
 Then make sure to register your intended wallet (coldkey, hotkey) to subnet 20:
 ```bash
-btcli subnet register --wallet.name $coldkey --wallet.hotkey $hotkey --subtensor.network finney --netuid $netuid
+btcli subnet register --wallet.name $coldkey --wallet.hotkey $hotkey --subtensor.network finney --netuid 20
 ```
 
 ### Validator
