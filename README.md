@@ -70,6 +70,11 @@ python -m pip install -r requirements.txt
 python -m pip install -e .
 ```
 
+Then make sure to register your intended wallet (coldkey, hotkey) to subnet 20:
+```bash
+btcli subnet register --wallet.name $coldkey --wallet.hotkey $hotkey --subtensor.network finney --netuid $netuid
+```
+
 ### Validator
 If you just want to run the validator without the [script](./scripts/setup_and_run.sh) or are connecting to mainnet:
 ```bash
