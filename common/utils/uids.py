@@ -48,18 +48,17 @@ def get_random_uids(
         )
         uid_is_not_excluded = exclude is None or uid not in exclude
 
-        # actually check that the axon is there and alive
-        result = self.dendrite.query(
-            # Send the query to selected miner axons in the network.
-            axons=[self.metagraph.axons[uid]],
-            # Construct a query. 
-            synapse=bitagent.protocol.IsAlive(response=False),
-            # All responses have the deserialize function called on them before returning.
-            # You are encouraged to define your own deserialization function.
-            deserialize=False,
-        )
-        uid_is_available = result[0].response
-
+        ## actually check that the axon is there and alive
+        #result = self.dendrite.query(
+        #    # Send the query to selected miner axons in the network.
+        #    axons=[self.metagraph.axons[uid]],
+        #    # Construct a query. 
+        #    synapse=bitagent.protocol.IsAlive(response=False),
+        #    # All responses have the deserialize function called on them before returning.
+        #    # You are encouraged to define your own deserialization function.
+        #    deserialize=False,
+        #)
+        #uid_is_available = result[0].response
 
         if uid_is_available:
             avail_uids.append(uid)
