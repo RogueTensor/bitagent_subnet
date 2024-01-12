@@ -47,13 +47,13 @@ def does_not_take_a_long_time(task, validator: BaseValidatorNeuron, response: bt
         
     feedback = f"You responded to the request in {process_time}."
     reward = 0.0
-    if process_time <= 2.0: 
+    if process_time <= 6.0: 
         reward = 0.50
         return reward, max_reward, good_message(feedback) + received_reward_template.format(reward,max_reward)
-    if process_time <= 5.0:
+    if process_time <= 10.0:
         reward = 0.25
         return reward, max_reward, good_message(feedback, color="yellow") + received_reward_template.format(reward,max_reward)
-    if process_time <= 10.0:
+    if process_time <= 15.0:
         reward = 0.10
         return reward, max_reward, bad_message(feedback, color="yellow") + received_reward_template.format(reward,max_reward)
     return reward, max_reward, bad_message(feedback) + received_reward_template.format(reward,max_reward)
