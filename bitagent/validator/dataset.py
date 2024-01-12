@@ -27,7 +27,7 @@ class QnADataset(Iterator):
         seed = random.randint(0, 1000)
         self.datasets = [ 
             iter(
-                load_dataset("openwebtext", split="train", streaming=True).shuffle(
+                load_dataset("openwebtext", split="train", streaming=True, trust_remote_code=True).shuffle(
                     seed=seed, buffer_size=10000
                 )
             ),
@@ -36,6 +36,7 @@ class QnADataset(Iterator):
                     "togethercomputer/RedPajama-Data-1T",
                     "default",
                     split="train",
+                    trust_remote_code=True,
                     streaming=True,
                 ).shuffle(seed=seed, buffer_size=10000)
             )
@@ -60,12 +61,12 @@ class SummaryDataset(Iterator):
                      "samsum": {"text": "dialogue", "summary":"summary"}}
         self.datasets = { 
             "samsum": iter(
-                load_dataset("samsum", split="train", streaming=True).shuffle(
+                load_dataset("samsum", split="train", streaming=True, trust_remote_code=True).shuffle(
                     seed=seed, buffer_size=10000
                 )
             ),
             "cnn_dailymail": iter(
-                load_dataset("cnn_dailymail", "3.0.0", split="train", streaming=True).shuffle(
+                load_dataset("cnn_dailymail", "3.0.0", split="train", streaming=True, trust_remote_code=True).shuffle(
                     seed=seed, buffer_size=10000)
             )
         }
