@@ -83,12 +83,25 @@ btcli subnet register --wallet.name $coldkey --wallet.hotkey $hotkey --subtensor
 ```
 
 ### Validator
+
+Install [PM2](https://pm2.io/docs/runtime/guide/installation/) and the [`jq` package](https://jqlang.github.io/jq/) on your system.
+   **On Linux**:
+   ```bash
+   sudo apt update && sudo apt install jq && sudo apt install npm && sudo npm install pm2 -g && pm2 update
+   ``` 
+   **On Mac OS**
+   ```bash
+   brew update && brew install jq && brew install npm && sudo npm install pm2 -g && pm2 update
+   ```
+
 If you just want to run the validator without the [script](./scripts/setup_and_run.sh) or are connecting to mainnet:
 ```bash
 # for testing
 python3 neurons/validator.py --netuid 1 --subtensor.chain_endpoint ws://127.0.0.1:9946 --wallet.name <COLDKEY> --wallet.hotkey <HOTKEY>
+
 # for mainnet
 pm2 start neurons/validator.py --interpreter python3 -- --netuid 20 --subtensor.network <LOCAL/FINNEY/TEST> --wallet.name <COLDKEY> --wallet.hotkey <HOTKEY> --axon.port <PORT>
+
 # for mainnet with AUTO UPDATES (recommended)
 pm2 start run.sh --name bitagent_validators_autoupdate -- --wallet.name <your-wallet-name> --wallet.hotkey <your-wallet-hot-key> --netuid 20
 ```
