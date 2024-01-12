@@ -84,7 +84,7 @@ btcli subnet register --wallet.name $coldkey --wallet.hotkey $hotkey --subtensor
 
 ### Validator
 
-Install [PM2](https://pm2.io/docs/runtime/guide/installation/) and the [`jq` package](https://jqlang.github.io/jq/) on your system.
+Install [PM2](https://pm2.io/docs/runtime/guide/installation/) and the [`jq` package](https://jqlang.github.io/jq/) on your system.\
    **On Linux**:
    ```bash
    sudo apt update && sudo apt install jq && sudo apt install npm && sudo npm install pm2 -g && pm2 update
