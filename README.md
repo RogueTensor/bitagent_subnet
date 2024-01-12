@@ -19,6 +19,7 @@
   - [Miner](#miner)
     - [Miner Feedback](#miner-feedback)
   - [Advanced](#advanced)
+- [FAQ](#faq)
 - [License](#license)
 
 ## Introduction
@@ -61,7 +62,7 @@ However our future vision is to leverage and integrate other subnets for some/al
 ## Get Running
 
 - Before getting too far, please make sure you've looked over the [Bittensor documentation](https://docs.bittensor.com/) for you needs.
-- **IMPORTANT:** Make sure you are aware of the minimum compute requirements for your subnet. See the [Minimum compute YAML configuration](./min_compute.yml).
+- For now, the min compute requirements are REALLY low - the validators and miners currently use an LLM that can run on CPU, with a very small footprint (800M params).
 
 ### BitAgent
 This repository requires python3.8 or higher. To install, simply clone this repository and install the requirements.
@@ -165,6 +166,18 @@ usage: ./scripts/setup_and_run.sh --num_validators num --num_miners num --subnet
 Example: ./scripts/setup_and_run.sh --only-launch
 This will skip everything and just launch the already registered and funded validators and miners
 ```
+---
+
+## FAQ
+Q: How much GPU (VRAM/cores) do I need to run a miner in Phase 1?
+A: You don't need a GPU at all, the LLMs being used can run on CPU.
+
+Q: I am seeing: RuntimeWarning: coroutine 'Server.serve' was never awaited - help?
+A: Asked and [answered by Carro](https://discord.com/channels/799672011265015819/1161765008347254915/1188957429392756818)
+
+Q: Are there any required subscriptions or APIs?
+A: No - no subs, no external companies, in fact we'd rather the community build something amazing rather than relying on corporations.
+
 ---
 
 ## License
