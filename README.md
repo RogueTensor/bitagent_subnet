@@ -186,14 +186,14 @@ This will skip everything and just launch the already registered and funded vali
 ---
 
 ## FAQ
-Q: How much GPU (VRAM/cores) do I need to run a miner in Phase 1?
+Q: How much GPU (VRAM/cores) do I need to run a miner in Phase 1?\
 A: You don't need a GPU at all, the LLMs being used can run on CPU.
 
-Q: I am seeing: RuntimeWarning: coroutine 'Server.serve' was never awaited - help?
+Q: I am seeing: RuntimeWarning: coroutine 'Server.serve' was never awaited - help?\
 A: Asked and [answered by Carro](https://discord.com/channels/799672011265015819/1161765008347254915/1188957429392756818)
 
-Q: Are there any required subscriptions or APIs?
-A: No - no subs, no external companies, in fact we'd rather the community build something amazing rather than relying on corporations.
+Q: Are there any required subscriptions or APIs?\
+A: No - no subs, no external companies, in fact we'd rather the community build amazing AI capabilities than relying on corporations.
 
 ---
 
