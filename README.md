@@ -53,7 +53,11 @@ However our future vision is to leverage and integrate other subnets for some/al
   - Browser plugin (see examples above)
 - Leveraging concepts from [voyager](https://voyager.minedojo.org/) / [blenderGPT](https://github.com/gd3kr/BlenderGPT) / [chain of code](https://chain-of-code.github.io/) for real world applications
 - BYOD and real-time ingestion / operation
-- No API / subscription requirements
+- Very low barrier-to-entry out the gate
+  - low miner / validator requirements
+  - no GPU requirement
+  - No API / subscription requirements
+  - and a provided miner that solves most of the current challenges/tasks
 - Miner's receive [transparent feedback](#miner-feedback)
 - And a BONUS for getting this far - are you tired of waiting for registration slots?  Check out [register.sh](./scripts/register.sh)
   
