@@ -180,7 +180,7 @@ Q: I am seeing: RuntimeWarning: coroutine 'Server.serve' was never awaited - hel
 A: Asked and [answered by Carro](https://discord.com/channels/799672011265015819/1161765008347254915/1188957429392756818)
 
 Q: Are there any required subscriptions or APIs?\
-A: No - no subs, no external companies, in fact we'd rather the community build something amazing rather than relying on corporations.
+A: No - no subs, no external companies, in fact we'd rather the community build amazing AI capabilities than relying on corporations.
 
 ---
 
