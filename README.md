@@ -75,6 +75,7 @@ git clone https://github.com/RogueTensor/bitagent_subnet
 cd bitagent_subnet
 python -m pip install -r requirements.txt
 python -m pip install -e .
+python -m pip uninstall uvloop # b/c it causes issues with threading/loops
 ```
 
 Then make sure to register your intended wallet (coldkey, hotkey) to subnet 20:
