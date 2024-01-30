@@ -69,4 +69,4 @@ basic_citations = [
     Criterion(name="Must have correct citation source", desc="", eval_fx=contains_correct_citation_source),
 ]
 basic_no_citations = Criterion(name="Must not return any citations", desc="", eval_fx=contains_number_citations, eval_args=[0, 0])
-simple_context_aware = Criterion(name="Must return a valid response baesd on context", desc="", eval_fx=correct_response_provided_simple)
+simple_context_aware = Criterion(name="Must return a valid response based on context", desc="", eval_fx=correct_response_provided_simple)
