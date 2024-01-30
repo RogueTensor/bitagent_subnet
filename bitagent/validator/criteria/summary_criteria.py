@@ -24,7 +24,7 @@ from bitagent.validator.criteria.utils import good_message, bad_message, receive
 def correct_summary_provided(task, validator: BaseValidatorNeuron, response: bt.Synapse, summary: str) -> [float, float, str]:
     max_reward = 1.0
     try:
-        prompt = response.prompt
+        prompt = task.synapse.prompt
         completion = response.response['response']
     except KeyError:
         reward = -0.5

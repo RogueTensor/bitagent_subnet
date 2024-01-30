@@ -152,7 +152,7 @@ def correct_response_provided(task, validator: BaseValidatorNeuron, response: bt
         citations = response.response['citations']
         cited_sources = [c['source'] for c in citations]
         cited_texts = [c['context'] for c in citations]
-        prompt = response.prompt
+        prompt = task.synapse.prompt
         sources = [d['source'] for d in response.datas]
         texts = [d['context'] for d in response.datas]
         completion = response.response['response']
