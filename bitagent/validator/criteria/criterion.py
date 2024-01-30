@@ -37,7 +37,13 @@ class Criterion():
         self.eval_args = eval_args
 
     def evaluate(self, task, validator: BaseValidatorNeuron, response: bt.Synapse) -> [float, float, str]:
-        reward, max_reward, feedback = self.eval_fx(task, validator, response, *self.eval_args)
+        try:
+            reward, max_reward, feedback = self.eval_fx(task, validator, response, *self.eval_args)
+        except Exception as e:
+            bt.logging.info(f"Exception was raised during criteria evaluation: {e}")
+            reward = -50.0
+            max_reward = 50.0
+            feedback = bad_message("Exception while processing your response, please check format per protocol")
         feedback = f"[bold blue]{self.name}[/bold blue]\n" + feedback
         return reward, max_reward, feedback
 
