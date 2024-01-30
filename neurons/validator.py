@@ -45,6 +45,7 @@ class Validator(BaseValidatorNeuron):
         self.load_state()
 
         # TODO(developer): Anything specific to your use case you can do here
+        bt.logging.info("initiate_validator()")
         initiate_validator(self)
 
     async def forward(self):

@@ -18,6 +18,7 @@
 import random
 import threading
 import socketserver
+import bittensor as bt
 from faker import Faker
 from http.server import SimpleHTTPRequestHandler
 from bitagent.validator.dataset import QnADataset, SummaryDataset
@@ -26,6 +27,7 @@ import transformers
 from transformers import T5Tokenizer, T5ForConditionalGeneration
 
 def initiate_validator(self):
+    bt.logging.info("Initializing Validator - this may take a while (downloading data and models).")
     # load a simple LLM for evals
     transformers.logging.set_verbosity_error()
     self.tokenizer = T5Tokenizer.from_pretrained("google/flan-t5-large", legacy=False)
@@ -46,5 +48,5 @@ def initiate_validator(self):
     self.summary_dataset = SummaryDataset()
 
     # faker data
-    self.fake = Faker()
     Faker.seed(random.randint(0,2000))
+    self.fake = Faker()
