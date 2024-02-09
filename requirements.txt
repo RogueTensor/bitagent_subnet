@@ -1,13 +1,15 @@
 accelerate==0.26.1
-bittensor==6.6.0
+autoawq==0.1.8
+bittensor==6.7.1
 beautifulsoup4==4.12.2
 bs4==0.0.1
 chromadb==0.4.22
 datasets==2.16.1
 Faker==22.2.0
-langchain==0.1.0
+langchain>=0.1.5
 py7zr==0.20.8
 sentencepiece==0.1.99
 torch==2.1.2
 transformers==4.36.2
 uvicorn==0.22.0
+tabulate==0.9.0
