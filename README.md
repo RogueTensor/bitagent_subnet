@@ -61,7 +61,7 @@ However, our future vision is to leverage and integrate with other subnets for s
 - Miner's receive [transparent feedback](#miner-feedback)
 - And a BONUS for getting this far - are you tired of waiting for registration slots?  Check out [register.sh](./scripts/register.sh)
 
-**Products Exemplars (coming soon)**\
+**Product Exemplars (coming soon)**\
 Downstream applications towards this vision are WIP:
   - Discord bot - to, at a minimum, provide an answer to the seemingly daily (hourly?) question about getting testnet tao ;)
   - Browser plugin (see examples above)
