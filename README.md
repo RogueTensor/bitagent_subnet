@@ -32,7 +32,7 @@
 
 **Key Objective** - provide intelligent agency to simplify tasks in your day-to-day
 
-**Core Capabilities of BitAgent -**
+**Core Capabilities of BitAgent**
 1) Semantic Q&A
 2) Summarization
 3) Recency Q&A
@@ -50,7 +50,7 @@
   - Data Filtering - Again, with the plugin, you're on amazon and you're met with a TON of reviews, most of which look fake - your task to the subnet (via natural language to the plugin) is to "Hide all the reviews on this page that appear fake."
   - Customer Support - This time you own your own company, let's say you own an IT support company that works with legal firms, dentist offices, etc.  You've collected a knowledge base over many years and you never know what requests will come through.  A few seconds ago, a new, verified request came in from the head of HR at some legal firm, letting you know that "so-in-so" just joined the team and needs their accounts and access setup.  Using our subnet API, you can have the subnet be your first line of defense, by doing the tasks that you give it access to perform.
 
-**Future Vision - Integrated Subnets**
+**Future Vision - Integrated Subnets**\
 To be successful, Core Capabilities #3-#5 require all aspects of Capability #1 and #2, so we're working initial efforts in those areas.
 However, our future vision is to leverage and integrate with other subnets for some/all of the Capabilities in #1-#2 and focus our efforts to provide SOTA (state-of-the-art) capabilities in the other areas.
 
@@ -61,7 +61,7 @@ However, our future vision is to leverage and integrate with other subnets for s
 - Miner's receive [transparent feedback](#miner-feedback)
 - And a BONUS for getting this far - are you tired of waiting for registration slots?  Check out [register.sh](./scripts/register.sh)
 
-**Products Exemplars (coming soon)**
+**Products Exemplars (coming soon)**\
 Downstream applications towards this vision are WIP:
   - Discord bot - to, at a minimum, provide an answer to the seemingly daily (hourly?) question about getting testnet tao ;)
   - Browser plugin (see examples above)
