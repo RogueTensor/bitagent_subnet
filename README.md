@@ -6,7 +6,7 @@
 
 ---
 
-## Tasking and Q&A with Your Data and Your World <!-- omit in toc -->
+## Transforming Your World Through Natural Language <!-- omit in toc -->
 
 [Discord](https://discord.gg/bittensor) • [Network](https://taostats.io/) • [Research](https://bittensor.com/whitepaper)
 </div>
@@ -16,57 +16,65 @@
 - [Get Running](#get-running)
   - [BitAgent](#bitagent)
   - [Validator](#validator)
+    - [Hardware Requirements](#hardware-requirements)
   - [Miner](#miner)
+    - [Default Miner](#default-miner)
+    - [Miner Considerations](#miner-considerations)
     - [Miner Feedback](#miner-feedback)
   - [Advanced](#advanced)
+    - [Custom Miner](#custom-miner)
 - [FAQ](#faq)
 - [License](#license)
 
 ## Introduction
 
-BitAgent has 2 core thrusts:
+**Quick Pitch**: BitAgent revolutionizes how you manage tasks and workflows across platforms, merging the capabilities of large language models (LLMs) with the convenience of your favorite apps such as web browsers, Discord, and custom integrations. BitAgent empowers users to seamlessly integrate intelligent agents, providing personalized assistance and integrated task automation.
 
-1) **Q&A/Tasking** - comes in a few flavors - a) with your data in real time (BYOD), b) summarization of large data (BYOD), c) logic-based reasoning and d) agency (tool execution, operation performance), 
-examples: 
-     - Fill in this form, from this source data, to match the tone and professionalism of these prior examples
-     - Plot the occurrence of key topics as they accumulate in this data
-     - Provide metrics to align with these requirements and provide a test suite in python
-     - Grab the last 3 weeks of publications from arxiv that have to do with Generative AI and provide a summary for each
-     - We just received this support ticket, here's our knowledge base, please update the ticket with a procedure for the tier 1 support to follow
+**Key Objective** - provide intelligent agency to simplify tasks in your day-to-day
 
-2) **Integrated Orchestration** - this is task completion initiated by natural language for application, 
-examples:
-    - You're using the browser plugin/extension built on this subnet (Coming Soon) - you can Q&A from that website about that website
-    - Again with the subnet's browser plugin - you're on a really complex web page and you just can't concentrate, it's too intense - you head over to the browser plugin and you click on the provided ELI5 (explain like I'm 5) button to convert all the complex text on the page to easy-to-understand text.
-    - Again, with the plugin, you're on amazon and you're met with a TON of reviews, most of which look fake - your task to the subnet (via natural language to the plugin) is to "Hide all the reviews on this page that appear fake."
-    - Again, with our browser plugin, you're in YouTube and this video isn't getting to the point, so you task the subnet to "Skip ahead to the second instance where they begin talking about whatever"
-    - This time you own your own company, let's say you own an IT support company that works with legal firms, dentist offices, etc.  You've collected a knowledge base over many years and you never know what requests will come through.  A few seconds ago, a new, verified request came in from the head of HR at some legal firm, letting you know that "so-in-so" just joined the team and needs their accounts and access setup.  Using our subnet API, you can have the subnet be your first line of defense, by doing the tasks that you give it access to perform. 
+**Core Capabilities of BitAgent -**
+1) Semantic Q&A
+2) Summarization
+3) Recency Q&A
+4) Logic-based Q&A
+5) Integrated Orchestration
 
-To be successful, Thrust 2 requires all aspects of Thrust 1, so we're working initial efforts in those areas.
-However our future vision is to leverage and integrate other subnets for some/all of Thrust 1 and provide SOTA (state-of-the-art) capabilities in the other areas.
+**Example Use Cases**
+  - Form Filling - Fill in this tedious corporate form, from this source data, to match the tone and professionalism of these prior examples
+  - Data Analysis - Plot the occurrence of key topics as they accumulate in this data
+  - Code Testing - Provide metrics to align with these requirements and provide a test suite in python
+  - Key Insights - Grab the last 3 weeks of publications from arxiv that have to do with Generative AI and provide a summary for each
+  - Knowledge Base Management - We just received this support ticket, here's our knowledge base, please update the ticket with a procedure for the tier 1 support to follow
+  - Localized Q&A - You're using the browser plugin/extension built on this subnet (Coming Soon) - you can Q&A from that website about that website
+  - ELI5 - Again with the subnet's browser plugin - you're on a really complex web page and you just can't concentrate, it's too intense - you head over to the browser plugin and you click on the provided ELI5 (explain like I'm 5) button to convert all the complex text on the page to easy-to-understand text.
+  - Data Filtering - Again, with the plugin, you're on amazon and you're met with a TON of reviews, most of which look fake - your task to the subnet (via natural language to the plugin) is to "Hide all the reviews on this page that appear fake."
+  - Customer Support - This time you own your own company, let's say you own an IT support company that works with legal firms, dentist offices, etc.  You've collected a knowledge base over many years and you never know what requests will come through.  A few seconds ago, a new, verified request came in from the head of HR at some legal firm, letting you know that "so-in-so" just joined the team and needs their accounts and access setup.  Using our subnet API, you can have the subnet be your first line of defense, by doing the tasks that you give it access to perform.
 
-### Key Features
+**Future Vision - Integrated Subnets**
+To be successful, Core Capabilities #3-#5 require all aspects of Capability #1 and #2, so we're working initial efforts in those areas.
+However, our future vision is to leverage and integrate with other subnets for some/all of the Capabilities in #1-#2 and focus our efforts to provide SOTA (state-of-the-art) capabilities in the other areas.
 
-- Downstream applications towards this vision are in the works:
-  - Discord bot - to, at a minimum, provide an answer to the seemingly daily (hourly?) question about getting testnet tao ;)
-  - Web and Form Filler applications
-  - Browser plugin (see examples above)
+**Key Features**
 - Leveraging concepts from [voyager](https://voyager.minedojo.org/) / [blenderGPT](https://github.com/gd3kr/BlenderGPT) / [chain of code](https://chain-of-code.github.io/) for real world applications
 - BYOD and real-time ingestion / operation
-- Very low barrier-to-entry out the gate
-  - low miner / validator requirements
-  - no GPU requirement
-  - No API / subscription requirements
-  - and a provided miner that solves most of the current challenges/tasks
+- No API / subscription requirements
 - Miner's receive [transparent feedback](#miner-feedback)
 - And a BONUS for getting this far - are you tired of waiting for registration slots?  Check out [register.sh](./scripts/register.sh)
-  
+
+**Products Exemplars (coming soon)**
+Downstream applications towards this vision are WIP:
+  - Discord bot - to, at a minimum, provide an answer to the seemingly daily (hourly?) question about getting testnet tao ;)
+  - Browser plugin (see examples above)
+  - Web application (form filling, automating business workflows)
+
 ---
 
 ## Get Running
 
-- Before getting too far, please make sure you've looked over the [Bittensor documentation](https://docs.bittensor.com/) for you needs.
-- For now, the min compute requirements are REALLY low - the validators and miners currently use an LLM that can run on CPU, with a very small footprint (800M params).
+- Before getting too far, please make sure you've looked over the [Bittensor documentation](https://docs.bittensor.com/) for your needs.
+- The min compute requirements are [noted below for Validators](#hardware-requirements).
+- See [FAQ][#faq] for a few more details related to computing requirements for validators and miners.
+- The miniumum requirements for a miner are determined by the resources needed to run a competitive LLM.
 
 ### BitAgent
 This repository requires python3.8 or higher. To install, simply clone this repository and install the requirements.
@@ -107,6 +115,14 @@ pm2 start neurons/validator.py --interpreter python3 -- --netuid 20 --subtensor.
 pm2 start run.sh --name bitagent_validators_autoupdate -- --wallet.name <your-wallet-name> --wallet.hotkey <your-wallet-hot-key> --netuid 20
 ```
 
+#### Hardware Requirements
+
+Validators are responsible for generating and evaluating the miners (essentially advanced LLMs) task. \
+There are some aspects of generation and evaluation that require LLMs to accomplish. \
+The LLM our validators use is Mistral 7B, which requires about **15GB of VRAM** to run.
+
+We had originally launched with Google Flan-T5 (800MB params) - which was suitable for the tasks we started with.  But it is not suitable for the tasks we generate and evaluate now.
+
 ### Miner
 If you just want to run the miner without the [script](./scripts/setup_and_run.sh) or are connecting to mainnet:
 ```bash
@@ -115,6 +131,24 @@ python3 neurons/miner.py --netuid 20 --subtensor.chain_endpoint ws://127.0.0.1:9
 # for mainnet
 pm2 start neurons/miner.py --interpreter python3 -- --netuid 20 --subtensor.network <LOCAL/FINNEY/TEST> --wallet.name <COLDKEY> --wallet.hotkey <HOTKEY> --axon.port <PORT>
 ```
+
+#### Default Miner
+The default miner has 3 components:
+1) The Miner logic itself.
+2) The LLM - Google Flan-T5 (800MB params).  Capable of a LOT of great LLM tasks, but is no longer competitive.
+3) The VectorDB - ChromaDB.  This provides text comparisons.
+
+This is a single packaged unit of all three components to provide a complete starting point for building your own miner.
+
+See [Miner Considerations](#miner-considerations) for common areas miners should look to improve.
+
+#### Miner Considerations
+The default miner is very basic and tightly coupled across the miner logic, the LLM and the vectorDB.  This is to allow as simple of a process as possible to get running.
+For your consideration:
+1) Decouple the miner logic from the LLM and from the VectorDB.  This will allow you to run multiple miners against a single LLM and a single VectorDB.
+2) Use pm2 to launch your LLM separate from your VectorDB, separate from each miner.  Consider serving with llama.cpp, oobabooga, vllm and using through API calls.
+3) Real-time text comparison is slow using a VectorDB like chromaDB.  Instead, look to implement your own text similarity code. Look at cosine similarity as an example.
+4) See adding a [Custom Model](#custom-model).
 
 #### Miner Feedback
 As a miner, you receive tasks, you get rewarded, but often you do not know what you're being graded on.
@@ -184,17 +218,36 @@ usage: ./scripts/setup_and_run.sh --num_validators num --num_miners num --subnet
 Example: ./scripts/setup_and_run.sh --only-launch
 This will skip everything and just launch the already registered and funded validators and miners
 ```
+
+#### Custom Miner
+You can pass in the miner code of your choice.  The defaults are "t5" and "mock".
+```
+--miner MINER         Miner to load. Default choices are 't5' and 'mock'. Pass your custom miner name as appropriate.
+```
+
+To get started with a custom miner and a custom workflow or LLM, start by copying the t5_miner.py file under [bitagent/miners/](./bitagent/miners).  Name it custom_miner.py, replacing "custom" with the name of your choice, e.g., mistral_miner.py or agent_miner.py.  Make sure the filename ends with _miner.py so you don't have to make changes to [neurons/miner.py](./neurons/miner.py).  
+
+Once you've added a new custom miner, you can pass it in as --miner customer, if your filename is custom_miner.py.
+
+From here, you have quite a few things you can look to do, e.g., call to your LLM via API, call to your cosine similarity code via API.  See [Miner Considerations](#miner-considerations).
+
 ---
 
 ## FAQ
-Q: How much GPU (VRAM/cores) do I need to run a miner in Phase 1?\
-A: You don't need a GPU at all, the LLMs being used can run on CPU.
+Q: How much GPU (VRAM) and RAM do I need to run a validator and/or miner?\
+A: Validators would do well with 24GB of VRAM and 32 GB or RAM with performant CPU.  Miners are left to their own devices, but should be aware that the more capable LLMs and workflows require large amounts of VRAM (common configurations: 2 A100s, 3 A6000s).
 
 Q: I am seeing: RuntimeWarning: coroutine 'Server.serve' was never awaited - help?\
-A: Asked and [answered by Carro](https://discord.com/channels/799672011265015819/1161765008347254915/1188957429392756818)
+A: Asked and [Answered](https://discord.com/channels/799672011265015819/1194736998250975332/1196146782342742037)
 
 Q: Are there any required subscriptions or APIs?\
 A: No - no subs, no external companies, in fact we'd rather the community build amazing AI capabilities than relying on corporations.
+
+Q: What can I do if I'm getting a lot of timeouts?\
+A: See the [Miner Considerations](#miner-considerations) section, specifically looking to replace ChromaDB with Cosine Similarity or something similar.
+
+Q: What LLM should I use?\
+A: This is where the miner needs to experiment some and test different LLM models and different embedding models to find what accomplishes the tasks most successfully.  Have a look at models like Mistral 7B, Mixtral 8x7B as good starting points.
 
 ---
 
