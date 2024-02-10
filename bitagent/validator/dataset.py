@@ -16,6 +16,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import time
 import random
 import bittensor as bt
 from datasets import load_dataset
@@ -45,12 +46,17 @@ class QnADataset(Iterator):
     def __next__(self):
         bt.logging.debug("Retrieving data from dataset...")
         while True:
-            ds = random.choice(self.datasets)
-            text = next(ds)["text"]
+            try:
+                ds = random.choice(self.datasets)
+                text = next(ds)["text"]
 
-            # Check if the text is not empty or does not consist only of newline characters
-            if text.strip():
-                return {"text": text}
+                # Check if the text is not empty or does not consist only of newline characters
+                if text.strip():
+                    return {"text": text}
+
+            except Exception as e:
+                bt.logging.debug(f"HuggingFace issue ... {e}")
+                time.sleep(15)
 
 
 class SummaryDataset(Iterator):
@@ -74,11 +80,15 @@ class SummaryDataset(Iterator):
     def __next__(self):
         bt.logging.debug("Retrieving data from dataset...")
         while True:
-            dname, ds = random.choice(list(self.datasets.items()))
-            data = next(ds)
-            text = data[self.keys[dname]["text"]]
-            summary = data[self.keys[dname]["summary"]]
+            try:
+                dname, ds = random.choice(list(self.datasets.items()))
+                data = next(ds)
+                text = data[self.keys[dname]["text"]]
+                summary = data[self.keys[dname]["summary"]]
 
-            # Check if the text is not empty or does not consist only of newline characters
-            if text.strip():
-                return {"text": text, "summary": summary}
+                # Check if the text is not empty or does not consist only of newline characters
+                if text.strip():
+                    return {"text": text, "summary": summary}
+            except Exception as e:
+                bt.logging.debug(f"HuggingFace issue ... {e}")
+                time.sleep(15)
