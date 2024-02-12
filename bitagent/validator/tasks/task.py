@@ -63,15 +63,15 @@ def get_random_task(validator: BaseValidatorNeuron) -> Task:
         try:
             match choice:
                 case 1:
-                    return GeneratedQnATask(validator=validator, name="Responds with correct citation source and valid response"),
+                    return GeneratedQnATask(validator=validator, name="Responds with correct citation source and valid response")
                 case 2:
-                    return GeneratedQnATask(validator=validator, name="Responds with correct citation source and valid response from medium corpus", n_texts=8),
+                    return GeneratedQnATask(validator=validator, name="Responds with correct citation source and valid response from medium corpus", n_texts=8)
                 case 3:
-                    return GeneratedQnATask(validator=validator, name="Responds with correct citation source and valid response from larger corpus", n_texts=20),
+                    return GeneratedQnATask(validator=validator, name="Responds with correct citation source and valid response from larger corpus", n_texts=20)
                 case 4:
-                    return GeneratedQnATask(validator=validator, name="Responds with correct citation source and valid response from LARGE corpus", n_texts=50),
+                    return GeneratedQnATask(validator=validator, name="Responds with correct citation source and valid response from LARGE corpus", n_texts=50)
                 case 5:
-                    return SummaryTask(validator=validator, name="Responds with correct summary"),
+                    return SummaryTask(validator=validator, name="Responds with correct summary")
                 case 6:
                     return random.choice(basic_qna_miner_tasks)
         except Exception as e:
