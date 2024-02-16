@@ -21,13 +21,15 @@ from typing import List
 from bitagent.validator.tasks import Task
 from common.base.validator import BaseValidatorNeuron
 
-def get_rewards(validator: BaseValidatorNeuron, task: Task, responses: List[str]) -> [torch.FloatTensor, List[str]]:
+def get_rewards(validator: BaseValidatorNeuron, task: Task, responses: List[str], 
+                miner_uids: List[int]) -> [torch.FloatTensor, List[str]]:
     """
     Returns a tensor of rewards for the given query and responses.
 
     Args:
     - task (Task): The task sent to the miner.
     - responses (List[float]): A list of responses from the miner.
+    - miner_uids (List[int]): A list of miner UIDs. The miner at a particular index has a response in responses at the same index.
 
     Returns:
     - torch.FloatTensor: A tensor of rewards for the given query and responses.
