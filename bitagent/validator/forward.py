@@ -62,7 +62,7 @@ async def forward(self):
 
     # Adjust the scores based on responses from miners.
     # also gets results for feedback to the miners
-    rewards, results = get_rewards(self, task=task, responses=responses, miner_uids=miner_uids.tolist())
+    rewards, results = get_rewards(self, task=task, responses=responses, miner_uids=miner_uids)
 
     bt.logging.info(f"Scored responses: {rewards}")
     # Update the scores based on the rewards. You may want to define your own update_scores function for custom behavior.
