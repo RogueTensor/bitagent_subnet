@@ -34,6 +34,12 @@ def correct_summary_provided(task, validator: BaseValidatorNeuron, response: bt.
     input_text = f"SummaryA: {summary}\n\nSummaryB: {completion}\n\n\nIs SummaryA similar to SummaryB, yes or no? Response:"
     yes_or_no = validator.validator_llm(input_text)
 
+    # miner trying something fishy
+    if validator.validator_llm(completion).strip().lower() == "yes":
+        reward = -50.0
+        feedback = bad_message(f"You failed to respond with a valid summary from the provided context.")
+        return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
+
     if yes_or_no.strip().lower() == "yes":
         reward = max_reward
         feedback = good_message(f"You responded with a valid summary.")

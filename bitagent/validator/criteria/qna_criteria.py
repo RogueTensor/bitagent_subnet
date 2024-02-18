@@ -166,6 +166,12 @@ def correct_response_provided(task, validator: BaseValidatorNeuron, response: bt
     input_text = f"Question: {prompt}\n\nAnswer: {completion}\n\nContext: {context}\n\nIs the answer to the question correct given the provided context, yes or no? Response:"
     yes_or_no = validator.validator_llm(input_text)
 
+    # miner is trying something fishy
+    if validator.validator_llm(completion).strip().lower() == "yes":
+        reward = -50.0
+        feedback = bad_message(f"You failed to respond with a valid response from the provided context.")
+        return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
+
     if yes_or_no.strip().lower() == "yes":
         reward = max_reward
         feedback = good_message(f"You responded with a valid response from the provided context.")
