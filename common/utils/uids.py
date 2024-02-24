@@ -67,10 +67,15 @@ def get_random_uids(
 
     # Check if candidate_uids contain enough for querying, if not grab all avaliable uids
     available_uids = candidate_uids
-    if len(candidate_uids) < k:
-        available_uids += random.sample(
-            [uid for uid in avail_uids if uid not in candidate_uids],
-            k - len(candidate_uids),
-        )
-    uids = torch.tensor(random.sample(available_uids, k))
-    return uids
+    while True:
+        try:
+            if len(candidate_uids) < k:
+                available_uids += random.sample(
+                    [uid for uid in avail_uids if uid not in candidate_uids],
+                    k - len(candidate_uids),
+                )
+            uids = torch.tensor(random.sample(available_uids, k))
+            return uids
+        except Exception as e:
+            bt.logging.debug(f"Reduced sample size from {k} to {k-1} and trying again.")
+            k -= 1
