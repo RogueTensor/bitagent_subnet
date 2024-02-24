@@ -24,7 +24,7 @@ def does_not_error(task, validator: BaseValidatorNeuron, response: bt.Synapse) -
     max_reward = 0.5
     a_status_code = response.axon.status_code
     d_status_code = response.dendrite.status_code
-    reward = -0.5
+    reward = 0.0
     if a_status_code == 200 and d_status_code == 200:
         reward = 0.5
         feedback = good_message("You successfully responded to the request.")
