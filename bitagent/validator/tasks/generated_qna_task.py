@@ -30,6 +30,7 @@ class GeneratedQnATask(Task):
 
         self.name=name + f" for {n_texts} texts and {n_expected_citations} expected citations"
         self.desc=desc
+        self.timeout=12.0
         self.validator=validator
 
         datas = self.generate_random_texts(n_texts=n_texts)
