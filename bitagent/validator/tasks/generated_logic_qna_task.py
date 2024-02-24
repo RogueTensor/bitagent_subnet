@@ -30,6 +30,7 @@ class GeneratedLogicQnATask(Task):
     def __init__(self, validator: BaseValidatorNeuron, name: str, desc: str = ""):
         self.name=name
         self.desc=desc
+        self.timeout=12.0
         self.validator=validator
 
         question, answer = self.generate_random_logic_question_and_answer()
@@ -125,6 +126,7 @@ class GeneratedLogicQnATask(Task):
         pass
 
     def island_hunting(self) -> [str, int]:
+        self.timeout=25.0
         num_islands = random.choices([2,4,7], weights=[10,7,5])[0]
         grid_size = (random.randint(num_islands*2, num_islands*4), random.randint(num_islands*2, num_islands*4))
         grid = generate_island_grid(num_islands, grid_size)
@@ -134,6 +136,7 @@ class GeneratedLogicQnATask(Task):
         return [question, num_islands]
 
     def html_table_counting(self) -> [str, int]:
+        self.timeout=25.0
         jobs = [self.validator.fake.job() for _ in range(random.randint(3,10))]
         table_data = [jobs, *[[random.randint(1,100) for _ in range(len(jobs))] for _ in range(random.randint(3,30))]]
         table = tabulate(table_data, headers="firstrow", tablefmt='html')
