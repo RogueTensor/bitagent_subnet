@@ -25,7 +25,7 @@ from abc import ABC, abstractmethod
 # Sync calls set weights and also resyncs the metagraph.
 from common.utils.config import check_config, add_args, config
 from common.utils.misc import ttl_get_block
-from common import __spec_version__ as spec_version
+from bitagent.validator import __spec_version__ as spec_version
 
 
 class BaseNeuron(ABC):
@@ -107,7 +107,7 @@ class BaseNeuron(ABC):
     def run(self):
         ...
 
-    def sync(self):
+    def sync(self, save_state=True):
         """
         Wrapper for synchronizing the state of the network for the given miner or validator.
         """
@@ -120,8 +120,9 @@ class BaseNeuron(ABC):
         if self.should_set_weights():
             self.set_weights()
 
-        # Always save state.
-        self.save_state()
+        # Always save state unless during reinitiation.
+        if save_state:
+            self.save_state()
 
     def check_registered(self):
         # --- Check for registration.
