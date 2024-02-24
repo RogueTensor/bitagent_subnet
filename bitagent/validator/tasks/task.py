@@ -57,7 +57,6 @@ class Task():
 def get_random_task(validator: BaseValidatorNeuron) -> Task:
     from bitagent.validator.tasks import SummaryTask, GeneratedQnATask, GeneratedLogicQnATask, basic_qna_miner_tasks
     seed = int(round(validator.block/10))*10
-    print("seed: ", seed)
     random.seed(seed)  
     choice = random.choices([1,2,3,4,5,6,7,8], weights=[0,1,1,1,4,24,4,0])[0]
     no_task_selected = True
