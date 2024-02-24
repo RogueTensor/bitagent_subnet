@@ -164,3 +164,7 @@ env/
 app.config.js
 mnemonics.txt
 run_it_all.sh
+
+wandb
+TODO
+bitagent.data
