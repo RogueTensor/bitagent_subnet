@@ -28,7 +28,7 @@ class QnATask(bt.Synapse):
     - urls: list of urls for data context (urls can be empty, urls can contain wildcards)
     - datas: list of data {source & context} in a List of dicts
     - prompt: user prompt
-    - repsonse: a dict containing the response along with citations from the provided data context (urls)
+    - repsonse: a dict containing the response along with citations from the provided data context (urls or datas)
         - {response: str, citations: List[dict]}
         - the citations are a list of dicts {source & content: relevant content chunk from the source}
         - there are multiple citations, multiple returned dicts can contains the same source of reference
