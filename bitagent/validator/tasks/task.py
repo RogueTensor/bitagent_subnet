@@ -34,6 +34,7 @@ class Task():
                  citation_sources_should_contain: str=None, response_should_contain: str=None) -> None:
         self.name=name
         self.desc=desc
+        self.timeout=12.0
         self.criteria=criteria
         self.citation_sources_should_contain=citation_sources_should_contain
         self.response_should_contain=response_should_contain
