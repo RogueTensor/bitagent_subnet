@@ -61,6 +61,26 @@ def contains_number_citations(task, validator: BaseValidatorNeuron, response: bt
     feedback = bad_message(f"Failed to provide the correct number of citations in the range of {min_citations} to {max_citations}.")
     return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
 
+# CRITERION: reward proper number (or range) of citations returned
+def contains_some_text(task, validator: BaseValidatorNeuron, response: bt.Synapse) -> [float, float, str]:
+    max_reward = 0.5
+    try:
+        response = response.response['response']
+    except KeyError:
+        # no citations provided and no placeholder available
+        reward = -0.5
+        feedback = bad_message(f"Failed to provide a valid response per protocol.")
+        return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
+
+    if len(response) > 6:
+        reward = max_reward
+        feedback = good_message(f"You provided some text, that's all we wanted.")
+        return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
+    # placeholder for citations, but none
+    reward = -0.25
+    feedback = bad_message(f"Failed to provide some text.")
+    return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
+
 # CRITERION: reward inclusion of correct source data in citations
 def contains_correct_citation_source(task, validator: BaseValidatorNeuron, response: bt.Synapse) -> [float, float, str]:
     max_reward = 1.5
@@ -163,12 +183,12 @@ def correct_response_provided(task, validator: BaseValidatorNeuron, response: bt
         return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
 
     context = selected_datas[0]['context']
-    input_text = f"Question: {prompt}\n\nAnswer: {completion}\n\nContext: {context}\n\nIs the answer to the question correct given the provided context, yes or no? Response:"
+    input_text = f"Question: {prompt}\n\nAnswer: {completion}\n\nContext: {context}\n\nIs the answer to the question a correct respsonse given the provided context, yes or no? Response:"
     yes_or_no = validator.validator_llm(input_text)
 
     # miner is trying something fishy
     if validator.validator_llm(completion).strip().lower() == "yes":
-        reward = -50.0
+        reward = -1.0
         feedback = bad_message(f"You failed to respond with a valid response from the provided context.")
         return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
 
