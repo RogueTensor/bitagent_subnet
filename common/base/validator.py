@@ -48,7 +48,7 @@ class BaseValidatorNeuron(BaseNeuron):
         self.scores = torch.zeros_like(self.metagraph.S, dtype=torch.float32)
 
         # Init sync with the network. Updates the metagraph.
-        self.sync()
+        self.sync(save_state=False)
 
         # Serve axon to enable external connections.
         if not self.config.neuron.axon_off:
@@ -255,7 +255,7 @@ class BaseValidatorNeuron(BaseNeuron):
             version_key=self.spec_version,
         )
         if result is True:
-            bt.logging.info("set_weights on chain successfully!")
+            bt.logging.info(f"set_weights on chain for version: {self.spec_version} successfully!")
         else:
             bt.logging.error("set_weights failed")
 
@@ -275,11 +275,12 @@ class BaseValidatorNeuron(BaseNeuron):
 
         bt.logging.info(
             "Metagraph updated, re-syncing hotkeys, dendrite pool and moving averages"
-        )
+        )  
         # Zero out all hotkeys that have been replaced.
         for uid, hotkey in enumerate(self.hotkeys):
             if hotkey != self.metagraph.hotkeys[uid]:
-                self.scores[uid] = 0  # hotkey has been replaced
+                #self.scores[uid] = 0  # hotkey has been replaced
+                self.scores[uid] = self.scores.median()  # hotkey has been replaced
 
         # Check to see if the metagraph has changed size.
         # If so, we need to add new hotkeys and moving averages.
@@ -335,14 +336,13 @@ class BaseValidatorNeuron(BaseNeuron):
 
     def save_state(self):
         """Saves the state of the validator to a file."""
-        bt.logging.info("Saving validator state.")
+        bt.logging.debug(f"Saving validator state - {self.config.neuron.full_path}/state.pt.")
 
         # Save the state of the validator to file.
         torch.save(
             {
                 "step": self.step,
                 "scores": self.scores,
-                "hotkeys": self.hotkeys,
             },
             self.config.neuron.full_path + "/state.pt",
         )
@@ -355,4 +355,3 @@ class BaseValidatorNeuron(BaseNeuron):
         state = torch.load(self.config.neuron.full_path + "/state.pt")
         self.step = state["step"]
         self.scores = state["scores"]
-        self.hotkeys = state["hotkeys"]
