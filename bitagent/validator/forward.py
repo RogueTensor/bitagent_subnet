@@ -46,6 +46,8 @@ async def forward(self):
 
     task = get_random_task(self)
 
+    bt.logging.debug(f"Task prompt: {task.synapse.prompt[:2000]}")
+
     # The dendrite client queries the network.
     responses = self.dendrite.query(
         # Send the query to selected miner axons in the network.
@@ -58,13 +60,14 @@ async def forward(self):
     )
 
     # Log the results for monitoring purposes.
-    bt.logging.info(f"Received responses: {responses}")
+    #bt.logging.debug(f"Received responses: {responses}")
 
     # Adjust the scores based on responses from miners.
     # also gets results for feedback to the miners
     rewards, results = get_rewards(self, task=task, responses=responses, miner_uids=miner_uids)
 
-    bt.logging.info(f"Scored responses: {rewards}")
+    #bt.logging.info(f"Scored responses: {rewards}")
+
     # Update the scores based on the rewards. You may want to define your own update_scores function for custom behavior.
     self.update_scores(rewards, miner_uids)
     
