@@ -17,7 +17,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import time
-#import glob
+import glob
 import argparse
 import importlib
 from typing import List, Tuple
@@ -51,9 +51,7 @@ class Miner(BaseMinerNeuron):
             "--miner",
             type=str,
             default="t5",
-            choices=["t5", "mock"],
-            #choices = [f.split("/")[-1].split("_")[0] for f in glob.glob("./bitagent/miners/*_miner.py")],
-            help="Name/path of model to load."
+            help="Miner to load. Default choices are 't5' and 'mock'.  Pass your custom miner name as appropriate."
         )
 
     def __init__(self, config=None):
