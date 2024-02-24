@@ -29,6 +29,7 @@ class SummaryTask(Task):
 
         self.name=name
         self.desc=desc
+        self.timeout=12.0
         self.validator=validator
 
         text, summary = self.get_random_texts()
