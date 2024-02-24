@@ -235,7 +235,7 @@ From here, you have quite a few things you can look to do, e.g., call to your LL
 
 ## FAQ
 Q: How much GPU (VRAM) and RAM do I need to run a validator and/or miner?\
-A: Validators would do well with 24GB of VRAM and 32 GB of RAM with performant CPU.  Miners are left to their own devices, but should be aware that the more capable LLMs and workflows require large amounts of VRAM (common configurations: 2 A100s, 3 A6000s).
+A: Validators would do well with 24GB of VRAM and 32 GB of RAM with performant CPU.  Miners are left to their own devices, but should be aware that the more capable LLMs and workflows require large amounts of VRAM (common configurations: 1 A100 or 1 A6000).
 
 Q: I am seeing: RuntimeWarning: coroutine 'Server.serve' was never awaited - help?\
 A: Asked and [Answered](https://discord.com/channels/799672011265015819/1194736998250975332/1196146782342742037)
