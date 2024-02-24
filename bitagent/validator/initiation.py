@@ -20,32 +20,51 @@ import threading
 import socketserver
 import bittensor as bt
 from faker import Faker
+from datetime import datetime
 from http.server import SimpleHTTPRequestHandler
 from bitagent.validator.dataset import QnADataset, SummaryDataset
 from common.base.validator import BaseValidatorNeuron
+
 import transformers
-from transformers import T5Tokenizer, T5ForConditionalGeneration
+from awq import AutoAWQForCausalLM
+from transformers import AutoTokenizer
+from sentence_transformers.cross_encoder import CrossEncoder
 
 def initiate_validator(self):
     bt.logging.info("Initializing Validator - this may take a while (downloading data and models).")
+    bt.logging.debug("Initializing Validator - this may take a while (downloading data and models) - loading dataset 1/2 ...")
+    self.qna_dataset = QnADataset()
+    bt.logging.debug("Initializing Validator - this may take a while (downloading data and models) - finished loading dataset 1/2")
+    bt.logging.debug("Initializing Validator - this may take a while (downloading data and models) - loading dataset 2/2 ...")
+    self.summary_dataset = SummaryDataset()
+    bt.logging.debug("Initializing Validator - this may take a while (downloading data and models) - finished loading dataset 2/2")
+
+    bt.logging.debug("Initializing Validator - this may take a while (downloading data and models) - loading model ...")
     # load a simple LLM for evals
     transformers.logging.set_verbosity_error()
-    self.tokenizer = T5Tokenizer.from_pretrained("google/flan-t5-large", legacy=False)
-    self.model = T5ForConditionalGeneration.from_pretrained("google/flan-t5-large", device_map=self.device)
+    model_name_or_path = "TheBloke/Mistral-7B-OpenOrca-AWQ"
+    self.tokenizer = AutoTokenizer.from_pretrained(model_name_or_path, trust_remote_code=False)
+    self.model = AutoAWQForCausalLM.from_quantized(model_name_or_path, fuse_layers=True,
+                                              trust_remote_code=False, safetensors=True)
+    bt.logging.debug("Initializing Validator - this may take a while (downloading data and models) - finished loading model")
+
+    bt.logging.debug("Initializing Validator - this may take a while (downloading data and models) - loading cross encoder ...")
+    self.cross_encoder = CrossEncoder("cross-encoder/stsb-distilroberta-base")
+    bt.logging.debug("Initializing Validator - this may take a while (downloading data and models) - finished loading cross encoder")
 
     def validator_llm(input_text):
-        input_ids = self.tokenizer(input_text, return_tensors="pt").input_ids.to(self.device)
-        outputs = self.model.generate(input_ids, max_length=60)
+        text = f'''
+<|im_start|>user
+{input_text}<|im_end|>
+<|im_start|>assistant
+'''
+        input_ids = self.tokenizer(text, return_tensors="pt").input_ids.to(self.device)
+        outputs = self.model.generate(input_ids, max_new_tokens=160, temperature=0.7, top_k=40, top_p=0.95, do_sample=True, repetition_penalty=1.1)
         result = self.tokenizer.decode(outputs[0])
-        # response is typically: <pad> text</s>
-        result = result.replace("<pad>","").replace("</s>","").strip()
+        result = result.split("<|im_start|> assistant\n")[-1].replace("<|im_end|>","").strip()
         return result
 
     self.validator_llm = validator_llm
-
-    # set our dataset for for starter text
-    self.qna_dataset = QnADataset()
-    self.summary_dataset = SummaryDataset()
 
     # faker data
     Faker.seed(random.randint(0,2000))
