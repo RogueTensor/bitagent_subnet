@@ -16,35 +16,36 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import os
 import time
 import random
 import bittensor as bt
-from datasets import load_dataset
+from datasets import load_dataset, load_from_disk
 from collections.abc import Iterator
+
+root_data_dir = "bitagent.data/"
 
 class QnADataset(Iterator):
     def __init__(self):
         super().__init__()
         seed = random.randint(0, 1000)
+        bt.logging.debug("Loading OpenWebText from HuggingFace")
+        owt_data_dir = f"{root_data_dir}/openwebtext"
+        if os.path.exists(f"{owt_data_dir}/state.json"):
+            bt.logging.debug(f"Loading from disk ({owt_data_dir}) ...")
+            owt_ds = load_from_disk(owt_data_dir)
+        else:
+            bt.logging.debug("Loading from web ...")
+            owt_ds = load_dataset("openwebtext", split="train", trust_remote_code=True)
+            owt_ds.save_to_disk(owt_data_dir)
+
+        bt.logging.debug("Loaded.")
         self.datasets = [ 
-            iter(
-                load_dataset("openwebtext", split="train", streaming=True, trust_remote_code=True).shuffle(
-                    seed=seed, buffer_size=10000
-                )
-            ),
-            iter(
-                load_dataset(
-                    "togethercomputer/RedPajama-Data-1T",
-                    "default",
-                    split="train",
-                    trust_remote_code=True,
-                    streaming=True,
-                ).shuffle(seed=seed, buffer_size=10000)
-            )
+            iter(owt_ds.shuffle(seed=seed)),
         ]
 
     def __next__(self):
-        bt.logging.debug("Retrieving data from dataset...")
+        bt.logging.debug("Retrieving Q&A data from dataset...")
         while True:
             try:
                 ds = random.choice(self.datasets)
@@ -63,22 +64,38 @@ class SummaryDataset(Iterator):
     def __init__(self):
         super().__init__()
         seed = random.randint(0, 1000)
+        bt.logging.debug("Loading Samsum from HuggingFace")
+        ss_data_dir = f"{root_data_dir}/samsum"
+        if os.path.exists(f"{ss_data_dir}/state.json"):
+            bt.logging.debug(f"Loading from disk ({ss_data_dir}) ...")
+            ss_ds = load_from_disk(ss_data_dir)
+        else:
+            bt.logging.debug("Loading from web ...")
+            ss_ds = load_dataset("samsum", split="train")
+            ss_ds.save_to_disk(ss_data_dir)
+        bt.logging.debug("Loaded.")
+
+        bt.logging.debug("Loading CNN Daily from HuggingFace")
+        cnn_data_dir = f"{root_data_dir}/cnn_daily"
+        if os.path.exists(f"{cnn_data_dir}/state.json"):
+            bt.logging.debug(f"Loading from disk ({cnn_data_dir}) ...")
+            cnn_ds = load_from_disk(cnn_data_dir)
+        else:
+            bt.logging.debug("Loading from web ...")
+            cnn_ds = load_dataset("cnn_dailymail", "3.0.0", split="train")
+            cnn_ds.save_to_disk(cnn_data_dir)
+        bt.logging.debug("Loaded.")
+
         self.keys = {"cnn_dailymail": {"text": "article", "summary": "highlights"},
                      "samsum": {"text": "dialogue", "summary":"summary"}}
+
         self.datasets = { 
-            "samsum": iter(
-                load_dataset("samsum", split="train", streaming=True, trust_remote_code=True).shuffle(
-                    seed=seed, buffer_size=10000
-                )
-            ),
-            "cnn_dailymail": iter(
-                load_dataset("cnn_dailymail", "3.0.0", split="train", streaming=True, trust_remote_code=True).shuffle(
-                    seed=seed, buffer_size=10000)
-            )
+            "samsum": iter(ss_ds.shuffle(seed=seed)),
+            "cnn_dailymail": iter(cnn_ds.shuffle(seed=seed))
         }
 
     def __next__(self):
-        bt.logging.debug("Retrieving data from dataset...")
+        bt.logging.debug("Retrieving summarization data from dataset...")
         while True:
             try:
                 dname, ds = random.choice(list(self.datasets.items()))
