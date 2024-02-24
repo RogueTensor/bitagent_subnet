@@ -23,7 +23,7 @@ import bittensor as bt
 from datasets import load_dataset, load_from_disk
 from collections.abc import Iterator
 
-root_data_dir = "bitagent.data/"
+root_data_dir = "bitagent.data"
 
 class QnADataset(Iterator):
     def __init__(self):
