@@ -20,7 +20,7 @@ from bitagent.validator.criteria import default_criteria, basic_no_citations, ba
 
 basic_qna_miner_tasks = [
     Task(name="Q&A - Responds with no citations",
-         criteria=default_criteria+[basic_no_citations],
+         criteria=default_criteria+basic_no_citations,
          prompt='who is the most famous ghost buster'),
     Task(name="Q&A - Responds with at least one citation",
          datas=[{'source': "simple test", "context":"The most famous ghost buster is Bob."}],
