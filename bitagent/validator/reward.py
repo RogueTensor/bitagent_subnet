@@ -36,10 +36,10 @@ def get_rewards(validator: BaseValidatorNeuron, task: Task, responses: List[str]
     - results: A list of feedback for the miner
     """
     # Get all the reward results by iteratively calling your reward() function.
-    
     scores = []
     results = []
-    for response in responses:
+    for i, response in enumerate(responses):
+        miner_uid = miner_uids[i]
         score, max_possible_score, task_results = task.reward(validator, response)
         normalized_score = score/max_possible_score
         scores.append(normalized_score)
@@ -49,6 +49,11 @@ def get_rewards(validator: BaseValidatorNeuron, task: Task, responses: List[str]
 "\n".join(task_results) + f"""
 [bold]Total reward:[/bold] {score}
 [bold]Total possible reward:[/bold] {max_possible_score}
-[bold]Normalized reward:[/bold] {normalized_score}""")
+[bold]Normalized reward:[/bold] {normalized_score}
+---
+Stats with this validator:
+Your Average Score: {validator.scores[miner_uid]}
+Highest Score across all miners on Subnet for this Validator: {validator.scores.max()}
+Median Score across all miners on Subnet for this Validator: {validator.scores.median()}""")
 
     return [torch.FloatTensor(scores).to(validator.device), results]
