@@ -25,7 +25,7 @@ from abc import ABC, abstractmethod
 # Sync calls set weights and also resyncs the metagraph.
 from common.utils.config import check_config, add_args, config
 from common.utils.misc import ttl_get_block
-from bitagent.validator import __spec_version__ as spec_version
+from common import __spec_version__ as spec_version
 
 
 class BaseNeuron(ABC):
