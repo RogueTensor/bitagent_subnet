@@ -23,6 +23,7 @@ from bitagent.validator.criteria.utils import good_message, bad_message, receive
 from bitagent.validator.criteria.default_criteria import *
 from bitagent.validator.criteria.qna_criteria import *
 from bitagent.validator.criteria.summary_criteria import *
+from bitagent.validator.criteria.qna_logic_criteria import *
 
 # building block for the criteria used to evaluate the miner's response
 class Criterion():
@@ -41,8 +42,8 @@ class Criterion():
             reward, max_reward, feedback = self.eval_fx(task, validator, response, *self.eval_args)
         except Exception as e:
             bt.logging.info(f"Exception was raised during criteria evaluation: {e}")
-            reward = -50.0
-            max_reward = 50.0
+            reward = -0.5
+            max_reward = 1.0
             feedback = bad_message("Exception while processing your response, please check format per protocol")
         feedback = f"[bold blue]{self.name}[/bold blue]\n" + feedback
         return reward, max_reward, feedback
@@ -55,6 +56,11 @@ def gen_data_task_criteria(selected_datas: List[dict], n_expected_citations:int)
     return [
         Criterion(name=f"Returns expected citation source(s)", desc="", eval_fx=contains_correct_number_of_citation_sources, eval_args=[selected_datas]),
         Criterion(name=f"Returns valid response", desc="", eval_fx=correct_response_provided, eval_args=[selected_datas]),
+    ]
+
+def gen_numerical_logic_task_criteria(expected_answer:int) -> List[Criterion]:
+    return [
+        Criterion(name=f"Returns expected value", desc="", eval_fx=contains_correct_numerical_logic_answer, eval_args=[expected_answer]),
     ]
 
 def summary_task_criteria(summary: str) -> List[Criterion]:
@@ -70,9 +76,12 @@ default_criteria = [
 
 # basic CITATION checks
 basic_citations = [
-    Criterion(name="Must have at least one citation", desc="", eval_fx=contains_number_citations, eval_args=[1, None]),
+    Criterion(name="Must have one citation", desc="", eval_fx=contains_number_citations, eval_args=[1, 5]),
     Criterion(name="Must have correct citation format", desc="", eval_fx=correct_citation_format),
     Criterion(name="Must have correct citation source", desc="", eval_fx=contains_correct_citation_source),
 ]
-basic_no_citations = Criterion(name="Must not return any citations", desc="", eval_fx=contains_number_citations, eval_args=[0, 0])
+basic_no_citations = [
+    Criterion(name="Must not return any citations", desc="", eval_fx=contains_number_citations, eval_args=[0, 0]),
+    Criterion(name="Must contain some text", desc="", eval_fx=contains_some_text),
+]
 simple_context_aware = Criterion(name="Must return a valid response based on context", desc="", eval_fx=correct_response_provided_simple)
