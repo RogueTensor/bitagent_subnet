@@ -55,9 +55,11 @@ class Task():
 
 
 def get_random_task(validator: BaseValidatorNeuron) -> Task:
-    from bitagent.validator.tasks import SummaryTask, GeneratedQnATask, basic_qna_miner_tasks
-    # for now just looking at validating responses and citations for 0+ data
-    choice = random.choices([1,2,3,4,5,6], weights=[20,20,15,5,20,10])[0]
+    from bitagent.validator.tasks import SummaryTask, GeneratedQnATask, GeneratedLogicQnATask, basic_qna_miner_tasks
+    seed = int(round(validator.block/10))*10
+    print("seed: ", seed)
+    random.seed(seed)  
+    choice = random.choices([1,2,3,4,5,6,7,8], weights=[0,1,1,1,4,24,4,0])[0]
     no_task_selected = True
     while no_task_selected:
         try:
@@ -65,14 +67,18 @@ def get_random_task(validator: BaseValidatorNeuron) -> Task:
                 case 1:
                     return GeneratedQnATask(validator=validator, name="Responds with correct citation source and valid response")
                 case 2:
-                    return GeneratedQnATask(validator=validator, name="Responds with correct citation source and valid response from medium corpus", n_texts=8)
+                    return GeneratedQnATask(validator=validator, name="Responds with correct citation source and valid response from medium corpus", n_texts=10)
                 case 3:
                     return GeneratedQnATask(validator=validator, name="Responds with correct citation source and valid response from larger corpus", n_texts=20)
                 case 4:
                     return GeneratedQnATask(validator=validator, name="Responds with correct citation source and valid response from LARGE corpus", n_texts=50)
                 case 5:
-                    return SummaryTask(validator=validator, name="Responds with correct summary")
+                    return GeneratedQnATask(validator=validator, name="Responds with correct citation source and valid response from VERY LARGE corpus", n_texts=100)
                 case 6:
+                    return GeneratedLogicQnATask(validator=validator, name="Responds with correct answer for logic-based question")
+                case 7:
+                    return SummaryTask(validator=validator, name="Responds with correct summary")
+                case 8:
                     return random.choice(basic_qna_miner_tasks)
         except Exception as e:
             bt.logging.debug("Error, likley a huggingFace issue ... trying again")
