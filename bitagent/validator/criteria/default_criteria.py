@@ -44,16 +44,16 @@ def does_not_take_a_long_time(task, validator: BaseValidatorNeuron, response: bt
         feedback = f"You likely ran into an error processing this task and failed to respond appropriately."
         reward = 0
         return reward, max_reward, bad_message(feedback) + received_reward_template.format(reward,max_reward)
-        
+
     feedback = f"You responded to the request in {process_time}."
     reward = 0.0
-    if process_time <= 6.0: 
+    if process_time <= task.timeout/3:
         reward = 0.50
         return reward, max_reward, good_message(feedback) + received_reward_template.format(reward,max_reward)
-    if process_time <= 10.0:
+    if process_time <= task.timeout/2:
         reward = 0.25
         return reward, max_reward, good_message(feedback, color="yellow") + received_reward_template.format(reward,max_reward)
-    if process_time <= 15.0:
+    if process_time <= task.timeout:
         reward = 0.10
         return reward, max_reward, bad_message(feedback, color="yellow") + received_reward_template.format(reward,max_reward)
     return reward, max_reward, bad_message(feedback) + received_reward_template.format(reward,max_reward)
