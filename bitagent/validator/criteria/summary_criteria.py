@@ -31,12 +31,12 @@ def correct_summary_provided(task, validator: BaseValidatorNeuron, response: bt.
         feedback = bad_message(f"You failed to provide the correct data - see protocal details.")
         return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
 
-    input_text = f"SummaryA: {summary}\n\nSummaryB: {completion}\n\n\nIs SummaryA similar to SummaryB, yes or no? Response:"
+    input_text = f"SummaryA: {summary}\n\nSummaryB: {completion}\n\n\nIs SummaryA similar to SummaryB? Only respond with yes or no, no other words:"
     yes_or_no = validator.validator_llm(input_text)
 
     # miner trying something fishy
     if validator.validator_llm(completion).strip().lower() == "yes":
-        reward = -50.0
+        reward = -1.0
         feedback = bad_message(f"You failed to respond with a valid summary from the provided context.")
         return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
 
@@ -49,6 +49,6 @@ def correct_summary_provided(task, validator: BaseValidatorNeuron, response: bt.
         feedback = bad_message(f"You failed to respond with a valid summary.")
         return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
     else:
-        reward = 0.5
+        reward = 0.0
         feedback = bad_message(f"You failed to respond with a comparable summary.", color="yellow")
         return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
