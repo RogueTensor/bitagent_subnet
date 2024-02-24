@@ -57,6 +57,7 @@ async def forward(self):
         # All responses have the deserialize function called on them before returning.
         # You are encouraged to define your own deserialization function.
         deserialize=False,
+        timeout=task.timeout,
     )
 
     # Log the results for monitoring purposes.
