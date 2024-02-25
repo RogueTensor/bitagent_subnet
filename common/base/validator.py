@@ -16,6 +16,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import os
 import copy
 import torch
 import asyncio
@@ -48,7 +49,14 @@ class BaseValidatorNeuron(BaseNeuron):
         self.scores = torch.zeros_like(self.metagraph.S, dtype=torch.float32)
 
         # Init sync with the network. Updates the metagraph.
-        self.sync(save_state=False)
+        
+        if os.path.exists(self.config.neuron.full_path + "/state.pt"):
+            # if we are booting up and have this file, then we'll want to load it
+            # otherwise, if we save state, it will overwrite from the sync
+            self.sync(save_state=False)
+        else:
+            # if no state file then we'll create one on init
+            self.sync()
 
         # Serve axon to enable external connections.
         if not self.config.neuron.axon_off:
