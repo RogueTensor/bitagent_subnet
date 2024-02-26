@@ -71,6 +71,9 @@ Downstream applications towards this vision are WIP:
 
 ## Get Running
 
+- BitAgent is a competitive subnet, meaning miners succeed and fail based on how well they perform on tasks.
+- **Make sure to test your miner on Testnet 76 before ever considering registering for Subnet 20.**
+- Newly registered miners will start at the median score per validator and go up or down depending on their performance.
 - Before getting too far, please make sure you've looked over the [Bittensor documentation](https://docs.bittensor.com/) for your needs.
 - The min compute requirements are [noted below for Validators](#hardware-requirements).
 - See [FAQ](#faq) for a few more details related to computing requirements for validators and miners.
