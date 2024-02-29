@@ -113,8 +113,8 @@ class GeneratedLogicQnATask(Task):
         ]
         trick_descs_str = "\n".join(trick_descs)
 
-        prompt = self.validator.validator_llm(f"Given the following descriptions of tricks:\n{trick_descs_str}\n\n, please come up with a unique and convoluted command to get the pet to do this trick: '{tricks[trick_id]}'.\n\nInteresting and Unique Pet Command: ") 
-        question = f"Given the following Trick Descriptions with numerical IDs:\n{trick_descs_str}\n\n And given this unique command: '{prompt}'\n\nWhich Trick ID (provide numerical number only) is being requested? Trick ID:" 
+        prompt = self.validator.validator_llm(f"Given the following descriptions of tricks:\n{trick_descs_str}\n\n, please come up with a unique and convoluted command that is at most only a short command, only a few words with no explanation (and DO NOT give away the actual command for the trick) to get the pet to do this specific trick and ONLY this trick: '{tricks[trick_id]}'.\n\nInteresting and Unique Pet Command for '{tricks[trick_id]}': ") 
+        question = f"Given the following Trick Descriptions with numerical IDs:\n{trick_descs_str}\n\n And given this unique command: '{prompt}'\n\nWhich Trick ID (provide numerical number only) is being requested? Trick ID: " 
         
         return [question, trick_id+1]
 
