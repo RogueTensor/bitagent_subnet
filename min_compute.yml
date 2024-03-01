@@ -63,8 +63,8 @@ compute_spec:
       ram_type: "DDR4"     # RAM type (e.g., DDR4, DDR3, etc.)
 
     storage:
-      min_space: 40           # Minimum free storage space (GB)
-      recommended_space: 100  # Recommended free storage space (GB)
+      min_space: 150          # Minimum free storage space (GB)
+      recommended_space: 250  # Recommended free storage space (GB)
       type: "SSD"             # Preferred storage type (e.g., SSD, HDD)
 
     os:

@@ -71,6 +71,9 @@ Downstream applications towards this vision are WIP:
 
 ## Get Running
 
+- BitAgent is a competitive subnet, meaning miners succeed and fail based on how well they perform on tasks.
+- **Make sure to test your miner on Testnet 76 before ever considering registering for Subnet 20.**
+- Newly registered miners will start at the median score per validator and go up or down depending on their performance.
 - Before getting too far, please make sure you've looked over the [Bittensor documentation](https://docs.bittensor.com/) for your needs.
 - The min compute requirements are [noted below for Validators](#hardware-requirements).
 - See [FAQ](#faq) for a few more details related to computing requirements for validators and miners.
@@ -126,8 +129,8 @@ We had originally launched with Google Flan-T5 (800MB params) - which was suitab
 ### Miner
 If you just want to run the miner without the [script](./scripts/setup_and_run.sh) or are connecting to mainnet:
 ```bash
-# for testing
-python3 neurons/miner.py --netuid 20 --subtensor.chain_endpoint ws://127.0.0.1:9946 --wallet.name <COLDKEY> --wallet.hotkey <HOTKEY>
+# for testing (use testnet 76)
+python3 neurons/miner.py --netuid 76 --subtensor.network test --wallet.name <COLDKEY> --wallet.hotkey <HOTKEY>
 # for mainnet
 pm2 start neurons/miner.py --interpreter python3 -- --netuid 20 --subtensor.network <LOCAL/FINNEY/TEST> --wallet.name <COLDKEY> --wallet.hotkey <HOTKEY> --axon.port <PORT>
 ```
