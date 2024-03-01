@@ -91,5 +91,7 @@ def __index_data_from_datas(datas: List[dict]) -> Sequence:
 
 # random hash for colleciton name
 def __generate_collection_name() -> str:
+    # countering the effect of setting seed for task orchestration from validators
+    random.seed(None)
     h = random.getrandbits(128)
     return f'bitagent.collection.{h}'
