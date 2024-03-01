@@ -34,6 +34,8 @@ class BaseValidatorNeuron(BaseNeuron):
     Base class for Bittensor validators. Your validator should inherit from this class.
     """
 
+    neuron_type: str = "ValidatorNeuron"
+
     def __init__(self, config=None):
         super().__init__(config=config)
 
