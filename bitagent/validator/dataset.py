@@ -28,6 +28,8 @@ root_data_dir = "bitagent.data"
 class QnADataset(Iterator):
     def __init__(self):
         super().__init__()
+        # countering the effect of setting seed for task orchestration from validators
+        random.seed(None)
         seed = random.randint(0, 1000)
         bt.logging.debug("Loading OpenWebText from HuggingFace")
         owt_data_dir = f"{root_data_dir}/openwebtext"
@@ -46,6 +48,8 @@ class QnADataset(Iterator):
 
     def __next__(self):
         bt.logging.debug("Retrieving Q&A data from dataset...")
+        # countering the effect of setting seed for task orchestration from validators
+        random.seed(None)
         while True:
             try:
                 ds = random.choice(self.datasets)
@@ -63,6 +67,8 @@ class QnADataset(Iterator):
 class SummaryDataset(Iterator):
     def __init__(self):
         super().__init__()
+        # countering the effect of setting seed for task orchestration from validators
+        random.seed(None)
         seed = random.randint(0, 1000)
         bt.logging.debug("Loading Samsum from HuggingFace")
         ss_data_dir = f"{root_data_dir}/samsum"
@@ -96,6 +102,8 @@ class SummaryDataset(Iterator):
 
     def __next__(self):
         bt.logging.debug("Retrieving summarization data from dataset...")
+        # countering the effect of setting seed for task orchestration from validators
+        random.seed(None)
         while True:
             try:
                 dname, ds = random.choice(list(self.datasets.items()))

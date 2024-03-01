@@ -31,6 +31,8 @@ def generate_island_shapes(max_size, num_shapes):
     Generate a list of possible island shapes within the max_size constraint.
     Each shape is a list of (row_offset, col_offset) tuples from the starting cell.
     """
+    # countering the effect of setting seed for task orchestration from validators
+    random.seed(None)
     shapes = []
     for _ in range(num_shapes):
         size = random.randint(1, max_size)
@@ -49,6 +51,8 @@ def generate_island_grid(num_islands, grid_size):
     """
     Generate a grid with a specified number of islands and grid size.
     """
+    # countering the effect of setting seed for task orchestration from validators
+    random.seed(None)
     height, width = grid_size
     grid = np.zeros((height, width), dtype=int)
     island_shapes = generate_island_shapes(min(height, width) // 4, num_islands)  # Generate island shapes

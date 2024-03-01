@@ -18,6 +18,8 @@
 import random
 
 def random_places_prompt(num_countries: int) -> str:
+    # countering the effect of setting seed for task orchestration from validators
+    random.seed(None)
     return "coming back to this later - basicall need a prompt that says: I've been to these <places>, how many countries have I been to?"
     #place_type = random.choice(["country", "state", "city"])
     #for n in num_countries:

@@ -33,6 +33,9 @@ class GeneratedQnATask(Task):
         self.timeout=12.0
         self.validator=validator
 
+        # countering the effect of setting seed for task orchestration from validators
+        random.seed(None)
+
         datas = self.generate_random_texts(n_texts=n_texts)
         texts = [d['context'] for d in datas]
         sources = [d['source'] for d in datas]
@@ -54,6 +57,8 @@ class GeneratedQnATask(Task):
 
     def generate_random_texts(self, n_texts: int = 3) -> [List[str], List[str]]:
         # get n random data
+        # countering the effect of setting seed for task orchestration from validators
+        random.seed(None)
         output = []
         for _ in range(n_texts):
             text = next(self.validator.qna_dataset)["text"]

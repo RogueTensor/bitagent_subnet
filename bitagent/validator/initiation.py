@@ -66,6 +66,8 @@ def initiate_validator(self):
 
     self.validator_llm = validator_llm
 
+    # countering the effect of setting seed for task orchestration from validators
+    random.seed(None)
     # faker data
     Faker.seed(random.randint(0,2000))
     self.fake = Faker()

@@ -53,7 +53,7 @@ def get_rewards(validator: BaseValidatorNeuron, task: Task, responses: List[str]
 ---
 Stats with this validator:
 Your Average Score: {validator.scores[miner_uid]}
-Highest Score across all miners on Subnet for this Validator: {validator.scores.max()}
-Median Score across all miners on Subnet for this Validator: {validator.scores.median()}""")
+Highest Score across all miners: {validator.scores.max()}
+Median Score across all miners: {validator.scores.median()}""")
 
     return [torch.FloatTensor(scores).to(validator.device), results]

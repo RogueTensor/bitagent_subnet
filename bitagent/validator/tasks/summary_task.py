@@ -16,7 +16,6 @@
 # DEALINGS IN THE SOFTWARE.
 
 import time
-import random
 from typing import List
 from bitagent.protocol import QnATask
 from bitagent.validator.tasks import Task

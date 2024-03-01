@@ -40,7 +40,9 @@ class GeneratedLogicQnATask(Task):
         self.synapse=QnATask(prompt=question, urls=[], datas=[])
 
     def generate_random_logic_question_and_answer(self) -> [str, int, List[int]]:
-        choice = random.choices([1,2,3,6,7], weights=[5,7,7,4,7])[0]
+        seed = int(round(self.validator.block/10))*10
+        random.seed(seed)  
+        choice = random.choices([1,2,3,6,7], weights=[2,7,3,7,7])[0]
         match choice:
             case 1:
                 self.name += " - Pet Name Counting"
@@ -65,6 +67,8 @@ class GeneratedLogicQnATask(Task):
                 return self.random_word_hunt()
     
     def random_word_hunt(self) -> [str, int]:
+        # countering the effect of setting seed for task orchestration from validators
+        random.seed(None)
         satisfied_with_random_word = False
         loop_count = 0
         random_word_query = "Need a random word that has really good synonyms.  Do not provide the synonyms, just provide the random word that has good, clear synonyms. Random word: "
@@ -99,6 +103,8 @@ class GeneratedLogicQnATask(Task):
 
     # TODO pet tricks
     def pet_tricks(self) -> [str, int]:
+        # countering the effect of setting seed for task orchestration from validators
+        random.seed(None)
         tricks = ["bark", "sit", "rollover", "jump", "bow", "shake", "lie down"]
         trick_ids = range(len(tricks))
         trick_id = random.choices(trick_ids)[0]
@@ -126,6 +132,8 @@ class GeneratedLogicQnATask(Task):
         pass
 
     def island_hunting(self) -> [str, int]:
+        # countering the effect of setting seed for task orchestration from validators
+        random.seed(None)
         self.timeout=25.0
         num_islands = random.choices([2,4,7], weights=[10,7,5])[0]
         grid_size = (random.randint(num_islands*2, num_islands*4), random.randint(num_islands*2, num_islands*4))
@@ -136,6 +144,8 @@ class GeneratedLogicQnATask(Task):
         return [question, num_islands]
 
     def html_table_counting(self) -> [str, int]:
+        # countering the effect of setting seed for task orchestration from validators
+        random.seed(None)
         self.timeout=25.0
         jobs = [self.validator.fake.job() for _ in range(random.randint(3,10))]
         table_data = [jobs, *[[random.randint(1,100) for _ in range(len(jobs))] for _ in range(random.randint(3,30))]]
@@ -177,6 +187,8 @@ class GeneratedLogicQnATask(Task):
         return [question, answer]
 
     def name_counting(self) -> [str, int]:
+        # countering the effect of setting seed for task orchestration from validators
+        random.seed(None)
         males = set([self.validator.fake.first_name_male() for _ in range(random.randint(2, 4))])
         females = set([self.validator.fake.first_name_female() for _ in range(random.randint(2, 4))])
 
