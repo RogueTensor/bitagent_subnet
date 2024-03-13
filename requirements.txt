@@ -1,6 +1,6 @@
 accelerate==0.26.1
 autoawq==0.1.8
-bittensor==6.8.1
+bittensor==6.9.3
 beautifulsoup4==4.12.2
 bs4==0.0.1
 chromadb==0.4.22
