@@ -150,9 +150,13 @@ class GeneratedLogicQnATask(Task):
         jobs = [self.validator.fake.job() for _ in range(random.randint(3,10))]
         table_data = [jobs, *[[random.randint(1,100) for _ in range(len(jobs))] for _ in range(random.randint(3,30))]]
         table = tabulate(table_data, headers="firstrow", tablefmt='html')
-        selected_num = random.randrange(len(jobs))
-        selected_job = jobs[selected_num]
-        selected_alt_job = self.validator.validator_llm(f"What is another, alternative name for this profession: {selected_job}?\nHere is an alternative job title, just the job title: ") 
+        selected_alt_job = None
+        itry = 0
+        while not selected_alt_job and itry < 3:
+            selected_num = random.randrange(len(jobs))
+            selected_job = jobs[selected_num]
+            selected_alt_job = self.validator.validator_llm(f"What is another, alternative name for this profession: {selected_job}?\nHere is an alternative job title, just the job title: ") 
+            itry += 1
         operation = random.choice(["add","multiply","alt"]) 
         answer = 0
         if operation == "add":
