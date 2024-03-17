@@ -147,7 +147,7 @@ class GeneratedLogicQnATask(Task):
         # countering the effect of setting seed for task orchestration from validators
         random.seed(None)
         self.timeout=25.0
-        jobs = [self.validator.fake.job() for _ in range(random.randint(3,10))]
+        jobs = set([self.validator.fake.job() for _ in range(random.randint(3,10))])
         table_data = [jobs, *[[random.randint(1,100) for _ in range(len(jobs))] for _ in range(random.randint(3,30))]]
         table = tabulate(table_data, headers="firstrow", tablefmt='html')
         selected_alt_job = None
