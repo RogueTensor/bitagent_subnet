@@ -35,7 +35,7 @@ def correct_summary_provided(task, validator: BaseValidatorNeuron, response: bt.
     yes_or_no = validator.validator_llm(input_text)
 
     # miner trying something fishy
-    if validator.validator_llm(completion).strip().lower() == "yes":
+    if validator.validator_llm(completion).strip().lower() == "yes" or "summarya" in completion.lower():
         reward = -1.0
         feedback = bad_message(f"You failed to respond with a valid summary from the provided context.")
         return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
