@@ -84,7 +84,7 @@ class GeneratedLogicQnATask(Task):
         if random_word in synonyms:
             synonyms.remove(random_word)
 
-        random_words = self.validator.validator_llm("Comma-delimited list of random words:")
+        random_words = self.validator.validator_llm("Comma-delimited list of random words that are NOT a synonym for {random_word}:")
         random_words = set(random_words.split(",")[:-1])
 
         random_words.update(synonyms)
