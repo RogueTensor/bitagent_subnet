@@ -31,7 +31,7 @@ def contains_correct_numerical_logic_answer(task, validator: BaseValidatorNeuron
         return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
 
     numbers = [int(i) for i in response.split() if i.isdigit()]
-    if str(expected_answer) in response and len(numbers) == 1:
+    if expected_answer == numbers[0] and len(numbers) == 1:
         reward = max_reward
         feedback = good_message(f"You responded with a valid answer.")
         return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
