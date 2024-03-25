@@ -77,7 +77,7 @@ Downstream applications towards this vision are WIP:
 - Before getting too far, please make sure you've looked over the [Bittensor documentation](https://docs.bittensor.com/) for your needs.
 - The min compute requirements are [noted below for Validators](#hardware-requirements).
 - See [FAQ](#faq) for a few more details related to computing requirements for validators and miners.
-- The miniumum requirements for a miner are determined by the resources needed to run a competitive LLM.
+- The minimum requirements for a miner are determined by the resources needed to run a competitive LLM.
 
 ### BitAgent
 This repository requires python3.8 or higher. To install, simply clone this repository and install the requirements.
