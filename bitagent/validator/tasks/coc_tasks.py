@@ -30,7 +30,7 @@ class CoCSarcasmTask(Task):
 
 class CoCPlacesTask(Task):
     def __init__(self, validator: BaseValidatorNeuron, name: str, desc: str = "",
-                 num_countries: int = 5)
+                 num_countries: int = 5):
 
         self.name=name
         self.desc=desc
