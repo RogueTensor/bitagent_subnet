@@ -51,6 +51,8 @@ function usage {
     echo "                           (required)"
     echo "  --netuid                 the netuid to work with"
     echo "                           (default: 20)"
+    echo "  --max                    the max you want to pay"
+    echo "                           (default: none)"
     echo ""
 }
 
@@ -69,6 +71,9 @@ while [ $# -gt 0 ]; do
             hotkeys+=("$1")  # Add to the hotkeys array
             shift  # Shift past the value
         done
+    elif [[ $1 == "--max" ]]; then
+        max="$2"  # Correctly assign the value to 'max'
+        shift  # Shift past the option to process the next argument
     elif [[ $1 == "--"* ]]; then
         v="${1/--/}"
         v="${v//-/_}"  # Replace hyphens with underscores
@@ -84,6 +89,7 @@ while [ $# -gt 0 ]; do
     shift
 done
 
+echo "Max value set to: $max"
 echo $hotkeys
 netuid=${netuid:-20}
 
@@ -101,11 +107,25 @@ do
             btcli w new_hotkey --wallet.name $coldkey --wallet.hotkey $hotkey 2>&1 >> mnemonics.txt
         fi
 
+
         expect -c "
             spawn btcli subnet register --wallet.name $coldkey --wallet.hotkey $hotkey --subtensor.network finney --netuid $netuid
-            expect -re \"want to continue?\" {send \"y\r\";}
+            expect \"The cost to register by recycle is\"
+            set cost \"\"
+            expect -re {τ([0-9.]+)} {
+                set cost \$expect_out(1,string)
+            }
+            expect \"Do you want to continue?\"
+            # Ensure both 'cost' and 'max' are treated as floating point
+            set threshold [scan $max %f]
+            set costValue [scan \$cost %f]
+            if {\$costValue > 0 && \$costValue <= \$threshold} {
+                send \"y\r\"
+            } else {
+                send \"n\r\"
+            }
             expect -re \"password to unlock key:\" {send \"$password\r\";}
-            expect -re \"register on subnet:$netuid\" {send \"y\r\"; interact} 
+            expect -re \"register on subnet:$netuid\" {send \"y\r\"; interact}
         "
     done
 done
