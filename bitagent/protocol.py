@@ -25,22 +25,28 @@ class QnATask(bt.Synapse):
     This protocol helps in handling validator request and miner response communication
 
     Attributes:
-    - urls: list of urls for data context (urls can be empty, urls can contain wildcards)
+    #- urls: list of urls for data context (urls can be empty, urls can contain wildcards)
     - datas: list of data {source & context} in a List of dicts
     - prompt: user prompt
     - repsonse: a dict containing the response along with citations from the provided data context (urls or datas)
         - {response: str, citations: List[dict]}
         - the citations are a list of dicts {source & content: relevant content chunk from the source}
         - there are multiple citations, multiple returned dicts can contains the same source of reference
+    - timeout: time in seconds to wait for the response (ONLY used for tasks coming in through validator axon)
+    - miner_uids: list of miner uids to send the task to (ONLY used for tasks coming in through validator axon)
     """
 
     # Required request input, filled by sending dendrite caller.
-    urls: Optional[List[str]] = []
+    urls: Optional[List[str]] = [] # not used at the moment
     datas: List[dict] = []
     prompt: str = ""
 
     # Optional request output, filled by recieving axon.
     response: Optional[dict] = {}
+
+    # used only for requests coming in through validator axon
+    timeout: Optional[float] = None
+    miner_uids: Optional[List[int]] = []
 
 class QnAResult(bt.Synapse):
     """
