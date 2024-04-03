@@ -168,3 +168,4 @@ run_it_all.sh
 wandb
 TODO
 bitagent.data*
+.vscode
