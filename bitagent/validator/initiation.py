@@ -15,59 +15,46 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import random
-import threading
-import socketserver
+import os
+import glob
+import wandb
+import shutil
 import bittensor as bt
-from faker import Faker
 from datetime import datetime
-from http.server import SimpleHTTPRequestHandler
-from bitagent.validator.dataset import QnADataset, SummaryDataset
-from common.base.validator import BaseValidatorNeuron
 
-import transformers
-from awq import AutoAWQForCausalLM
-from transformers import AutoTokenizer
-from sentence_transformers.cross_encoder import CrossEncoder
-
+# setup validator with wandb
+# clear out the old wandb dirs if possible
 def initiate_validator(self):
-    bt.logging.info("Initializing Validator - this may take a while (downloading data and models).")
-    bt.logging.debug("Initializing Validator - this may take a while (downloading data and models) - loading dataset 1/2 ...")
-    self.qna_dataset = QnADataset()
-    bt.logging.debug("Initializing Validator - this may take a while (downloading data and models) - finished loading dataset 1/2")
-    bt.logging.debug("Initializing Validator - this may take a while (downloading data and models) - loading dataset 2/2 ...")
-    self.summary_dataset = SummaryDataset()
-    bt.logging.debug("Initializing Validator - this may take a while (downloading data and models) - finished loading dataset 2/2")
+    # clear out wandb runs that may be left over
+    try:
+        bt.logging.debug("Clearing out stale wandb runs")
+        if os.path.exists("wandb"):
+            bt.logging.debug("Found the wandb dir...")
+            bt.logging.debug("Contents before delete: ", os.listdir("wandb"))
+            for f in glob.glob("wandb/run-*"):
+                shutil.rmtree(f)
+            bt.logging.debug("Contents after delete: ", os.listdir("wandb"))
+        else:
+            bt.logging.debug('Could not find wandb dir, moving on')
 
-    bt.logging.debug("Initializing Validator - this may take a while (downloading data and models) - loading model ...")
-    # load a simple LLM for evals
-    transformers.logging.set_verbosity_error()
-    model_name_or_path = "TheBloke/Mistral-7B-OpenOrca-AWQ"
-    self.tokenizer = AutoTokenizer.from_pretrained(model_name_or_path, trust_remote_code=False)
-    self.model = AutoAWQForCausalLM.from_quantized(model_name_or_path, fuse_layers=True,
-                                              trust_remote_code=False, safetensors=True)
-    bt.logging.debug("Initializing Validator - this may take a while (downloading data and models) - finished loading model")
+    except Exception as e:
+        bt.logging.debug(f"Error while trying to remove stale wandb runs: {e}")
 
-    bt.logging.debug("Initializing Validator - this may take a while (downloading data and models) - loading cross encoder ...")
-    self.cross_encoder = CrossEncoder("cross-encoder/stsb-distilroberta-base")
-    bt.logging.debug("Initializing Validator - this may take a while (downloading data and models) - finished loading cross encoder")
-
-    def validator_llm(input_text):
-        text = f'''
-<|im_start|>user
-{input_text}<|im_end|>
-<|im_start|>assistant
-'''
-        input_ids = self.tokenizer(text, return_tensors="pt").input_ids.to(self.device)
-        outputs = self.model.generate(input_ids, max_new_tokens=160, temperature=0.7, top_k=40, top_p=0.95, do_sample=True, repetition_penalty=1.1)
-        result = self.tokenizer.decode(outputs[0])
-        result = result.split("<|im_start|> assistant\n")[-1].replace("<|im_end|>","").strip()
-        return result
-
-    self.validator_llm = validator_llm
-
-    # countering the effect of setting seed for task orchestration from validators
-    random.seed(None)
-    # faker data
-    Faker.seed(random.randint(0,2000))
-    self.fake = Faker()
+    # wandb setup
+    def init_wandb(miner_uid=None, validator_uid=None):
+        run_name = f"{miner_uid}_{validator_uid}"
+        tags = ["validator_miner_runs", 
+                f"validator_uid_{self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)}",
+                f"net_uid{self.config.netuid}",
+                datetime.now().strftime('%Y_%m_%d'),
+        ]
+        if self.config.subtensor.network == "test" or self.config.netuid == 76: # testnet wandb
+            # bt.logging.debug("Initializing wandb for testnet")
+            return wandb.init(name=run_name, anonymous="allow", entity="bitagenttao", project="bitagent-testnet-logging", config=self.config, tags=tags)
+        elif self.config.subtensor.network == "finney" or self.config.netuid == 20: # mainnet wandb
+            # bt.logging.debug("Initializing wandb for mainnet")
+            return wandb.init(name=run_name, anonymous="allow", entity="bitagenttao", project="bitagent-logging", config=self.config, tags=tags)
+        else: # unknown network, not initializing wandb
+            # bt.logging.debug("Not initializing wandb, unknown network")
+            return None
+    self.init_wandb = init_wandb
