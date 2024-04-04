@@ -7,7 +7,7 @@ chromadb==0.4.22
 datasets==2.16.1
 Faker==22.2.0
 langchain>=0.1.5
-langchain-text-splitters=0.0.1
+langchain-text-splitters==0.0.1
 py7zr==0.20.8
 sentence_transformers==2.2.2
 sentencepiece==0.1.99
