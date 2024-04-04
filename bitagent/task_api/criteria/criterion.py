@@ -41,8 +41,7 @@ class Criterion():
         try:
             reward, max_reward, feedback = self.eval_fx(task, validator, synapse, response, *self.eval_args)
         except Exception as e:
-            bt.logging.info(f"Exception was raised during criteria evaluation: {e}")
-            print(f"Exception was raised during criteria evaluation: {e} for {type(self.eval_fx)} for {self.eval_fx.__name__}")
+            bt.logging.debug(f"Exception was raised during criteria evaluation: {e}")
             reward = -0.5
             max_reward = 1.0
             feedback = bad_message("Exception while processing your response, please check format per protocol")

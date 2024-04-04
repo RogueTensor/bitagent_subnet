@@ -181,37 +181,49 @@ def ensure_unique_response(task, validator: BaseValidatorNeuron, synapse: bt.Syn
         return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
 
     context = selected_datas[0]['context']
-    length = torch.tensor([len(c) for c in completion.split("\n")]).max()
-    text_splitter = CharacterTextSplitter(
-        separator=" ",
-        chunk_size=length,
-        chunk_overlap=length-1, 
-        length_function=len,
-        is_separator_regex=False,
-    )
-    context_windows = [split.page_content for split in text_splitter.create_documents([context])]
-    all_scores = []
-    for c in completion.split("\n"):
-        temp_scores = validator.measure_relevance_of_texts(c, context_windows)
-        all_scores.extend(temp_scores.tolist())
-    max_cos_score = torch.tensor(all_scores).max()
+    def _sliding_window_score(completion, context) -> List[float]:
+        
+        length = torch.tensor([len(c) for c in completion.split("\n")]).max()
+        text_splitter = CharacterTextSplitter(
+            separator=" ",
+            chunk_size=length,
+            chunk_overlap=length-1, 
+            length_function=len,
+            is_separator_regex=False,
+        )
+        context_windows = [split.page_content for split in text_splitter.create_documents([context])]
+        all_scores = []
+        for c in completion.split("\n"):
+            temp_scores = validator.measure_relevance_of_texts(c, context_windows)
+            all_scores.extend(temp_scores.tolist())
+        return all_scores
+    
+    max_cos_score = torch.tensor(_sliding_window_score(completion, context)).max()
 
     match_prompt = SequenceMatcher(None, completion, prompt).ratio()
     match_context = SequenceMatcher(None, completion, context).ratio()
     match_prompt_gen = SequenceMatcher(None, response_gen, prompt).ratio()
     match_context_gen = SequenceMatcher(None, response_gen, context).ratio()
 
+    max_response_cos_score = torch.tensor(_sliding_window_score(response_gen, context)).max()
+    
+    if max_response_cos_score > 0.90 or match_prompt_gen > 0.90 or match_context_gen > 0.90:
+        reward = max_reward = 10**-6
+        feedback = good_message(f"We couldn't generate a unique enough response from the context. No points awarded or lost.")
+        return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
+
+    if (match_context > 0.8 and match_context < 1.05*match_context_gen) or (match_prompt > 0.9 and match_prompt < 1.05*match_prompt_gen):
+        reward = max_reward = 10**-6
+        feedback = good_message(f"We couldn't generate a unique enough response from the context. No points awarded or lost.")
+        return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
+        
     # check relevance of response to prompt and context
     if completion in context or max_cos_score > 0.90:
         reward = -1.0
         feedback = bad_message(f"You failed to respond with a distinct response from the provided context.")
         return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
 
-    if (match_context > 0.8 and match_context < 1.05*match_context_gen) or (match_prompt > 0.9 and match_prompt < 1.05*match_prompt_gen):
-        reward = max_reward
-        feedback = good_message(f"You responded with a novel enough repsonse.")
-        return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
-    elif match_context > 0.80 or match_prompt > 0.90:
+    if match_context > 0.80 or match_prompt > 0.90:
         reward = -1.0
         feedback = bad_message(f"You failed to respond with a comparably distinct response from the provided context.")
         return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
@@ -284,7 +296,7 @@ def correct_response_provided(task, validator: BaseValidatorNeuron, synapse: bt.
     context = selected_datas[0]['context']
 
     score_gen = validator.measure_relevance_of_texts(completion, response_gen)
-    
+
     if score_gen < 0.60:
         reward = 0.0
         feedback = bad_message(f"You failed to provide a valid response given the provided question and context.")
