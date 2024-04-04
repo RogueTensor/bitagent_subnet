@@ -17,7 +17,6 @@
 # DEALINGS IN THE SOFTWARE.
 
 import time
-import torch
 import asyncio
 import threading
 import traceback
@@ -25,7 +24,6 @@ import traceback
 import bittensor as bt
 
 from common.base.neuron import BaseNeuron
-
 
 class BaseMinerNeuron(BaseNeuron):
     """
@@ -95,19 +93,25 @@ class BaseMinerNeuron(BaseNeuron):
         """
 
         # Check that miner is registered on the network.
-        self.sync()
+        try:
+            self.sync()
+        except Exception as e:
+            bt.logging.error(f"Could not sync, will try again later. Error: {e}")
 
         # Serve passes the axon information to the network + netuid we are hosting on.
         # This will auto-update if the axon port of external ip have changed.
         bt.logging.info(
             f"Serving miner axon {self.axon} on network: {self.config.subtensor.chain_endpoint} with netuid: {self.config.netuid}"
         )
-        self.axon.serve(netuid=self.config.netuid, subtensor=self.subtensor)
+        try:
+            self.axon.serve(netuid=self.config.netuid, subtensor=self.subtensor)
 
-        # Start  starts the miner's axon, making it active on the network.
-        self.axon.start()
+            # Start  starts the miner's axon, making it active on the network.
+            self.axon.start()
 
-        bt.logging.info(f"Miner starting at block: {self.block}")
+            bt.logging.info(f"Miner starting at block: {self.block}")
+        except Exception as e:
+            bt.logging.error(f"Could not start miner, errored: {e}")
 
         # This loop maintains the miner's operations until intentionally stopped.
         try:
@@ -189,4 +193,7 @@ class BaseMinerNeuron(BaseNeuron):
         bt.logging.info("resync_metagraph()")
 
         # Sync the metagraph.
-        self.metagraph.sync(subtensor=self.subtensor)
+        try:
+            self.metagraph.sync(subtensor=self.subtensor)
+        except Exception as e:
+            bt.logging.error(f"Could not sync with metagraph right now, will try later. Error: {e}")
