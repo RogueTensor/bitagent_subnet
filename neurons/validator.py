@@ -63,7 +63,8 @@ class Validator(BaseValidatorNeuron):
 
     async def blacklist_fn(self, synapse: bitagent.protocol.QnATask) -> Tuple[bool, str]:
         # TODO add hotkeys to blacklist here as needed
-        hotkeys_to_blacklist = []
+        # blacklist the hotkeys running/mining on the subnet to prevent any potential issues
+        hotkeys_to_blacklist = [*self.hotkeys[self.metagraph.S < 1000]]
         if synapse.dendrite.hotkey in hotkeys_to_blacklist:
             return True, "Blacklisted hotkey."
         return False, ""
