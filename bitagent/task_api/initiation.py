@@ -34,7 +34,7 @@ def initiate_validator(self):
         llm = VLLMOpenAI(
         openai_api_key="EMPTY",
         openai_api_base="http://localhost:6001/v1",
-        model_name="models/TheBloke_Mistral-7B-OpenOrca-GPTQ",
+        model_name="models/llm",
         max_tokens = max_new_tokens,
         temperature = temperature,
     )
