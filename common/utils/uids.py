@@ -23,6 +23,9 @@ def check_uid_availability(
     if metagraph.validator_permit[uid]:
         if metagraph.S[uid] > vpermit_tao_limit:
             return False
+    # don't hit sn owner
+    if uid == 0:
+        return False
     # Available otherwise.
     return True
 
