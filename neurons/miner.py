@@ -17,7 +17,6 @@
 # DEALINGS IN THE SOFTWARE.
 
 import time
-import glob
 import argparse
 import importlib
 from typing import List, Tuple
@@ -29,7 +28,6 @@ import bitagent
 # Sync calls set weights and also resyncs the metagraph.
 from common.utils.config import add_args as util_add_args
 from common.utils.config import config as util_config
-
 
 # import base miner class which takes care of most of the boilerplate
 from common.base.miner import BaseMinerNeuron
