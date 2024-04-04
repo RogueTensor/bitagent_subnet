@@ -17,13 +17,13 @@
 # DEALINGS IN THE SOFTWARE.
 
 import time
-import torch
+import bitagent
+from typing import Tuple
 
 # Bittensor
 import bittensor as bt
 
 # Bittensor Validator Template:
-import bitagent
 from bitagent.validator import forward, initiate_validator
 
 # import base validator class which takes care of most of the boilerplate
@@ -47,7 +47,7 @@ class Validator(BaseValidatorNeuron):
         bt.logging.info("initiate_validator()")
         initiate_validator(self)
 
-    async def forward(self):
+    async def forward(self, synapse: bitagent.protocol.QnATask=None):
         """
         Validator forward pass. Consists of:
         - Generating the query
@@ -56,7 +56,21 @@ class Validator(BaseValidatorNeuron):
         - Rewarding the miners
         - Updating the scores
         """
-        return await forward(self)
+        return await forward(self, synapse)
+
+    async def forward_fn(self, synapse: bitagent.protocol.QnATask=None) -> bitagent.protocol.QnATask:
+        return await self.forward(synapse)
+
+    async def blacklist_fn(self, synapse: bitagent.protocol.QnATask) -> Tuple[bool, str]:
+        # TODO add hotkeys to blacklist here as needed
+        hotkeys_to_blacklist = []
+        if synapse.dendrite.hotkey in hotkeys_to_blacklist:
+            return True, "Blacklisted hotkey."
+        return False, ""
+
+    async def priority_fn(self, synapse: bitagent.protocol.QnATask) -> float:
+        # high priority for organic traffic
+        return 1000000.0
 
 # The main function parses the configuration and runs the validator.
 if __name__ == "__main__":
