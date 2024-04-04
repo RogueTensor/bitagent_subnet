@@ -120,10 +120,10 @@ pm2 start run.sh --name bitagent_validators_autoupdate -- --wallet.name <your-wa
 
 #### Hardware Requirements
 
-Validators are responsible for generating and evaluating the miners' (essentially advanced LLMs) tasks. \
-There are some aspects of generation and evaluation that require LLMs to accomplish. \
-The LLM our validators use is Mistral 7B, which requires about **15GB of VRAM** to run.
+Validators are responsible for fetching tasks from the Task API and sending them back for evaluation. \
+There are no aspects of generation and evaluation that require LLMs to accomplish on the Validator side.
 
+Miners will need to run LLMs and will require at least mistral 7B, needing a GPU with 15-20GB of VRAM. \
 We had originally launched with Google Flan-T5 (800MB params) - which was suitable for the tasks we started with.  But it is not suitable for the tasks we generate and evaluate now.
 
 ### Miner
@@ -238,12 +238,12 @@ From here, you have quite a few things you can look to do, e.g., call to your LL
 
 ## FAQ
 Q: How much GPU (VRAM) and RAM do I need to run a validator and/or miner?\
-A: Validators would do well with 24GB of VRAM and 32 GB of RAM with performant CPU.  Miners are left to their own devices, but should be aware that the more capable LLMs and workflows require large amounts of VRAM (common configurations: 1 A100 or 1 A6000).
+A: Validators do not need a GPU and could benefit from 32 GB of RAM with performant CPU.  Miners are left to their own devices, but should be aware that the more capable LLMs and workflows require large amounts of VRAM (common configurations: a 3090 is capable enough).
 
 Q: I am seeing: RuntimeWarning: coroutine 'Server.serve' was never awaited - help?\
 A: Asked and [Answered](https://discord.com/channels/799672011265015819/1194736998250975332/1196146782342742037)
 
-Q: Are there any required subscriptions or APIs?\
+Q: Are there any required subscriptions or paid APIs?\
 A: No - no subs, no external companies, in fact we'd rather the community build amazing AI capabilities than relying on corporations.
 
 Q: What can I do if I'm getting a lot of timeouts?\
