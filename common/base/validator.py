@@ -82,11 +82,15 @@ class BaseValidatorNeuron(BaseNeuron):
         try:
             self.axon = bt.axon(wallet=self.wallet, config=self.config)
 
+            self.axon.attach(
+                forward_fn=self.forward_fn,
+                blacklist_fn=self.blacklist_fn,
+                priority_fn=self.priority_fn,
+            )
+
             try:
-                self.subtensor.serve_axon(
-                    netuid=self.config.netuid,
-                    axon=self.axon,
-                )
+                self.axon.serve(netuid=self.config.netuid, subtensor=self.subtensor)
+                self.axon.start()
             except Exception as e:
                 bt.logging.error(f"Failed to serve Axon with exception: {e}")
                 pass
@@ -277,34 +281,37 @@ class BaseValidatorNeuron(BaseNeuron):
         previous_metagraph = copy.deepcopy(self.metagraph)
 
         # Sync the metagraph.
-        self.metagraph.sync(subtensor=self.subtensor)
+        try:
+            self.metagraph.sync(subtensor=self.subtensor)
 
-        # Check if the metagraph axon info has changed.
-        if previous_metagraph.axons == self.metagraph.axons:
-            return
+            # Check if the metagraph axon info has changed.
+            if previous_metagraph.axons == self.metagraph.axons:
+                return
 
-        bt.logging.info(
-            "Metagraph updated, re-syncing hotkeys, dendrite pool and moving averages"
-        )  
-        # Zero out all hotkeys that have been replaced.
-        for uid, hotkey in enumerate(self.hotkeys):
-            if hotkey != self.metagraph.hotkeys[uid]:
-                #self.scores[uid] = 0  # hotkey has been replaced
-                self.scores[uid] = self.scores.median()  # hotkey has been replaced
+            bt.logging.info(
+                "Metagraph updated, re-syncing hotkeys, dendrite pool and moving averages"
+            )  
+            # Zero out all hotkeys that have been replaced.
+            for uid, hotkey in enumerate(self.hotkeys):
+                if hotkey != self.metagraph.hotkeys[uid]:
+                    #self.scores[uid] = 0  # hotkey has been replaced
+                    self.scores[uid] = self.scores.median()  # hotkey has been replaced
 
-        # Check to see if the metagraph has changed size.
-        # If so, we need to add new hotkeys and moving averages.
-        if len(self.hotkeys) < len(self.metagraph.hotkeys):
-            # Update the size of the moving average scores.
-            new_moving_average = torch.zeros((self.metagraph.n)).to(
-                self.device
-            )
-            min_len = min(len(self.hotkeys), len(self.scores))
-            new_moving_average[:min_len] = self.scores[:min_len]
-            self.scores = new_moving_average
+            # Check to see if the metagraph has changed size.
+            # If so, we need to add new hotkeys and moving averages.
+            if len(self.hotkeys) < len(self.metagraph.hotkeys):
+                # Update the size of the moving average scores.
+                new_moving_average = torch.zeros((self.metagraph.n)).to(
+                    self.device
+                )
+                min_len = min(len(self.hotkeys), len(self.scores))
+                new_moving_average[:min_len] = self.scores[:min_len]
+                self.scores = new_moving_average
 
-        # Update the hotkeys.
-        self.hotkeys = copy.deepcopy(self.metagraph.hotkeys)
+            # Update the hotkeys.
+            self.hotkeys = copy.deepcopy(self.metagraph.hotkeys)
+        except Exception as e:
+            bt.logging.error(f"Could not sync with metagraph right now, will try later. Error: {e}")
 
     def update_scores(self, rewards: torch.FloatTensor, uids: List[int]):
         """Performs exponential moving average on the scores based on the rewards received from the miners."""
@@ -364,4 +371,5 @@ class BaseValidatorNeuron(BaseNeuron):
         # Load the state of the validator from file.
         state = torch.load(self.config.neuron.full_path + "/state.pt")
         self.step = state["step"]
-        self.scores = state["scores"]
+        loaded_scores = state["scores"]
+        self.scores[:loaded_scores.size(0)] = loaded_scores
