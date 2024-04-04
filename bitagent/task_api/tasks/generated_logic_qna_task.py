@@ -21,7 +21,7 @@ from bitagent.protocol import QnATask
 from bitagent.task_api.tasks import Task
 from common.base.validator import BaseValidatorNeuron
 from bitagent.task_api.criteria import default_criteria, gen_numerical_logic_task_criteria
-#from bitagent.task_api.helpers.island_grids import generate_island_grid
+from bitagent.task_api.helpers.string_parse import extract_text_inside_quotes
 
 # generated task for logic-based q&a
 class GeneratedLogicQnATask(Task):
@@ -116,32 +116,65 @@ class GeneratedLogicQnATask(Task):
             "'Jump' - The dog leaps off the ground, usually over an obstacle or simply as a form of energetic expression. This trick is a good way to exercise the dog and improve its coordination and fitness.",
             "'Bow' - The dog lowers its front body while keeping its rear end up, mimicking a bowing position. This trick is often used as a polite greeting or a sign of readiness to play.",
             "'Shake' - The dog extends one of its front paws to the handler upon command, mimicking a handshake. This trick is popular as a way to show off the dog's friendly demeanor and ability to engage in social behaviors.",
-            "'Lie Down' - The dog moves from a standing or sitting position to lying flat on its belly with the legs extended. This command is fundamental in obedience training, helping in calming the dog or preparing it for more advanced tricks."
+            "'Lie Down' - The dog moves from a standing or sitting position to lying flat on its belly with the legs extended. This command is fundamental in obedience training, helping in calming the dog or preparing it for more advanced tricks.",
+            "'Spin' - The dog turns around in a circle, usually in the direction indicated by the handler. This trick is a fun way to showcase the dog's ability to follow cues and perform more complex movements.",
+            "'Fetch' - The dog retrieves an object, such as a ball or toy, and brings it back to the handler. This trick is a great way to engage the dog in play and exercise, as well as to demonstrate its ability to follow commands and interact with objects.",
+            "'Stay' - The dog remains in a specific position, such as sitting or lying down, until released by the handler. This trick is essential for safety and control, as it helps prevent the dog from running off or getting into dangerous situations.",
+            "'Speak' - The dog barks or makes noise on command, usually in response to a specific cue from the handler. This trick is a fun way to engage the dog in vocal communication and demonstrate its ability to respond to verbal cues.",
+            "'High Five' - The dog raises one of its front paws to touch the handler's hand upon command, mimicking a high-five gesture. This trick is a playful way to interact with the dog and show off its ability to engage in social behaviors.",
+            "'Crawl' - The dog moves forward on its belly, keeping its body low to the ground, usually in response to a command from the handler. This trick is a fun way to showcase the dog's flexibility and ability to follow cues.",
+            "'Play Dead' - The dog lies on its side with its legs extended, mimicking a dead position, usually in response to a command from the handler. This trick is a fun way to engage the dog in play and demonstrate its ability to follow cues.",
+            "'Back Up' - The dog moves backward in response to a command from the handler, usually in a straight line or in a controlled manner. This trick is useful for creating space between the dog and the handler or for navigating tight spaces.",
+            "'Stand' - The dog rises from a sitting or lying position to stand on all four legs, usually in response to a command from the handler. This trick is a good way to showcase the dog's balance and coordination.",
+            "'Wave' - The dog raises one of its front paws and moves it back and forth in a waving motion, usually in response to a command from the handler. This trick is a fun way to engage the dog in play and demonstrate its ability to follow cues.",
+            "'Jump Through Hoop' - The dog leaps through a hoop or ring held by the handler, usually in response to a command. This trick is a fun way to engage the dog in play and demonstrate its agility and coordination.",
+            "'Speak' - Unlike the 'Bark' command which is a single vocalization, 'Speak' involves the dog making a series of barks or vocalizations in response to the handler's command. This trick helps in teaching the dog vocal control and can be used as a way to communicate or perform.",
+            "'Wave' - The dog lifts its paw and moves it in a waving motion, typically as a gesture of saying hello or goodbye. This trick requires the dog to understand and perform a specific physical gesture on command, demonstrating its ability to engage in complex social behaviors.",
+            "'Find It' - The dog uses its sense of smell to locate a hidden treat or object on command. This trick leverages the dog's natural scent-tracking abilities, encouraging mental stimulation and problem-solving skills. It's an excellent way to engage the dog's mind and senses in a constructive activity.",
+            "'Heel' - The dog walks closely beside the handler's leg, maintaining pace and position regardless of the handler's movements. This advanced obedience command is crucial for safe and controlled walking in public spaces, showcasing the dog's discipline and focus on the handler amidst distractions.",
+            "'Balance Treat' - The dog balances a treat on its nose or forehead and waits for a command to flip and catch it in its mouth. This trick requires patience, control, and precise timing, showcasing the dog's ability to restrain its natural impulses in anticipation of a command.",
+            "'Quiet' - Following a 'Speak' or 'Bark' command, the dog ceases vocalizing on command. This trick is essential for teaching vocal control, allowing the handler to effectively manage and direct the dog's natural tendency to vocalize, ensuring it can communicate in a controlled manner.",
+            "'Skip' - The dog hops forward in a skipping motion, alternating its paws in a rhythmic pattern. This advanced trick combines coordination, rhythm, and agility, offering a visually amusing and energetic display of the dog's physical capabilities.",
+            "'Step Up' - The bird steps onto the caretaker's finger or hand on command. This basic trick is fundamental in handling and is used to establish trust and cooperation between the bird and its caretaker. It's often the first trick taught and is crucial for managing the bird safely outside of its cage.",
         ]
+        trick_descs = random.sample(trick_descs, 5)
         random.shuffle(trick_descs)
         trick_ids = range(1,len(trick_descs)+1)
         trick_id = random.choice(trick_ids)
 
         normal_command = trick_descs[trick_id-1].split("-")[0]
 
+        other_tricks = '\n'.join([td.split("-")[0] for td in trick_descs if td != trick_descs[trick_id-1]])
         trick_command_prompt = f"""Given the following pet dog trick description:
             {trick_descs[trick_id-1]}
 
-            
-            Please come up with a unique and convoluted command that is at most only a short command, 
+            Please come up with a unique and SLIGHTLY convoluted command that is at most only a short command, 
             only a few words with no explanation to get the pet to do this specific trick.
 
-            DO NOT give away the actual command for the trick.  It must be a little ambiguous.
+            DO NOT give away the actual command for the trick. It must be a little ambiguous.
             DO NOT use the trick name or relevent bits in the command you provide.
-            The command has to be unique and interesting.
-            Keep it short and sweet, we don't need any explanation, only provide the command please!
+            The command should be unique, concise, ambiguous, and slightly convoluted.
             And make sure it aligns to the trick description provided and would make sense as a {normal_command} command.
+
+            Make sure it is unique and can not be confused easily with these other commands:
+            {other_tricks}
             
             Slightly Ambiguous Command: """
 
         trick_descs = [str(i+1) + " - " + td for i,td in enumerate(trick_descs)]
         trick_descs_str = "\n".join(trick_descs)
-        trick_command = self.validator.validator_llm(trick_command_prompt, max_new_tokens=100, temperature=random.choice([0.8,0.9,1.0]))
+        loop_count = 0
+        while True:
+            trick_command = extract_text_inside_quotes(self.validator.validator_llm(trick_command_prompt, max_new_tokens=100, temperature=random.choice([0.8,0.85,0.9])))
+            # check if the command is unique and does not contain any words from the normal command
+            if len(set(trick_command.split(' ')).intersection(set(normal_command.split(' ')))) == 0:
+                break
+            
+            if loop_count == 4:
+                break
+            
+        
+        
         question = f"""Given the following Trick Descriptions with numerical IDs:
             {trick_descs_str}
 

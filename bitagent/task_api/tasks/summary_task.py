@@ -43,8 +43,20 @@ class SummaryTask(Task):
         
     def get_random_task(self) -> [str, str, str]:
         if random.random() < 0.5:
-            text, summary = self.get_random_texts()
-            llm_text = self.validator.validator_llm(f"Do not summarize, do keep the same length and reword this text: {text}", temperature=0.5, max_new_tokens=3000)
+            long_enough = False
+            num_tries = 0
+            while not long_enough and num_tries < 5:
+                text, summary = self.get_random_texts()
+                num_words = len(text.split())
+                rewrite_prompt = f"""Please rewrite the following text, ensuring to maintain the original meaning and nuances but altering the sentence structures, vocabulary, and overall presentation. 
+                The goal is to produce a version of the text that conveys the same information and sentiments as the original, but in a fresh and distinct manner. 
+                Avoid summarizing or omitting any details; instead, focus on presenting the same concepts and messages in a new light.
+                
+                Rewrite this text in at least {num_words} words: {text}"""
+                num_tries += 1
+                llm_text = self.validator.validator_llm(rewrite_prompt, temperature=0.5, max_new_tokens=4096)
+                if len(llm_text.split()) > 0.9 * num_words: 
+                    long_enough = True
             prompt = f"Summarize this and make sure to be concise: {llm_text}"
             summary_gen = self.validator.validator_llm(prompt)
             return prompt, summary, summary_gen

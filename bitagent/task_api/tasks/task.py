@@ -142,5 +142,5 @@ def get_random_task(validator, task_id_to_get=None, sub_task_id_to_get=None) -> 
                 case 9:
                     return random.choice(basic_qna_miner_tasks)
         except Exception as e:
-            print('Error: ', e)
+            bt.logging.error('Error during task selection, trying again: ', e)
             time.sleep(15)
