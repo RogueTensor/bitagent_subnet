@@ -16,10 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import copy
-import typing
-
 import bittensor as bt
-
 from abc import ABC, abstractmethod
 
 # Sync calls set weights and also resyncs the metagraph.
@@ -82,24 +79,27 @@ class BaseNeuron(ABC):
         bt.logging.info(f"Wallet: {self.wallet}")
 
         # The subtensor is our connection to the Bittensor blockchain.
-        self.subtensor = bt.subtensor(config=self.config)
-        bt.logging.info(f"Subtensor: {self.subtensor}")
+        try:
+            self.subtensor = bt.subtensor(config=self.config)
+            bt.logging.info(f"Subtensor: {self.subtensor}")
 
-        # The metagraph holds the state of the network, letting us know about other validators and miners.
-        self.metagraph = self.subtensor.metagraph(self.config.netuid)
-        bt.logging.info(f"Metagraph: {self.metagraph}")
+            # The metagraph holds the state of the network, letting us know about other validators and miners.
+            self.metagraph = self.subtensor.metagraph(self.config.netuid)
+            bt.logging.info(f"Metagraph: {self.metagraph}")
 
-        # Check if the miner is registered on the Bittensor network before proceeding further.
-        self.check_registered()
+            # Check if the miner is registered on the Bittensor network before proceeding further.
+            self.check_registered()
 
-        # Each miner gets a unique identity (UID) in the network for differentiation.
-        self.uid = self.metagraph.hotkeys.index(
-            self.wallet.hotkey.ss58_address
-        )
-        bt.logging.info(
-            f"Running neuron on subnet: {self.config.netuid} with uid {self.uid} using network: {self.subtensor.chain_endpoint}"
-        )
-        self.step = 0
+            # Each miner gets a unique identity (UID) in the network for differentiation.
+            self.uid = self.metagraph.hotkeys.index(
+                self.wallet.hotkey.ss58_address
+            )
+            bt.logging.info(
+                f"Running neuron on subnet: {self.config.netuid} with uid {self.uid} using network: {self.subtensor.chain_endpoint}"
+            )
+            self.step = 0
+        except Exception as e:
+            bt.logging.error(f"Error trying to connect to subtensor: {e}")
 
     @abstractmethod
     async def forward(self, synapse: bt.Synapse) -> bt.Synapse:
@@ -142,11 +142,14 @@ class BaseNeuron(ABC):
         """
         Check if enough epoch blocks have elapsed since the last checkpoint to sync.
         """
-        return (
-            self.block - self.metagraph.last_update[self.uid]
-        ) > self.config.neuron.epoch_length
+        bt.logging.debug("Ready to sync the metagraph: ", self.block % self.config.neuron.epoch_length == 0.0)
+        return self.block % self.config.neuron.epoch_length == 0.0
 
     def should_set_weights(self) -> bool:
+        # Don't set weights for miners
+        if self.config.neuron.type == "miner":
+            return False
+        
         # Don't set weights on initialization.
         if self.step == 0:
             return False
