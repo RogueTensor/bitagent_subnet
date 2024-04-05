@@ -81,19 +81,24 @@ def get_random_task() -> [List[int], Task]:
             data = {}
 
             response = requests.post(task_url, headers=headers, json=data) #, verify=False)
-            jdata = response.json()
-
-            # if miner_uids are empty, then leave empty and they will be randomly selected
-            if "miner_uids" in jdata.keys():
-                # get miner uids to call for organic traffic
-                miner_uids = jdata["miner_uids"]
-                bt.logging.debug("Organic miner uids: ", miner_uids)
+            if response.status_code == 502:
+                bt.logging.warning("Task API is down, should be back up shortly: ", response)
+            elif response.status_code != 200:
+                bt.logging.error("Error connecting to Task API, might be access restriction: ", response)
             else:
-                miner_uids = []
+                jdata = response.json()
 
-            task = Task.create_from_json(jdata["task"])
+                # if miner_uids are empty, then leave empty and they will be randomly selected
+                if "miner_uids" in jdata.keys():
+                    # get miner uids to call for organic traffic
+                    miner_uids = jdata["miner_uids"]
+                    bt.logging.debug("Received miner uids: ", miner_uids)
+                else:
+                    miner_uids = []
 
-            return miner_uids, task
+                task = Task.create_from_json(jdata["task"])
+
+                return miner_uids, task
 
         except Exception as e:
             bt.logging.warning("Likely waiting for Task API to come back online ... ", e)

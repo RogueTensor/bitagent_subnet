@@ -65,12 +65,12 @@ def get_rewards(validator: BaseValidatorNeuron, task: Task, responses: List[str]
         if len(reward) == 4:
             score, max_possible_score, task_results, correct_answer = reward
         elif len(reward) == 2: # skip it
-            bt.logging.error(f"Skipping results for this task b/c Task API rebooted: {reward[1]}")
+            bt.logging.debug(f"Skipping results for this task b/c Task API rebooted: {reward[1]}")
             scores.append(-10)
             results.append(None)
             continue
         else:
-            bt.logging.error(f"Skipping results for this task b/c not enough information")
+            bt.logging.debug(f"Skipping results for this task b/c not enough information")
             scores.append(-10)
             results.append(None)
             continue
@@ -113,6 +113,7 @@ Median Score across all miners: {validator.scores.median()}""")
                 "dendrite_process_time": response.dendrite.process_time,
                 "dendrite_status_code": response.dendrite.status_code,
                 "axon_status_code": response.axon.status_code,
+                "val_spec_version": validator.spec_version,
                 **wandb_basics
             }
             try:

@@ -86,8 +86,13 @@ async def forward(self, synapse: QnATask=None) -> QnATask:
             miner_uids = torch.tensor(organic_miner_uids)
         elif task.task_type == "organic":
             bt.logging.debug('Received organic task without miner uids')
+            # use random miner uids
+        elif len(organic_miner_uids) > 0:
+            bt.logging.debug('Received generated task with miner uids that will require evaluation: ', organic_miner_uids)
+            miner_uids = torch.tensor(organic_miner_uids)
         else:
             bt.logging.debug('Received generated task that will require evaluation')
+            # use random miner uids
         task_synapse = task.synapse
         task_timeout = task.timeout
 
