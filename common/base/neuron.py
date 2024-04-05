@@ -97,6 +97,7 @@ class BaseNeuron(ABC):
             bt.logging.info(
                 f"Running neuron on subnet: {self.config.netuid} with uid {self.uid} using network: {self.subtensor.chain_endpoint}"
             )
+            self.last_block_sync = self.block
             self.step = 0
         except Exception as e:
             bt.logging.error(f"Error trying to connect to subtensor: {e}")
@@ -142,8 +143,9 @@ class BaseNeuron(ABC):
         """
         Check if enough epoch blocks have elapsed since the last checkpoint to sync.
         """
-        bt.logging.debug(f"Ready to sync the metagraph at block {self.block} given epoch size of {self.config.neuron.epoch_length}: ", self.block % self.config.neuron.epoch_length <= 10.0)
-        return self.block % self.config.neuron.epoch_length <= 10.0
+        bt.logging.debug(f"Ready to sync the metagraph at block {self.block}, last sync at {self.last_block_sync} and given epoch size of {self.config.neuron.epoch_length}: ", self.block - self.last_block_sync > self.config.neuron.epoch_length)
+        if self.block - self.last_block_sync > self.config.neuron.epoch_length:
+            return True
 
     def should_set_weights(self) -> bool:
         # Don't set weights for miners

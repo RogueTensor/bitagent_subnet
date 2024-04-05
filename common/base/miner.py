@@ -116,10 +116,7 @@ class BaseMinerNeuron(BaseNeuron):
         # This loop maintains the miner's operations until intentionally stopped.
         try:
             while not self.should_exit:
-                while (
-                    self.block - self.metagraph.last_update[self.uid]
-                    < self.config.neuron.epoch_length
-                ):
+                while(self.block - self.last_block_sync < self.config.neuron.epoch_length):
                     # Wait before checking again.
                     time.sleep(1)
 
@@ -127,9 +124,11 @@ class BaseMinerNeuron(BaseNeuron):
                     if self.should_exit:
                         break
 
-                # Sync metagraph and potentially set weights.
+                # Sync metagraph
                 self.sync()
                 self.step += 1
+
+                time.sleep(1)
 
         # If someone intentionally stops the miner, it'll safely terminate operations.
         except KeyboardInterrupt:
@@ -195,5 +194,6 @@ class BaseMinerNeuron(BaseNeuron):
         # Sync the metagraph.
         try:
             self.metagraph.sync(subtensor=self.subtensor)
+            self.last_block_sync = self.block
         except Exception as e:
             bt.logging.error(f"Could not sync with metagraph right now, will try later. Error: {e}")

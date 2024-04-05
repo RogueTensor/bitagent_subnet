@@ -283,6 +283,7 @@ class BaseValidatorNeuron(BaseNeuron):
         # Sync the metagraph.
         try:
             self.metagraph.sync(subtensor=self.subtensor)
+            self.last_block_sync = self.block
 
             # Check if the metagraph axon info has changed.
             if previous_metagraph.axons == self.metagraph.axons:
