@@ -109,7 +109,7 @@ def evaluate_task(validator, task:Task, synapse:bt.Synapse, response:dict) -> [f
 # - Summarization
 # - Logic QnA (pet tricks)
 def get_random_task(validator, task_id_to_get=None, sub_task_id_to_get=None) -> Task:
-    from bitagent.task_api.tasks import SummaryTask, GeneratedQnATask, GeneratedLogicQnATask, GeneratedAgentTask, basic_qna_miner_tasks
+    from bitagent.task_api.tasks import SummaryTask, GeneratedQnATask, GeneratedLogicQnATask, basic_qna_miner_tasks
     random.seed(validator.random_seed())  
     task_ids = [1,2,3,4,5,6,7,8,9]
     weights  = [0,0,1,2,2,5,0,3,0]
@@ -142,5 +142,5 @@ def get_random_task(validator, task_id_to_get=None, sub_task_id_to_get=None) -> 
                 case 9:
                     return random.choice(basic_qna_miner_tasks)
         except Exception as e:
-            bt.logging.error('Error during task selection, trying again: ', e)
+            print('Error: ', e)
             time.sleep(15)
