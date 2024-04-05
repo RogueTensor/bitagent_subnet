@@ -142,8 +142,8 @@ class BaseNeuron(ABC):
         """
         Check if enough epoch blocks have elapsed since the last checkpoint to sync.
         """
-        bt.logging.debug("Ready to sync the metagraph: ", self.block % self.config.neuron.epoch_length == 0.0)
-        return self.block % self.config.neuron.epoch_length == 0.0
+        bt.logging.debug(f"Ready to sync the metagraph at block {self.block} given epoch size of {self.config.neuron.epoch_length}: ", self.block % self.config.neuron.epoch_length <= 10.0)
+        return self.block % self.config.neuron.epoch_length <= 10.0
 
     def should_set_weights(self) -> bool:
         # Don't set weights for miners

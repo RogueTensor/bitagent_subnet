@@ -46,6 +46,7 @@ class Validator(BaseValidatorNeuron):
 
         bt.logging.info("initiate_validator()")
         initiate_validator(self)
+        bt.logging.debug(f"spec_version: {self.spec_version}")
 
     async def forward(self, synapse: bitagent.protocol.QnATask=None):
         """
