@@ -51,6 +51,23 @@ class Criterion():
     def __repr__(self):
         return pformat(vars(self), indent=4, width=1)
 
+    @classmethod
+    def fromSerialized(cls, serialized):
+        return cls(
+            name=serialized["name"],
+            desc=serialized["desc"],
+            eval_fx=eval(serialized["eval_fx"]),
+            eval_args=serialized["eval_args"]
+        )
+
+    def serialize(self):
+        return {
+            "name": self.name,
+            "desc": self.desc,
+            "eval_fx": self.eval_fx.__name__,
+            "eval_args": self.eval_args
+        }
+
 # the core set of tests that form a set of criteria for each of the various tasks:
 # - QnA with citations
 # - Summarization
@@ -62,7 +79,6 @@ class Criterion():
 def gen_data_task_criteria(selected_datas: List[dict], n_expected_citations:int, response_gen:str) -> List[Criterion]:
     return [
         Criterion(name=f"Returns expected citation source(s)", desc="", eval_fx=contains_correct_number_of_citation_sources, eval_args=[selected_datas]),
-        Criterion(name=f"Check for oddities", desc="", eval_fx=check_for_oddities, eval_args=[selected_datas]),
         Criterion(name=f"Returns a relevant response", desc="", eval_fx=relevant_to_provided_content, eval_args=[selected_datas]),
         Criterion(name=f"Returns a unique response", desc="", eval_fx=ensure_unique_response, eval_args=[selected_datas, response_gen]),
         Criterion(name=f"Returns valid response", desc="", eval_fx=correct_response_provided, eval_args=[selected_datas, response_gen]),

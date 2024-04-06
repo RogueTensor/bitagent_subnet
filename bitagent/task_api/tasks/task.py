@@ -34,9 +34,19 @@ class Task():
     criteria: List[Criterion]
     synapse: QnATask
 
-    def __init__(self, name: str, prompt: str = "", desc: str = "", datas: List[dict] = [],
-                 urls: List[str] = [], criteria: List[Criterion] = default_criteria,
-                 citation_sources_should_contain: str=None, response_should_contain: str=None, task_type: str=None, task_id: str=None) -> None:
+    def __init__(self, 
+                 name: str, 
+                 prompt: str = "", 
+                 desc: str = "", 
+                 datas: List[dict] = [],
+                 urls: List[str] = [], 
+                 criteria: List[Criterion] = default_criteria,
+                 citation_sources_should_contain: str = None, 
+                 response_should_contain: str = None, 
+                 task_type: str=None, 
+                 task_id: str=None,
+                 correct_answer: str=None
+                        ) -> None:
         random.seed(None)
         if task_id:
             self.task_id=task_id
@@ -49,7 +59,8 @@ class Task():
         self.criteria=criteria
         self.citation_sources_should_contain=citation_sources_should_contain
         self.response_should_contain=response_should_contain
-        self.synapse=QnATask(prompt=prompt, urls=urls, datas=datas)
+        self.synapse = QnATask(prompt=prompt, urls=urls, datas=datas)
+        self.correct_answer = correct_answer
 
     def reward(self, validator: BaseValidatorNeuron, synapse: QnATask, response:dict) -> [float, float, List[str]]:
         total_score = 0.0
@@ -60,16 +71,49 @@ class Task():
             total_score += score
             total_possible += max_score
             results.append(result)
-        try:
+        if self.correct_answer:
             correct_answer = self.correct_answer
-        except:
+        else:
             correct_answer = "N/A"
 
         return [total_score, total_possible, results, correct_answer]
 
     def __repr__(self):
         return pformat(vars(self), indent=4, width=1)
-
+    
+    @classmethod
+    def fromSerialized(cls, serialized):
+        task = cls(
+            name=serialized["name"], 
+            prompt=serialized["prompt"], 
+            desc=serialized["desc"], 
+            datas=serialized["datas"], 
+            urls=serialized["urls"], 
+            criteria=[Criterion.fromSerialized(c) for c in serialized["criteria"]], 
+            citation_sources_should_contain=(serialized["citation_sources_should_contain"] if "None" != serialized["citation_sources_should_contain"] else None), 
+            response_should_contain=(serialized["response_should_contain"] if "None" != serialized["response_should_contain"] else None), 
+            task_type=(serialized["task_type"] if "None" != serialized["task_type"] else None), 
+            task_id=(serialized["task_id"] if "None" != serialized["task_id"] else None),
+            correct_answer = serialized["correct_answer"]
+            )
+        return task
+    
+    def serialize(self):
+        return {
+            "task_id": str(self.task_id),
+            "task_type": str(self.task_type),
+            "name": self.name,
+            "prompt": self.synapse.prompt,
+            "desc": self.desc,
+            "datas": self.synapse.datas,
+            "urls": self.synapse.urls,
+            "timeout": self.timeout,
+            "criteria": [c.serialize() for c in self.criteria],
+            "citation_sources_should_contain": str(self.citation_sources_should_contain),
+            "response_should_contain": str(self.response_should_contain),
+            "correct_answer": (str(self.correct_answer) if self.correct_answer else "N/A")
+        }
+    
     def toJSON(self):
         return {
             "task_id": self.task_id,
