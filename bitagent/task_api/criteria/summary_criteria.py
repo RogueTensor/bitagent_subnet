@@ -50,11 +50,10 @@ def correct_summary_provided(task, validator: BaseValidatorNeuron, synapse: bt.S
         feedback = bad_message(f"You failed to provide the correct data - see protocal details.")
         return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
 
-    # miner trying something fishy
-    if validator.validator_llm(completion).strip().lower() == "yes" or "summarya" in completion.lower():
-        reward = -1.0
-        feedback = bad_message(f"You failed to respond with a valid summary from the provided context.")
-        return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
+    score_gen = validator.measure_relevance_of_texts(completion, summary_gen)
+    score_grd = validator.measure_relevance_of_texts(completion, summary)
+    score_prmt = validator.measure_relevance_of_texts(completion, prompt)
+    score_prmt_wo = validator.measure_relevance_of_texts(completion, prompt.replace("Summarize this and make sure to be concise: ", ""))
 
     if summary == summary_gen and score_gen < 0.5:
         reward = -0.5
