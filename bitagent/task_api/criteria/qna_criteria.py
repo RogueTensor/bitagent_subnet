@@ -259,28 +259,6 @@ def relevant_to_provided_content(task, validator: BaseValidatorNeuron, synapse: 
         feedback = good_message(f"You responded with a relevant response compared to the context.")
         return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
 
-# CRITERION: reward for being an honest looking response
-def check_for_oddities(task, validator: BaseValidatorNeuron, synapse: bt.Synapse, response: dict, selected_datas: List[dict]) -> [float, float, str]:
-    max_reward = 1.0
-    try:
-        prompt = task.synapse.prompt
-        completion = synapse.response['response']
-    except KeyError:
-        # no citations provided and no placeholder available or maybe something wrong with the data sources
-        reward = -0.5
-        feedback = bad_message(f"You failed to provide the correct response formatting - see protocal details.")
-        return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
-
-    # miner trying something fishy
-    if validator.validator_llm(completion).strip().lower() == "yes" or "summarya" in completion.lower():
-        reward = -1.0
-        feedback = bad_message(f"You failed to respond with a valid response from the provided context.")
-        return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
-
-    reward = max_reward
-    feedback = good_message(f"You responded with a valid response.")
-    return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
-
 # CRITERION: reward valid response
 def correct_response_provided(task, validator: BaseValidatorNeuron, synapse: bt.Synapse, response: dict, selected_datas: List[dict], response_gen: str) -> [float, float, str]:
     max_reward = 1.0
