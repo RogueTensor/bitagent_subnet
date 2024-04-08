@@ -83,7 +83,7 @@ async def forward(self, synapse: QnATask=None) -> QnATask:
     # otherwise we are looking to the Task API to grab organic tasks off the queue
     # or generated tasks if no organic tasks exist and evaluate it
     else: 
-        organic_miner_uids, task = get_random_task()
+        organic_miner_uids, task = get_random_task(self)
         if task.task_type == "organic" and len(organic_miner_uids) > 0:
             #bt.logging.debug('Received organic task with miner uids: ', organic_miner_uids)
             miner_uids = torch.tensor(organic_miner_uids)
@@ -123,7 +123,7 @@ async def forward(self, synapse: QnATask=None) -> QnATask:
     # if organic then return the response to the task API for the downstream application
     if task and task.task_type == "organic":
         for response in responses:
-            organic_return_url = f"https://roguetensor.com/api/task_api/organic_response"
+            organic_return_url = f"{self.config.task_api_host}/task_api/organic_response"
             headers = {"Content-Type": "application/json"}
             data = {
                 "task_id": task.task_id,
