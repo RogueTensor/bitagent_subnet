@@ -22,11 +22,14 @@ import torch
 import asyncio
 import threading
 import bittensor as bt
+import argparse
 
 from typing import List
 from traceback import print_exception
 
 from common.base.neuron import BaseNeuron
+from common.utils.config import add_args as util_add_args
+from common.utils.config import config as util_config
 
 
 class BaseValidatorNeuron(BaseNeuron):
@@ -35,6 +38,16 @@ class BaseValidatorNeuron(BaseNeuron):
     """
 
     neuron_type: str = "ValidatorNeuron"
+
+    @classmethod
+    def add_args(cls, parser: argparse.ArgumentParser):
+        util_add_args(cls, parser)
+        parser.add_argument(
+            "--task_api_host",
+            type=str,
+            default="https://roguetensor.com/api",
+            help="the Task API host if you need to point to your own"
+        )
 
     def __init__(self, config=None):
         super().__init__(config=config)
