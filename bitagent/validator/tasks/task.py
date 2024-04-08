@@ -40,11 +40,11 @@ class Task():
     def create_from_json(cls, data):
         return Task(data['task_id'], data['name'], data['prompt'], data['desc'], data['task_type'], data['datas'], data['urls'], data['timeout'])
 
-    def reward(self, response):
+    def reward(self, validator, response):
         num_retries = 0
         while num_retries < 3:
             try:
-                reward_url = f"https://roguetensor.com/api/task_api/evaluate_task_response"
+                reward_url = f"{validator.config.task_api_host}/task_api/evaluate_task_response"
                 headers = {"Content-Type": "application/json"}
                 data = {
                     "task_id": self.task_id,
@@ -62,10 +62,13 @@ class Task():
                 result.raise_for_status()
                 return result.json()["result"]
             except KeyError as e:
+                bt.logging.error("Key Error with API: ", e)
                 num_retries += 1
                 if "task_id" in e:
                     return False, "Task API restarted, task_id not found"
             except Exception as e:
+                bt.logging.error("Error with Task API: ", e)
+                time.sleep(25)
                 num_retries += 1
         return False, "Waiting for Task API to come back online ..."
         
@@ -73,18 +76,20 @@ class Task():
     def __repr__(self):
         return pformat(vars(self), indent=4, width=1)
 
-def get_random_task() -> [List[int], Task]:
+def get_random_task(validator) -> [List[int], Task]:
     while True:
         try:
-            task_url = f"https://roguetensor.com/api/task_api/get_new_task"
+            task_url = f"{validator.config.task_api_host}/task_api/get_new_task"
             headers = {"Content-Type": "application/json"}
             data = {}
 
             response = requests.post(task_url, headers=headers, json=data) #, verify=False)
             if response.status_code == 502:
-                bt.logging.warning("Task API is down, should be back up shortly: ", response)
+                bt.logging.debug("Task API is down, should be back up shortly: ", response)
+                time.sleep(25)
             elif response.status_code != 200:
                 bt.logging.error("Error connecting to Task API, might be access restriction: ", response)
+                time.sleep(25)
             else:
                 jdata = response.json()
 
@@ -92,7 +97,7 @@ def get_random_task() -> [List[int], Task]:
                 if "miner_uids" in jdata.keys():
                     # get miner uids to call for organic traffic
                     miner_uids = jdata["miner_uids"]
-                    bt.logging.debug("Received miner uids: ", miner_uids)
+                    #bt.logging.debug("Received miner uids: ", miner_uids)
                 else:
                     miner_uids = []
 
@@ -101,5 +106,5 @@ def get_random_task() -> [List[int], Task]:
                 return miner_uids, task
 
         except Exception as e:
-            bt.logging.warning("Likely waiting for Task API to come back online ... ", e)
-            time.sleep(15)
+            bt.logging.debug("Likely waiting for Task API to come back online ... ", e)
+            time.sleep(25)

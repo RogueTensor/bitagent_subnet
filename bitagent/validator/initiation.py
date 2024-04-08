@@ -26,19 +26,22 @@ from datetime import datetime
 # clear out the old wandb dirs if possible
 def initiate_validator(self):
     # clear out wandb runs that may be left over
-    try:
-        bt.logging.debug("Clearing out stale wandb runs")
-        if os.path.exists("wandb"):
-            bt.logging.debug("Found the wandb dir...")
-            bt.logging.debug("Contents before delete: ", os.listdir("wandb"))
-            for f in glob.glob("wandb/run-*"):
-                shutil.rmtree(f)
-            bt.logging.debug("Contents after delete: ", os.listdir("wandb"))
-        else:
-            bt.logging.debug('Could not find wandb dir, moving on')
+    def clear_wandb():
+        try:
+            bt.logging.debug("Clearing out stale wandb runs")
+            if os.path.exists("wandb"):
+                bt.logging.debug("Found the wandb dir...")
+                bt.logging.debug("Contents before delete: ", os.listdir("wandb"))
+                for f in glob.glob("wandb/run-*"):
+                    shutil.rmtree(f)
+                bt.logging.debug("Contents after delete: ", os.listdir("wandb"))
+            else:
+                bt.logging.debug('Could not find wandb dir, moving on')
 
-    except Exception as e:
-        bt.logging.debug(f"Error while trying to remove stale wandb runs: {e}")
+        except Exception as e:
+            bt.logging.debug(f"Error while trying to remove stale wandb runs: {e}")
+    clear_wandb()
+    self.clear_wandb = clear_wandb
 
     # wandb setup
     def init_wandb(miner_uid=None, validator_uid=None):

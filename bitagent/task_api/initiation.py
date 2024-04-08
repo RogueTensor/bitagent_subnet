@@ -24,10 +24,10 @@ from sentence_transformers import SentenceTransformer, util
 
 # provide some capabilities to the task API (LLM, cossim and faker)
 def initiate_validator(self):
-    bt.logging.info("Initializing Validator - this may take a while (downloading data and models).")
+    #bt.logging.info("Initializing Validator - this may take a while (downloading data and models).")
     self.qna_dataset = QnADataset()
     self.summary_dataset = SummaryDataset()
-    bt.logging.debug("Initializing Validator - this may take a while (downloading data and models) - loading model ...")
+    #bt.logging.debug("Initializing Validator - this may take a while (downloading data and models) - loading model ...")
     self.sentence_transformer = SentenceTransformer('BAAI/bge-large-en-v1.5')
 
     def validator_llm(input_text, max_new_tokens = 160, temperature=0.7):
@@ -44,7 +44,7 @@ def initiate_validator(self):
         return res
 
     self.validator_llm = validator_llm
-    bt.logging.debug("Initializing Validator - this may take a while (downloading data and models) - finished loading model")
+    #bt.logging.debug("Initializing Validator - this may take a while (downloading data and models) - finished loading model")
 
     # code to measure the relevance of the response to the question
     def measure_relevance_of_texts(text1, text2): 
