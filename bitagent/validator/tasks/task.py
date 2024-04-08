@@ -85,7 +85,7 @@ def get_random_task(validator) -> [List[int], Task]:
 
             response = requests.post(task_url, headers=headers, json=data) #, verify=False)
             if response.status_code == 502:
-                bt.logging.debug("Task API is down, should be back up shortly: ", response)
+                #bt.logging.debug("Task API is down, should be back up shortly: ", response)
                 time.sleep(25)
             elif response.status_code != 200:
                 bt.logging.error("Error connecting to Task API, might be access restriction: ", response)
