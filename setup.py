@@ -62,7 +62,7 @@ with codecs.open(
     version_string = version_match.group(1)
 
 setup(
-    name="bitagent_subnet_20",
+    name="bitagent",
     version=version_string,
     description="BitAgent Subnet - Tasking and Q&A with Your Data and Your World",
     long_description=long_description,
