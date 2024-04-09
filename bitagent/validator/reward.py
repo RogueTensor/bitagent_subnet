@@ -125,7 +125,7 @@ Median Score across all miners: {validator.scores.median()}"""
                 # The dendrite client queries the network to send feedback to the miner
                 _ = validator.dendrite.query(
                     # Send the query to selected miner axons in the network.
-                    axons=[miner_uid],
+                    axons=[validator.metagraph.axons[miner_uid]],
                     # Construct a query. 
                     synapse=QnAResult(results=result),
                     # All responses have the deserialize function called on them before returning.
