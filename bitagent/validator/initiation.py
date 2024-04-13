@@ -45,19 +45,23 @@ def initiate_validator(self):
 
     # wandb setup
     def init_wandb(miner_uid=None, validator_uid=None):
-        run_name = f"{miner_uid}_{validator_uid}"
-        tags = ["validator_miner_runs", 
-                f"validator_uid_{self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)}",
-                f"net_uid{self.config.netuid}",
-                datetime.now().strftime('%Y_%m_%d'),
-        ]
-        if self.config.subtensor.network == "test" or self.config.netuid == 76: # testnet wandb
-            # bt.logging.debug("Initializing wandb for testnet")
-            return wandb.init(name=run_name, anonymous="allow", entity="bitagenttao", project="bitagent-testnet-logging", config=self.config, tags=tags)
-        elif self.config.subtensor.network == "finney" or self.config.netuid == 20: # mainnet wandb
-            # bt.logging.debug("Initializing wandb for mainnet")
-            return wandb.init(name=run_name, anonymous="allow", entity="bitagenttao", project="bitagent-logging", config=self.config, tags=tags)
-        else: # unknown network, not initializing wandb
-            # bt.logging.debug("Not initializing wandb, unknown network")
+        try:
+            run_name = f"{miner_uid}_{validator_uid}"
+            tags = ["validator_miner_runs", 
+                    f"validator_uid_{self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)}",
+                    f"net_uid{self.config.netuid}",
+                    datetime.now().strftime('%Y_%m_%d'),
+            ]
+            if self.config.subtensor.network == "test" or self.config.netuid == 76: # testnet wandb
+                # bt.logging.debug("Initializing wandb for testnet")
+                return wandb.init(name=run_name, anonymous="allow", entity="bitagenttao", project="bitagent-testnet-logging", config=self.config, tags=tags)
+            elif self.config.subtensor.network == "finney" or self.config.netuid == 20: # mainnet wandb
+                # bt.logging.debug("Initializing wandb for mainnet")
+                return wandb.init(name=run_name, anonymous="allow", entity="bitagenttao", project="bitagent-logging", config=self.config, tags=tags)
+            else: # unknown network, not initializing wandb
+                # bt.logging.debug("Not initializing wandb, unknown network")
+                return None
+        except Exception as e:
+            #bt.logging.error("Wandb could not be initialized: ", e)
             return None
     self.init_wandb = init_wandb
