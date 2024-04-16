@@ -45,6 +45,7 @@ def initiate_validator(self):
 
     # wandb setup
     def init_wandb(miner_uid=None, validator_uid=None):
+        return None #wandb sucks
         try:
             run_name = f"{miner_uid}_{validator_uid}"
             tags = ["validator_miner_runs", 
