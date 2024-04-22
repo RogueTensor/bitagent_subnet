@@ -135,16 +135,18 @@ Median Score across all miners: {validator.scores.median()}"""
                 )
 
                 # log to wandb
-                asyncio.create_task(log_to_wandb(response, validator, wandb_basics, task_results, miner_uid, score, max_possible_score, normalized_score, correct_answer))
+                # we'll replace this soon with something else
+                # wandb is rate limiting us
+                #asyncio.create_task(log_to_wandb(response, validator, wandb_basics, task_results, miner_uid, score, max_possible_score, normalized_score, correct_answer))
                     
-        elif len(reward) == 2: # skip it
-            #bt.logging.debug(f"Skipping results for this task b/c Task API seems to have rebooted: {reward[1]}")
-            time.sleep(25)
-            continue
-        else:
-            #bt.logging.debug(f"Skipping results for this task b/c not enough information")
-            time.sleep(25)
-            continue
+        elif len(reward) == 2: # error during evaluation, default score to below miner's avg and log error
+            scores.append(validator.scores[miner_uid] * 0.7)
+            temp_miner_uids.append(miner_uid)
+            bt.logging.error(f"Either task api is rebooting or miner caused error: {reward}")
+        else: # not enough information, default score to below miner's avg and log error
+            scores.append(validator.scores[miner_uid] * 0.5)
+            temp_miner_uids.append(miner_uid)
+            bt.logging.error(f"Miner caused error, not enough info: {reward}")
 
     # Update the scores based on the rewards. You may want to define your own update_scores function for custom behavior.
     miner_uids = torch.tensor(temp_miner_uids)
