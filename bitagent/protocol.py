@@ -27,6 +27,8 @@ class QnATask(bt.Synapse):
     Attributes:
     #- urls: list of urls for data context (urls can be empty, urls can contain wildcards)
     - datas: list of data {source & context} in a List of dicts
+    - tools: list of tools {name, description, ... #TODO} in a List of dicts
+    - notes: just a string of notes describing the problem
     - prompt: user prompt
     - repsonse: a dict containing the response along with citations from the provided data context (urls or datas)
         - {response: str, citations: List[dict]}
@@ -39,6 +41,8 @@ class QnATask(bt.Synapse):
     # Required request input, filled by sending dendrite caller.
     urls: Optional[List[str]] = [] # not used at the moment
     datas: List[dict] = []
+    tools: List[dict] = []
+    notes: str = "No Notes"
     prompt: str = ""
 
     # Optional request output, filled by recieving axon.
