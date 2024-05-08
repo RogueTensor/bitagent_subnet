@@ -169,3 +169,6 @@ wandb
 TODO
 bitagent.data*
 .vscode
+repo
+.cometml-runs
+old.*
