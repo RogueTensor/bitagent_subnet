@@ -24,6 +24,7 @@ from bitagent.task_api.criteria.default_criteria import *
 from bitagent.task_api.criteria.qna_criteria import *
 from bitagent.task_api.criteria.summary_criteria import *
 from bitagent.task_api.criteria.qna_logic_criteria import *
+from bitagent.task_api.criteria.tool_selection_criteria import *
 
 # building block for the criteria used to evaluate the miner's response
 class Criterion():
@@ -88,6 +89,11 @@ def gen_data_task_criteria(selected_datas: List[dict], n_expected_citations:int,
 def gen_numerical_logic_task_criteria(expected_answer:int) -> List[Criterion]:
     return [
         Criterion(name=f"Returns expected value", desc="", eval_fx=contains_correct_numerical_logic_answer, eval_args=[expected_answer]),
+    ]
+
+def gen_tool_selection_criteria(expected_answer:List[str]) -> List[Criterion]:
+    return [
+        Criterion(name=f"Returns expected value", desc="", eval_fx=contains_correct_tool_selection_answer, eval_args=[expected_answer]),
     ]
 
 # Summarization
