@@ -177,7 +177,7 @@ def config(cls):
     Returns the configuration object specific to this miner or validator after adding relevant arguments.
     """
     neuron_type = (
-        "validator" if "miner" not in cls.__name__.lower() else "miner"
+        "validator" if "miner" not in type(cls).__name__.lower() else "miner"
     )
     parser = argparse.ArgumentParser()
     bt.wallet.add_args(parser)
