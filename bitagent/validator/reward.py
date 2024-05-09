@@ -18,61 +18,84 @@
 
 import os
 import time
+import json
+from comet_ml import Experiment
 import torch
 import shutil
 import asyncio
 import bittensor as bt
+import multiprocessing
 from typing import List
+from datetime import datetime
 from rich.console import Console
-from bitagent.protocol import QnAResult
 from bitagent.validator.tasks import Task
+from bitagent.protocol import QnAResult
 from common.base.validator import BaseValidatorNeuron
 
 rich_console = Console()
-os.environ["WANDB_SILENT"] = "true"
-                
-async def log_to_wandb(response, validator, wandb_basics, task_results, miner_uid, score, max_possible_score, normalized_score, correct_answer):
-    vwandb = None
-    # only log to wandb if the response is successful
-    if (response.axon.status_code == 200 or response.dendrite.status_code == 200):
-        vwandb = validator.init_wandb(miner_uid, wandb_basics['validator_uid'])
-    if vwandb:
-        step_log = {
-            "completion": response.response,
-            "correct_answer": correct_answer,
-            "miner_uid": miner_uid,
-            "score": score,
-            "max_possible_score": max_possible_score,
-            "normalized_score": normalized_score,
-            "average_score_for_miner_with_this_validator": validator.scores[miner_uid],
-            "highest_score_for_miners_with_this_validator": validator.scores.max(),
-            "median_score_for_miners_with_this_validator": validator.scores.median(),
-            "stake": validator.metagraph.S[miner_uid].item(),
-            "trust": validator.metagraph.T[miner_uid].item(),
-            "incentive": validator.metagraph.I[miner_uid].item(),
-            "consensus": validator.metagraph.C[miner_uid].item(),
-            "dividends": validator.metagraph.D[miner_uid].item(),
-            "task_results": "\n".join(task_results),
-            "dendrite_process_time": response.dendrite.process_time,
-            "dendrite_status_code": response.dendrite.status_code,
-            "axon_status_code": response.axon.status_code,
-            "val_spec_version": validator.spec_version,
-            **wandb_basics
-        }
-        vwandb.log(step_log)
-        try:
-            #bt.logging.debug("Writing to wandb and cleaning up.")
-            vwandb.finish()
-            wandb_dir_to_delete = vwandb.dir
-            if "files" in wandb_dir_to_delete:
-                wandb_dir_to_delete = wandb_dir_to_delete.split("files")[0]
-            if wandb_dir_to_delete and os.path.exists(wandb_dir_to_delete):
-                shutil.rmtree(wandb_dir_to_delete)
-            # if it still exists - yikes
-            if os.path.exists(wandb_dir_to_delete):
-                bt.logging.error(f"Failed to delete wandb directory, you can manually remove: {wandb_dir_to_delete}.")
-        except Exception as e:
-            bt.logging.error(f"Failed to delete wandb directory. Error: {e}.")
+
+async def send_results_to_miner(validator, result, miner_axon):
+    # extra transparent details for miners
+
+    # For generated/evaluated tasks, we send the results back to the miner so they know how they did and why
+    # The dendrite client queries the network to send feedback to the miner
+    _ = validator.dendrite.query(
+        # Send the query to selected miner axons in the network.
+        axons=[miner_axon],
+        # Construct a query. 
+        synapse=QnAResult(results=result),
+        # All responses have the deserialize function called on them before returning.
+        # You are encouraged to define your own deserialization function.
+        deserialize=False,
+        timeout=5.0 # quick b/c we are not awaiting a response
+    )
+
+async def evaluate_task(validator, task, response):
+    rewards = []
+    if validator.config.run_local:
+        rewards.append(task.reward(validator, response, response))
+        # TOOD take out - but compare first so we can do both levels of validator hosting
+        # response
+        # timeout=10.0 urls=[] datas=[] prompt="Summarize this and make sure to be concise:  .." 
+        # response={'response': "...", 'citations': [], 'context': ''} miner_uids=[]
+    else:
+        rewards.append(task.reward(validator, response))
+
+    return rewards
+
+async def return_results(validator, task, miner_uid, reward):
+    # means we got all of the information we need to score the miner and update wandb
+    if len(reward) == 4:
+        score, max_possible_score, task_results, correct_answer = reward
+        # make sure the score is not None
+        if score and max_possible_score:
+            normalized_score = score/max_possible_score
+
+            result = f"""
+[bold]Task: {task.name}[/bold]\n[bold]Results:[/bold]
+=====================\n"""+"\n".join(task_results) + f"""
+[bold]Total reward:[/bold] {score}
+[bold]Total possible reward:[/bold] {max_possible_score}
+[bold]Normalized reward:[/bold] {normalized_score}
+---
+Stats with this validator:
+Your Average Score: {validator.scores[miner_uid]}
+Highest Score across all miners: {validator.scores.max()}
+Median Score across all miners: {validator.scores.median()}"""
+
+            # send results
+            await send_results_to_miner(validator, result, validator.metagraph.axons[miner_uid])
+
+            return task_results
+        return None
+    elif len(reward) == 2: # skip it
+        #bt.logging.debug(f"Skipping results for this task b/c Task API seems to have rebooted: {reward[1]}")
+        #time.sleep(25)
+        return None
+    else:
+        #bt.logging.debug(f"Skipping results for this task b/c not enough information")
+        #time.sleep(25)
+        return None
 
 async def process_rewards_update_scores_and_send_feedback(validator: BaseValidatorNeuron, task: Task, responses: List[str], 
                 miner_uids: List[int]) -> None:
@@ -87,66 +110,79 @@ async def process_rewards_update_scores_and_send_feedback(validator: BaseValidat
 
     # common wandb setup
     prompt = task.synapse.prompt
-    wandb_basics = {
+    log_basics = {
         "task_name": task.name,
         "prompt": prompt,
         "validator_uid": validator.metagraph.hotkeys.index(validator.wallet.hotkey.ss58_address),
+        "val_spec_version": validator.spec_version,
+        "highest_score_for_miners_with_this_validator": validator.scores.max().item(),
+        "median_score_for_miners_with_this_validator": validator.scores.median().item(),
     }
+    
+    # run these in parallel but wait for the reuslts b/c we need them downstream
+    rewards = await asyncio.gather(*[evaluate_task(validator, task, response) for response in responses])
 
     # track which miner uids are scored for updating the scores
-    temp_miner_uids = []
-    scores = []
-    for i, response in enumerate(responses):
-        miner_uid = miner_uids[i]
-        reward = task.reward(validator, response)
+    temp_miner_uids = [miner_uids[i] for i, reward in enumerate(rewards) if len(reward[0]) == 4 and reward[0][0] is not None and reward[0][1] is not None]
+    scores = [reward[0][0]/reward[0][1] for reward in rewards if len(reward[0]) == 4 and reward[0][0] is not None and reward[0][1] is not None]
 
-        # means we got all of the information we need to score the miner and update wandb
-        if len(reward) == 4:
-            score, max_possible_score, task_results, correct_answer = reward
-            # make sure the score is not None
-            if score and max_possible_score:
-                normalized_score = score/max_possible_score
-                scores.append(normalized_score)
-                temp_miner_uids.append(miner_uid)
-                # extra transparent details for miners
-                result = f"""
-[bold]Task: {task.name}[/bold]\n[bold]Results:[/bold]
-=====================\n"""+"\n".join(task_results) + f"""
-[bold]Total reward:[/bold] {score}
-[bold]Total possible reward:[/bold] {max_possible_score}
-[bold]Normalized reward:[/bold] {normalized_score}
----
-Stats with this validator:
-Your Average Score: {validator.scores[miner_uid]}
-Highest Score across all miners: {validator.scores.max()}
-Median Score across all miners: {validator.scores.median()}"""
+    results = await asyncio.gather(*[return_results(validator, task, miner_uids[i], reward[0]) for i, reward in enumerate(rewards)])
 
-                # For generated/evaluated tasks, we send the results back to the miner so they know how they did and why
-                # The dendrite client queries the network to send feedback to the miner
-                _ = validator.dendrite.query(
-                    # Send the query to selected miner axons in the network.
-                    axons=[validator.metagraph.axons[miner_uid]],
-                    # Construct a query. 
-                    synapse=QnAResult(results=result),
-                    # All responses have the deserialize function called on them before returning.
-                    # You are encouraged to define your own deserialization function.
-                    deserialize=False,
-                    timeout=0.1 # quick b/c we are not awaiting a response
-                )
+    for i, result in enumerate(results):
+        if result is not None:
+            response = responses[i]
+            miner_uid = miner_uids[i]
+            score,max_possible_score,_,correct_answer = rewards[i][0]
+            normalized_score = score/max_possible_score
+            resp = "None"
+            citations = "None"
+            try:
+                resp = response.response["response"]
+                citations = json.dumps(response.response["citations"])
+            except:
+                pass
+            step_log = {
+                "completion_response": resp,
+                "completion_citations": citations,
+                "correct_answer": correct_answer,
+                "miner_uid": miner_uids[i].item(),
+                "score": score,
+                "max_possible_score": max_possible_score,
+                "normalized_score": normalized_score,
+                "average_score_for_miner_with_this_validator": validator.scores[miner_uid].item(),
+                "stake": validator.metagraph.S[miner_uid].item(),
+                "trust": validator.metagraph.T[miner_uid].item(),
+                "incentive": validator.metagraph.I[miner_uid].item(),
+                "consensus": validator.metagraph.C[miner_uid].item(),
+                "dividends": validator.metagraph.D[miner_uid].item(),
+                "task_results": "\n".join(result),
+                "dendrite_process_time": response.dendrite.process_time,
+                "dendrite_status_code": response.dendrite.status_code,
+                "axon_status_code": response.axon.status_code,
+                **log_basics
+            }
 
-                # log to wandb
-                # we'll replace this soon with something else
-                # wandb is rate limiting us
-                #asyncio.create_task(log_to_wandb(response, validator, wandb_basics, task_results, miner_uid, score, max_possible_score, normalized_score, correct_answer))
-                    
-        elif len(reward) == 2: # error during evaluation, default score to below miner's avg and log error
-            scores.append(validator.scores[miner_uid] * 0.7)
-            temp_miner_uids.append(miner_uid)
-            bt.logging.error(f"Either task api is rebooting or miner caused error: {reward}")
-        else: # not enough information, default score to below miner's avg and log error
-            scores.append(validator.scores[miner_uid] * 0.5)
-            temp_miner_uids.append(miner_uid)
-            bt.logging.error(f"Miner caused error, not enough info: {reward}")
+            if (step_log["axon_status_code"] == 200 or step_log["dendrite_status_code"] == 200):
+                validator_network = validator.config.subtensor.network
+                validator_netuid = validator.config.netuid
+                if validator_network == "test" or validator_netuid == 76: # testnet wandb
+                    #bt.logging.debug("Initializing wandb for testnet")
+                    project_name = "bitagent-testnet"
+                elif validator_network == "finney" or validator_netuid == 20: # mainnet wandb
+                    # bt.logging.debug("Initializing wandb for mainnet")
+                    project_name = "bitagent-mainnet"
+                else: # unknown network, not initializing wandb
+                    # bt.logging.debug("Not initializing wandb, unknown network")
+                    project_name = None
+
+                if project_name:
+                    experiment = Experiment(
+                        api_key="x6TeIvmRgto7KhgAeMVJqkZRQ",
+                        project_name=project_name,
+                        workspace="roguetensor"
+                    )
+                    experiment.log_parameters(step_log)
+                    experiment.end()
 
     # Update the scores based on the rewards. You may want to define your own update_scores function for custom behavior.
     miner_uids = torch.tensor(temp_miner_uids)
