@@ -20,7 +20,7 @@ import os
 import torch
 import argparse
 import bittensor as bt
-from loguru import logger
+#from loguru import logger
 
 
 def check_config(cls, config: "bt.Config"):
@@ -41,19 +41,19 @@ def check_config(cls, config: "bt.Config"):
     if not os.path.exists(config.neuron.full_path):
         os.makedirs(config.neuron.full_path, exist_ok=True)
 
-    if not config.neuron.dont_save_events:
-        # Add custom event logger for the events.
-        logger.level("EVENTS", no=38, icon="📝")
-        logger.add(
-            os.path.join(config.neuron.full_path, "events.log"),
-            rotation=config.neuron.events_retention_size,
-            serialize=True,
-            enqueue=True,
-            backtrace=False,
-            diagnose=False,
-            level="EVENTS",
-            format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}",
-        )
+    #if not config.neuron.dont_save_events:
+    #    # Add custom event logger for the events.
+    #    logger.level("EVENTS", no=38, icon="📝")
+    #    logger.add(
+    #        os.path.join(config.neuron.full_path, "events.log"),
+    #        rotation=config.neuron.events_retention_size,
+    #        serialize=True,
+    #        enqueue=True,
+    #        backtrace=False,
+    #        diagnose=False,
+    #        level="EVENTS",
+    #        format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}",
+    #    )
 
 
 def add_args(cls, parser):
@@ -103,6 +103,14 @@ def add_args(cls, parser):
     )
 
     if neuron_type == "validator":
+
+        parser.add_argument(
+            "--run_local",
+            action="store_true",
+            help="Set this flag to run locally",
+            default=False,
+        )
+
         parser.add_argument(
             "--neuron.num_concurrent_forwards",
             type=int,
@@ -168,10 +176,15 @@ def config(cls):
     """
     Returns the configuration object specific to this miner or validator after adding relevant arguments.
     """
+    neuron_type = (
+        "validator" if "miner" not in cls.__name__.lower() else "miner"
+    )
     parser = argparse.ArgumentParser()
     bt.wallet.add_args(parser)
     bt.subtensor.add_args(parser)
     bt.logging.add_args(parser)
+    if neuron_type == "miner":
+        bt.trace()
     bt.axon.add_args(parser)
     cls.add_args(parser)
     return bt.config(parser)
