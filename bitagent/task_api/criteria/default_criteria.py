@@ -32,7 +32,7 @@ def does_not_error(task, validator: BaseValidatorNeuron, synapse: bt.Synapse, re
         feedback = bad_message("You failed to respond correctly to the request.")
         if d_status_code == 408:
             feedback += "You timed out and will fail the remainder of the criteria."
-        feedback += f" Status Code: {a_status_code}/{d_status_code}"
+        feedback += f" Status Code: {a_status_code}/{d_status_code} -- {response}"
         
     return reward, max_reward, feedback + received_reward_template.format(reward, max_reward)
 
