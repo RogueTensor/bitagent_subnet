@@ -69,7 +69,9 @@ class GeneratedQnATask(Task):
             Response: """
         response_gen = self.validator.validator_llm(query_text, temperature=0.8, max_new_tokens=2000)
         self.criteria=default_criteria+gen_data_task_criteria(selected_datas=[datas[selected_num]], n_expected_citations=n_expected_citations, response_gen=response_gen)
-        self.synapse=QnATask(prompt=question, urls=[], datas=datas)
+        notes = """The task is built from a prompt and a list of source context.
+The task is to provide a reasonable response to the prompt and a list of citations that informed the response."""
+        self.synapse=QnATask(prompt=question, urls=[], datas=datas, notes=notes)
 
     def generate_random_texts(self, n_texts: int = 3) -> [List[str], List[str]]:
         # get n random data
