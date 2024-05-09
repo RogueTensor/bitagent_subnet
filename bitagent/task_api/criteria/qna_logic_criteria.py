@@ -47,5 +47,5 @@ def contains_correct_numerical_logic_answer(task, validator: BaseValidatorNeuron
         return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
     
     reward = 0.0
-    feedback = bad_message(f"You failed to respond with the correct answer: {expected_answer}.")
+    feedback = bad_message(f"You failed to respond with the correct answer.")
     return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
