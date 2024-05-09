@@ -50,7 +50,6 @@ class AnsibleRepoAnalyzer:
         """Clones the repository to a local directory. Only saves .yml and .yaml files"""
         if os.path.exists(self.local_path):
             return
-        #TODO remove the isdir check because it returns above anyways
         if os.path.isdir(os.path.join(self.local_path, '.git')):
             self.repo = Repo(self.local_path)
         else:
