@@ -153,7 +153,10 @@ class BaseValidatorNeuron(BaseNeuron):
         # This loop maintains the validator's operations until intentionally stopped.
         try:
             while True:
-                bt.logging.info(f"step({self.step}) block({self.block})")
+                try:
+                    bt.logging.info(f"step({self.step}) block({self.block})")
+                except Exception as e:
+                    bt.logging.error("Error logging step and block, likely socket issue, will update next round", e)
 
                 # Run multiple forwards concurrently.
                 self.loop.run_until_complete(self.concurrent_forward())
@@ -163,7 +166,10 @@ class BaseValidatorNeuron(BaseNeuron):
                     break
 
                 # Sync metagraph and potentially set weights.
-                self.sync()
+                try:
+                    self.sync()
+                except Exception as e:
+                    bt.logging.error(f"Error syncing metagraph during run loop: {e}")
 
                 self.step += 1
 
@@ -232,6 +238,8 @@ class BaseValidatorNeuron(BaseNeuron):
         """
         Sets the validator weights to the metagraph hotkeys based on the scores it has received from the miners. The weights determine the trust and incentive level the validator assigns to miner nodes on the network.
         """
+        if self.config.subtensor.network == "test":
+            return # Don't set weights on testnet.
 
         # Check if self.scores contains any NaN values and log a warning if it does.
         if torch.isnan(self.scores).any():
@@ -268,10 +276,9 @@ class BaseValidatorNeuron(BaseNeuron):
         ) = bt.utils.weight_utils.convert_weights_and_uids_for_emit(
             uids=processed_weight_uids, weights=processed_weights
         )
-        bt.logging.debug("uint_weights", uint_weights)
-        bt.logging.debug("uint_uids", uint_uids)
 
         # Set the weights on chain via our subtensor connection.
+
         result, msg = self.subtensor.set_weights(
             wallet=self.wallet,
             netuid=self.config.netuid,
