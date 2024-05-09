@@ -22,6 +22,7 @@ import requests
 import bittensor as bt
 
 from bitagent.validator.reward import process_rewards_update_scores_and_send_feedback
+from bitagent.task_api.tasks.task import get_random_task as get_random_task_local
 from common.utils.uids import get_random_uids
 
 from bitagent.validator.tasks import get_random_task
@@ -50,7 +51,7 @@ async def forward(self, synapse: QnATask=None) -> QnATask:
         if not synapse or len(synapse.miner_uids) == 0:
             miner_uids = get_random_uids(self, k=min(self.config.neuron.sample_size, self.metagraph.n.item()))
     except Exception as e:
-        bt.logging.warning(f"Trouble setting miner_uids: {e}")
+        #bt.logging.warning(f"Trouble setting miner_uids: {e}")
         bt.logging.warning("Defaulting to 1 uid, k=1 ... likely due to low # of miners available.")
         miner_uids = get_random_uids(self, k=1)
 
@@ -83,7 +84,14 @@ async def forward(self, synapse: QnATask=None) -> QnATask:
     # otherwise we are looking to the Task API to grab organic tasks off the queue
     # or generated tasks if no organic tasks exist and evaluate it
     else: 
-        organic_miner_uids, task = get_random_task(self)
+        if self.config.run_local:
+            #bt.logging.debug("running local")
+            organic_miner_uids = []
+            task = get_random_task_local(self)
+        else:
+            #bt.logging.debug("not running local")
+            # time.sleep(3) # slow it down a bit
+            organic_miner_uids, task = get_random_task(self)
         if task.task_type == "organic" and len(organic_miner_uids) > 0:
             #bt.logging.debug('Received organic task with miner uids: ', organic_miner_uids)
             miner_uids = torch.tensor(organic_miner_uids)
@@ -98,6 +106,7 @@ async def forward(self, synapse: QnATask=None) -> QnATask:
             # use random miner uids
             #bt.logging.debug('Received generated task that will require evaluation')
             pass
+
         task_synapse = task.synapse
         task_timeout = task.timeout
 
@@ -140,7 +149,7 @@ async def forward(self, synapse: QnATask=None) -> QnATask:
     # Adjust the scores based on responses from miners.
     # also gets results for feedback to the miners
     if not synapse and task and task.task_type != "organic":
-        asyncio.create_task(process_rewards_update_scores_and_send_feedback(self, task=task, responses=responses, miner_uids=miner_uids))
+        await asyncio.create_task(process_rewards_update_scores_and_send_feedback(self, task=task, responses=responses, miner_uids=miner_uids))
 
     # Organic Validator Axon Request
     # If the request came in through the axon, return the response to the validator
