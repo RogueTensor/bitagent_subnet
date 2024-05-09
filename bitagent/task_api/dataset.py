@@ -18,6 +18,7 @@
 
 import os
 import time
+import pickle
 import random
 import bittensor as bt
 from datasets import load_dataset, load_from_disk
@@ -117,3 +118,54 @@ class SummaryDataset(Iterator):
             except Exception as e:
                 bt.logging.debug(f"HuggingFace issue ... {e}")
                 time.sleep(15)
+
+from bitagent.task_api.helpers.ansible import AnsibleRepoAnalyzer
+class AnsibleDataset(Iterator):
+    def __init__(self):
+        super().__init__()
+        # countering the effect of setting seed for task orchestration from validators
+        random.seed(None)
+        self.dataset = pickle.load(open(f"{root_data_dir}/ansible-repos.pkl", "rb"))
+
+    def __next__(self):
+        bt.logging.debug("Retrieving ansible data from dataset...")
+        # countering the effect of setting seed for task orchestration from validators
+        random.seed(None)
+        happy = False
+        task_set = None
+        while not happy:
+            try:
+                repo = random.choice(list(self.dataset))
+                with AnsibleRepoAnalyzer(repo, os.environ["GITHUB_ACCESS_TOKEN"]) as repo_analyzer:
+                    all_task_sets = repo_analyzer.get_ansible_tasks()
+                    if len(all_task_sets.keys()) > 0:
+                        num_tries = 0
+                        while num_tries < 5 and not happy:
+                            random_task_set_key = random.choice(list(all_task_sets.keys()))
+                            task_set = all_task_sets[random_task_set_key]
+                            if len(task_set) > 3 and len(task_set) < 10:
+                                happy = True
+                            num_tries += 1
+            except Exception as e:
+                bt.logging.debug(f"Github issue ... {e}")
+        return task_set
+        
+                
+import json
+class APIDataset(Iterator):
+    def __init__(self):
+        super().__init__()
+        # countering the effect of setting seed for task orchestration from validators
+        random.seed(None)
+        self.dataset = json.load(open(f"{root_data_dir}/apis.json", "r"))
+
+    def __next__(self):
+        bt.logging.debug("Retrieving api data from dataset...")
+        # countering the effect of setting seed for task orchestration from validators
+        random.seed(None)
+        while True:
+            try:
+                api = random.choice(list(self.dataset))
+                return api
+            except Exception as e:
+                bt.logging.debug(f"Github issue ... {e}")
