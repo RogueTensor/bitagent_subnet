@@ -34,13 +34,15 @@ class GeneratedLogicQnATask(Task):
         self.correct_answer = answer
     
         self.criteria=default_criteria+gen_numerical_logic_task_criteria(expected_answer=answer)
-        self.synapse=QnATask(prompt=question, urls=[], datas=[])
+        notes = """The task is built from a prompt that includes a question and a list of possible answers.
+The task is to provide the correct answer from the list of possible answers."""
+        self.synapse=QnATask(prompt=question, urls=[], datas=[], notes=notes)
 
     # only pet tricks is still used, the rest are mostly exploitable
     def generate_random_logic_question_and_answer(self, sub_task_id_to_get: int = None) -> [str, int, List[int]]:
         random.seed(self.validator.random_seed())
-        task_ids = [1,2,3,6,7]
-        weights  = [0,0,0,1,0]
+        task_ids = [1,2,3,6,7,8]
+        weights  = [0,0,0,2,0,3]
         choice = random.choices(task_ids, weights=weights)[0]
         if sub_task_id_to_get and sub_task_id_to_get in task_ids:
             choice = sub_task_id_to_get
@@ -66,6 +68,9 @@ class GeneratedLogicQnATask(Task):
             case 7:
                 self.name += " - Random Word Hunt"
                 return self.random_word_hunt()
+            case 8:
+                self.name += " - API Selection"
+                return self.api_selection()
     
     # WIP
     def random_word_hunt(self) -> [str, int]:
@@ -110,7 +115,6 @@ class GeneratedLogicQnATask(Task):
         self.timeout=5
         random.seed(None) # countering the effect of setting seed for task orchestration from validators
         trick_descs = [
-            "'Bark' - The dog vocalizes on command, producing a bark. This trick is often used to demonstrate the dog's ability to respond vocally to cues from the handler.",
             "'Sit' - The dog lowers its body to sit on its hindquarters while keeping the front paws straight. This basic obedience command is one of the first tricks dogs learn and is used to instill discipline and control.",
             "'Rollover' - The dog starts from a lying position, rolls its body over to one side until it makes a complete 360-degree turn, and ends up back in the lying position. This trick showcases the dog's agility and willingness to follow more complex commands.",
             "'Jump' - The dog leaps off the ground, usually over an obstacle or simply as a form of energetic expression. This trick is a good way to exercise the dog and improve its coordination and fitness.",
@@ -126,12 +130,12 @@ class GeneratedLogicQnATask(Task):
             "'Back Up' - The dog moves backward in response to a command from the handler, usually in a straight line or in a controlled manner. This trick is useful for creating space between the dog and the handler or for navigating tight spaces.",
             "'Stand' - The dog rises from a sitting or lying position to stand on all four legs, usually in response to a command from the handler. This trick is a good way to showcase the dog's balance and coordination.",
             "'Jump Through Hoop' - The dog leaps through a hoop or ring held by the handler, usually in response to a command. This trick is a fun way to engage the dog in play and demonstrate its agility and coordination.",
-            "'Speak' - Unlike the 'Bark' command which is a single vocalization, 'Speak' involves the dog making a series of barks or vocalizations in response to the handler's command. This trick helps in teaching the dog vocal control and can be used as a way to communicate or perform.",
+            "'Speak' - 'Speak' involves the dog making a series of barks or vocalizations in response to the handler's command. This trick helps in teaching the dog vocal control and can be used as a way to communicate or perform.",
             "'Wave' - The dog lifts its paw and moves it in a waving motion, typically as a gesture of saying hello or goodbye. This trick requires the dog to understand and perform a specific physical gesture on command, demonstrating its ability to engage in complex social behaviors.",
             "'Find It' - The dog uses its sense of smell to locate a hidden treat or object on command. This trick leverages the dog's natural scent-tracking abilities, encouraging mental stimulation and problem-solving skills. It's an excellent way to engage the dog's mind and senses in a constructive activity.",
             "'Heel' - The dog walks closely beside the handler's leg, maintaining pace and position regardless of the handler's movements. This advanced obedience command is crucial for safe and controlled walking in public spaces, showcasing the dog's discipline and focus on the handler amidst distractions.",
             "'Balance Treat' - The dog balances a treat on its nose or forehead and waits for a command to flip and catch it in its mouth. This trick requires patience, control, and precise timing, showcasing the dog's ability to restrain its natural impulses in anticipation of a command.",
-            "'Quiet' - Following a 'Speak' or 'Bark' command, the dog ceases vocalizing on command. This trick is essential for teaching vocal control, allowing the handler to effectively manage and direct the dog's natural tendency to vocalize, ensuring it can communicate in a controlled manner.",
+            "'Quiet' - Following a 'Speak' command, the dog ceases vocalizing on command. This trick is essential for teaching vocal control, allowing the handler to effectively manage and direct the dog's natural tendency to vocalize, ensuring it can communicate in a controlled manner.",
             "'Skip' - The dog hops forward in a skipping motion, alternating its paws in a rhythmic pattern. This advanced trick combines coordination, rhythm, and agility, offering a visually amusing and energetic display of the dog's physical capabilities.",
             "'Step Up' - The bird steps onto the caretaker's finger or hand on command. This basic trick is fundamental in handling and is used to establish trust and cooperation between the bird and its caretaker. It's often the first trick taught and is crucial for managing the bird safely outside of its cage.",
         ]
@@ -276,3 +280,53 @@ class GeneratedLogicQnATask(Task):
             question = f"How many unique female pet names are in this list (just provide a numerical number): {','.join(males)}?"
     
         return [question, answer]
+
+    def api_selection(self) -> [str, int]:
+        self.timeout=5
+        random.seed(None) # countering the effect of setting seed for task orchestration from validators
+        apis = []
+        for _ in range(5):
+            apis.append(next(self.validator.api_dataset))
+        
+        api_ids = range(1,len(apis)+1)
+        
+        selected_id = random.choice(api_ids)
+        selected_api = apis[selected_id-1]
+
+        other_apis = '\n'.join([f"{api['name']} - {api['description']}" for api in apis if api != selected_api])
+        api_select_prompt = f"""Given the following tool description:
+            {selected_api['description']}
+
+            Please come up with a unique and SLIGHTLY convoluted tool that is at most only a short tool, 
+            only a few words with no explanation to get the user to use this specific tool.
+
+            DO NOT give away the actual purpose for the tool. It must be a little ambiguous.
+            DO NOT use the tool name or relevent bits in the tool you provide.
+            The tool should be unique, concise, ambiguous, and slightly convoluted.
+            And make sure it aligns to the tool description provided and would make sense as a {selected_api['name']} tool.
+
+            Make sure it is unique and can not be confused easily with these other tools:
+            {other_apis}
+            
+            Slightly Ambiguous Tool: """
+
+        loop_count = 0
+        while True: 
+            ambig_api_name = extract_text_inside_quotes(self.validator.validator_llm(api_select_prompt, max_new_tokens=100, temperature=random.choice([0.8,0.85,0.9])))
+            # check if the command is unique and does not contain any words from the normal command
+            if len(set(ambig_api_name.split(' ')).intersection(set(selected_api['name'].split(' ')))) == 0:
+                break
+            
+            if loop_count == 4:
+                break
+        
+        question = f"""Given the following Tool Descriptions with numerical IDs:
+            {[str(i+1) + " - " + api['description'] for i,api in enumerate(apis)]}
+
+            And given this unique and purposefully ambiguous tool name: 
+            '{ambig_api_name}'
+
+            Which Tool ID (provide numerical number only) is being requested? 
+            Tool ID: """ 
+        
+        return [question, selected_id]
