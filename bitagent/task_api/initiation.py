@@ -16,19 +16,21 @@
 # DEALINGS IN THE SOFTWARE.
 
 import random
-import bittensor as bt
 from faker import Faker
-from bitagent.task_api.dataset import QnADataset, SummaryDataset
+from bitagent.task_api.dataset import QnADataset, SummaryDataset, AnsibleDataset, APIDataset
 from langchain_community.llms import VLLMOpenAI
-from sentence_transformers import SentenceTransformer, util
+from sentence_transformers import util
+from bitagent.task_api.helpers.sbert import CachedSentenceTransformer
 
 # provide some capabilities to the task API (LLM, cossim and faker)
 def initiate_validator(self):
     #bt.logging.info("Initializing Validator - this may take a while (downloading data and models).")
     self.qna_dataset = QnADataset()
     self.summary_dataset = SummaryDataset()
+    self.ansible_dataset = AnsibleDataset()
+    self.api_dataset = APIDataset()
     #bt.logging.debug("Initializing Validator - this may take a while (downloading data and models) - loading model ...")
-    self.sentence_transformer = SentenceTransformer('BAAI/bge-large-en-v1.5')
+    self.sentence_transformer = CachedSentenceTransformer('BAAI/bge-large-en-v1.5')
 
     def validator_llm(input_text, max_new_tokens = 160, temperature=0.7):
         llm = VLLMOpenAI(
@@ -42,18 +44,18 @@ def initiate_validator(self):
 {input_text}<|im_end|>
 <|im_start|>assistant\n""")
         return res
-
+    
     self.validator_llm = validator_llm
     #bt.logging.debug("Initializing Validator - this may take a while (downloading data and models) - finished loading model")
 
     # code to measure the relevance of the response to the question
+    
     def measure_relevance_of_texts(text1, text2): 
         # Encode the texts to get the embeddings
         if type(text2) == list:
-            embeddings = self.sentence_transformer.encode([text1,*text2], convert_to_tensor=True)
+            embeddings = self.sentence_transformer.encode([text1,*text2], convert_to_tensor=True, show_progress_bar=False)
         else:
-            embeddings = self.sentence_transformer.encode([text1,text2], convert_to_tensor=True)
-
+            embeddings = self.sentence_transformer.encode([text1,text2], convert_to_tensor=True, show_progress_bar=False)
         # Compute the cosine similarity between the embeddings
         if type(text2) == list:
             return util.pytorch_cos_sim(embeddings[0], embeddings[1:])[0]
