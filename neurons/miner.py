@@ -29,6 +29,7 @@ import bitagent
 from common.utils.config import add_args as util_add_args
 from common.utils.config import config as util_config
 
+
 # import base miner class which takes care of most of the boilerplate
 from common.base.miner import BaseMinerNeuron
 rich_console = Console()
@@ -50,6 +51,12 @@ class Miner(BaseMinerNeuron):
             type=str,
             default="t5",
             help="Miner to load. Default choices are 't5' and 'mock'.  Pass your custom miner name as appropriate."
+        )
+        parser.add_argument(
+            "--model_url",
+            type=str,
+            default="localhost:5000",
+            help="the model_url if needed."
         )
 
     def __init__(self, config=None):
