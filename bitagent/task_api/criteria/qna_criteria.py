@@ -14,7 +14,7 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-
+from sentence_transformers import SentenceTransformer, util
 import torch
 import bittensor as bt
 from typing import List
@@ -107,7 +107,7 @@ def contains_correct_citation_source(task, validator: BaseValidatorNeuron, synap
     if score > 0.0:
         feedback = good_message(f"You correctly identified the source.")
     else:
-        feedback = bad_message(f"You failed to correctly identify the correct citation source.") + f"Expected: {task.citation_sources_should_contain}, Received: {sources}"
+        feedback = bad_message(f"You failed to correctly identify the correct citation source.")
     return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
 
 # CRITERION: reward inclusion of correct source data in citations
@@ -144,7 +144,6 @@ def contains_correct_number_of_citation_sources(task, validator: BaseValidatorNe
         feedback = good_message(f"You correctly identified some or all of the correct citation sources ({identified_sources}/{len(selected_sources)} identified).")
     else:
         feedback = bad_message(f"You failed to correctly identify any of the correct citation sources.")
-        feedback += f"\nYou should have found the following sources: {selected_sources}."
         feedback += f"\nYou provided the following sources: {sources}."
     return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
 
@@ -181,8 +180,9 @@ def ensure_unique_response(task, validator: BaseValidatorNeuron, synapse: bt.Syn
         return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
 
     context = selected_datas[0]['context']
+    
+    
     def _sliding_window_score(completion, context) -> List[float]:
-        
         length = torch.tensor([len(c) for c in completion.split("\n")]).max()
         text_splitter = CharacterTextSplitter(
             separator=" ",
@@ -192,10 +192,16 @@ def ensure_unique_response(task, validator: BaseValidatorNeuron, synapse: bt.Syn
             is_separator_regex=False,
         )
         context_windows = [split.page_content for split in text_splitter.create_documents([context])]
+        split_completion = completion.split("\n")
+        context_and_completions_embeddings = validator.sentence_transformer.encode(context_windows+ split_completion, show_progress_bar=False)
+        context_embeddings = context_and_completions_embeddings[:len(context_windows)]
+        completions_embeddings = context_and_completions_embeddings[len(context_windows):]
+        
         all_scores = []
-        for c in completion.split("\n"):
-            temp_scores = validator.measure_relevance_of_texts(c, context_windows)
-            all_scores.extend(temp_scores.tolist())
+        for c_embedding in completions_embeddings:
+            all_scores.append(
+                util.pytorch_cos_sim(c_embedding, context_embeddings)[0].tolist()
+            )
         return all_scores
     
     max_cos_score = torch.tensor(_sliding_window_score(completion, context)).max()
