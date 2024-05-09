@@ -25,6 +25,7 @@ from bitagent.task_api.criteria import Criterion, default_criteria
 from common.base.validator import BaseValidatorNeuron
 from redis import Redis
 from rq import Queue
+from bitagent.types import Tool
 
 queue = Queue(connection=Redis(host='localhost', port=14000))
 
@@ -39,6 +40,8 @@ class Task():
                  prompt: str = "", 
                  desc: str = "", 
                  datas: List[dict] = [],
+                 tools: List[Tool] = [],
+                 notes: str = "No Notes",
                  urls: List[str] = [], 
                  criteria: List[Criterion] = default_criteria,
                  citation_sources_should_contain: str = None, 
@@ -59,7 +62,7 @@ class Task():
         self.criteria=criteria
         self.citation_sources_should_contain=citation_sources_should_contain
         self.response_should_contain=response_should_contain
-        self.synapse = QnATask(prompt=prompt, urls=urls, datas=datas)
+        self.synapse = QnATask(prompt=prompt, urls=urls, datas=datas, notes=notes, tools=[Tool(tool) for tool in tools])
         self.correct_answer = correct_answer
 
     def reward(self, validator: BaseValidatorNeuron, synapse: QnATask, response:dict) -> [float, float, List[str]]:
@@ -88,6 +91,7 @@ class Task():
             prompt=serialized["prompt"], 
             desc=serialized["desc"], 
             datas=serialized["datas"], 
+            tools=[Tool(**tool) for tool in serialized["tools"]], 
             urls=serialized["urls"], 
             criteria=[Criterion.fromSerialized(c) for c in serialized["criteria"]], 
             citation_sources_should_contain=(serialized["citation_sources_should_contain"] if "None" != serialized["citation_sources_should_contain"] else None), 
@@ -105,6 +109,8 @@ class Task():
             "name": self.name,
             "prompt": self.synapse.prompt,
             "desc": self.desc,
+            "tools": [dict(tool) for tool in self.synapse.tools],
+            "notes": self.synapse.notes,
             "datas": self.synapse.datas,
             "urls": self.synapse.urls,
             "timeout": self.timeout,
@@ -122,6 +128,8 @@ class Task():
             "prompt": self.synapse.prompt,
             "desc": self.desc,
             "datas": self.synapse.datas,
+            "tools": [dict(tool) for tool in self.synapse.tools],
+            "notes": self.synapse.notes,
             "urls": self.synapse.urls,
             "timeout": self.timeout,
         }
@@ -153,10 +161,10 @@ def evaluate_task(validator, task:Task, synapse:bt.Synapse, response:dict) -> [f
 # - Summarization
 # - Logic QnA (pet tricks)
 def get_random_task(validator, task_id_to_get=None, sub_task_id_to_get=None) -> Task:
-    from bitagent.task_api.tasks import SummaryTask, GeneratedQnATask, GeneratedLogicQnATask, basic_qna_miner_tasks
+    from bitagent.task_api.tasks import SummaryTask, GeneratedQnATask, GeneratedLogicQnATask, GeneratedToolSelectionTask, basic_qna_miner_tasks
     random.seed(validator.random_seed())  
-    task_ids = [1,2,3,4,5,6,7,8,9]
-    weights  = [0,0,1,2,2,5,0,3,0]
+    task_ids = [1,2,3,4,5,6,7,8,9,10]
+    weights  = [0,0,1,1,2,4,0,3,0,4]
     choice = random.choices(task_ids, weights=weights)[0]
 
     # (optional) override the task with provided task id
@@ -180,11 +188,14 @@ def get_random_task(validator, task_id_to_get=None, sub_task_id_to_get=None) -> 
                 case 6:
                     return GeneratedLogicQnATask(validator=validator, name="Responds with correct answer for logic-based question", sub_task_id_to_get=sub_task_id_to_get)
                 case 7:
-                    return GeneratedAgentTask(validator=validator, name="Interact with simulation")
+                    pass
+                    #return GeneratedAgentTask(validator=validator, name="Interact with simulation")
                 case 8:
                     return SummaryTask(validator=validator, name="Responds with correct summary")
                 case 9:
                     return random.choice(basic_qna_miner_tasks)
+                case 10:
+                    return GeneratedToolSelectionTask(validator=validator, name="Responds with correct tool selection")
         except Exception as e:
             print('Error: ', e)
             time.sleep(15)
