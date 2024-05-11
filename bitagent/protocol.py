@@ -18,6 +18,8 @@
 
 from typing import Optional, List
 import bittensor as bt
+from bitagent.schemas.conversation import Conversation
+from bitagent.schemas.tool import Tool
 
 class QnATask(bt.Synapse):
     """
@@ -41,9 +43,10 @@ class QnATask(bt.Synapse):
     # Required request input, filled by sending dendrite caller.
     urls: Optional[List[str]] = [] # not used at the moment
     datas: List[dict] = []
-    tools: List[dict] = []
+    tools: List[Tool] = []
     notes: str = "No Notes"
     prompt: str = ""
+    message_history: Conversation = []
 
     # Optional request output, filled by recieving axon.
     response: Optional[dict] = {}
