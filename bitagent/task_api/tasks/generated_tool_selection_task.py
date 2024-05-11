@@ -17,7 +17,7 @@
 import yaml
 import random
 from typing import List
-from bitagent.types import Tool
+from bitagent.schemas.tool import Tool
 from bitagent.protocol import QnATask
 from bitagent.task_api.tasks import Task
 from common.base.validator import BaseValidatorNeuron
