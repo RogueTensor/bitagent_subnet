@@ -25,7 +25,7 @@ from bitagent.task_api.criteria import Criterion, default_criteria
 from common.base.validator import BaseValidatorNeuron
 from redis import Redis
 from rq import Queue
-from bitagent.types import Tool
+from bitagent.schemas.tool import Tool
 
 queue = Queue(connection=Redis(host='localhost', port=14000))
 
