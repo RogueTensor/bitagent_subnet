@@ -45,21 +45,21 @@ get_version_difference() {
     IFS='.' read -ra version1_arr <<< "$version1"
     IFS='.' read -ra version2_arr <<< "$version2"
 
-    # Calculate the numerical difference
-    local diff=0
+    # Calculate the differences
+    local diff=()
     for i in "${!version1_arr[@]}"; do
         local num1=${version1_arr[$i]}
         local num2=${version2_arr[$i]}
 
-        # Compare the numbers and update the difference
-        if (( num1 > num2 )); then
-            diff=$((diff + num1 - num2))
-        elif (( num1 < num2 )); then
-            diff=$((diff + num2 - num1))
-        fi
+        # Calculate the difference at this level
+        local level_diff=$((num1 - num2))
+
+        # Store the difference
+        diff+=("$level_diff")
     done
 
-    strip_quotes $diff
+    # Output the differences array
+    echo "${diff[@]}"
 }
 
 read_version_value() {
@@ -235,8 +235,21 @@ if [ "$?" -eq 1 ]; then
             if version_less_than $current_version $latest_version; then
                 echo "latest version $latest_version"
                 echo "current version $current_version"
-                diff=$(get_version_difference $latest_version $current_version)
-                if [ "$diff" -eq 1 ]; then
+                diff=($(get_version_difference $latest_version $current_version))
+
+                # Extract major and minor version differences
+                local major_diff=${diff[0]}
+                local minor_diff=${diff[1]}
+
+                # Check if major version is different or minor version is off by more than 1
+                if [[ $major_diff -ne 0 || $minor_diff -gt 1 || $minor_diff -lt -1 ]]; then
+                    # Perform action if major version is different or minor version is off by more than 1
+                    # current version is newer than the latest on git. This is likely a local copy, so do nothing. 
+                    echo "**Will not update**"
+                    echo "Major version is different or minor version is off by more than 1"
+                    #echo "The local version is $diff versions behind. Please manually update to the latest version and re-run this script."
+                else
+                    # Do another thing
                     echo "current validator version:" "$current_version" 
                     echo "latest validator version:" "$latest_version" 
 
@@ -264,10 +277,6 @@ if [ "$?" -eq 1 ]; then
                         echo "**Will not update**"
                         echo "It appears you have made changes on your local copy. Please stash your changes using git stash."
                     fi
-                else
-                    # current version is newer than the latest on git. This is likely a local copy, so do nothing. 
-                    echo "**Will not update**"
-                    echo "The local version is $diff versions behind. Please manually update to the latest version and re-run this script."
                 fi
             else
                 echo "**Skipping update **"
