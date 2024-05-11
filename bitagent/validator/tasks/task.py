@@ -21,7 +21,7 @@ import bittensor as bt
 from pprint import pformat
 from typing import List
 from bitagent.protocol import QnATask
-from bitagent.types import Tool
+from bitagent.schemas.tool import Tool
 
 
 # combines criterion/criteria plus QnATask synapse for eval to form a task for the miner
