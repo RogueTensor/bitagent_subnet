@@ -22,7 +22,6 @@ from bitagent.task_api.datasources import ToolDataset, ChatDataset, LocalToolDat
 from langchain_community.llms import VLLMOpenAI
 from langchain_openai import ChatOpenAI, OpenAI
 from sentence_transformers import SentenceTransformer, util
-import time
 from bitagent.task_api.helpers.sbert import CachedSentenceTransformer
 
 # provide some capabilities to the task API (LLM, cossim and faker)
