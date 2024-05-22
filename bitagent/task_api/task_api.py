@@ -140,9 +140,8 @@ async def evaluate_task_response(request: Request):
         task = tasks[task_id]
 
         response = request_data["response"]
-        synapse = QnATask(prompt=response["prompt"], urls=response["urls"], datas=response["datas"], response=response["response"])
-
-        result = evaluate_task(validator, task, synapse, response)
+        task.synapse.response = response['response']
+        result = evaluate_task(validator, task, task.synapse, response)
         return {"result": result}
     except Exception as e:
         logging.error(f"Error with a task id during evaluation: {e}")

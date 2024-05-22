@@ -56,7 +56,7 @@ def initiate_validator(self):
         llm = ChatOpenAI(
             openai_api_key="EMPTY",
             openai_api_base="http://localhost:14059/v1",
-            model_name="mistralai/Mixtral-8x22B-Instruct-v0.1",
+            model_name="meta-llama/Meta-Llama-3-8B-Instruct",
             max_tokens = max_new_tokens,
             temperature = temperature,
         )
