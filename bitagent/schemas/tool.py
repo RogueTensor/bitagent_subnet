@@ -11,3 +11,6 @@ class Tool(BaseModel):
     name: str
     description: str
     arguments: Dict[str, Dict[str, Any]]
+    
+    def to_dict(self):
+        return self.dict()
