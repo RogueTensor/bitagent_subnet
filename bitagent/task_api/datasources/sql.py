@@ -4,13 +4,13 @@ import sqlite3
 from typing import List
 
 
-# PG_CONFIG = {
+PG_CONFIG = {
 #     'dbname': 'mydatabase',
 #     'user': 'myuser',
 #     'password': 'mypassword',
 #     'host': 'localhost',
 #     'port': 5432
-# }
+}
 class SQLDataset:
     def __init__(self,  table_name: str, columns: List[str], db_path: str = "", db_type: str = 'sqlite', pg_config: dict = PG_CONFIG):
         # Initialize dataset info
