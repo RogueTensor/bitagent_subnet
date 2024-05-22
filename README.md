@@ -118,10 +118,20 @@ pm2 start neurons/validator.py --interpreter python3 -- --netuid 20 --subtensor.
 pm2 start run.sh --name bitagent_validators_autoupdate -- --wallet.name <your-wallet-name> --wallet.hotkey <your-wallet-hot-key> --netuid 20
 ```
 
+If you want to run the validator task generation and scoring locally:
+
+```bash
+# for mainnet
+pm2 start neurons/validator.py --interpreter python3 -- --netuid 20 --subtensor.network <LOCAL/FINNEY/TEST> --wallet.name <COLDKEY> --wallet.hotkey <HOTKEY> --axon.port <PORT> --run_local
+```
+
+#### Running locally
+
+To run locally you must spin-up your own LLM's (the two mentioned below). After spinning them up you will have to modify `initiation.py` to point towards the endpoints of those LLM's. Previously we ran the LLM's inside the validator code with the transformer package, however we pivoted away from that due to the inefficiency of running the model using vanilla transformers. Hosting the models using llama.cpp, oobabooga, vllm, TGI, are much better options as they provide additional functionality.  
+
 #### Hardware Requirements
 
-Validators are responsible for fetching tasks from the Task API and sending them back for evaluation. \
-There are no aspects of generation and evaluation that require LLMs to accomplish on the Validator side.
+Validators have the option of using the Task API, or running everything locally. If running with the Task API the validator's do not have any strong requirements, no GPU is required. If running everything locally `--run_local`, there are higher hardware requirements. Two LLM's are required, `TheBloke/Mistral-7B-OpenOrca-GPTQ` and `meta-llama/Meta-Llama-3-8B-Instruct`. Mistral-7B can run off 10GB of VRAM. Llama-3 is quite large since it's unquantized, but can run very easily on 48GB of VRAM. 
 
 Miners will need to run LLMs and will require at least mistral 7B, needing a GPU with 15-20GB of VRAM. \
 We had originally launched with Google Flan-T5 (800MB params) - which was suitable for the tasks we started with.  But it is not suitable for the tasks we generate and evaluate now.
