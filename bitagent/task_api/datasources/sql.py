@@ -1,18 +1,9 @@
 import sqlite3
-# import psycopg2
-# from psycopg2.extras import RealDictCursor
 from typing import List
 
 
-PG_CONFIG = {
-#     'dbname': 'mydatabase',
-#     'user': 'myuser',
-#     'password': 'mypassword',
-#     'host': 'localhost',
-#     'port': 5432
-}
 class SQLDataset:
-    def __init__(self,  table_name: str, columns: List[str], db_path: str = "", db_type: str = 'sqlite', pg_config: dict = PG_CONFIG):
+    def __init__(self,  table_name: str, columns: List[str], db_path: str = "", db_type: str = 'sqlite'):
         # Initialize dataset info
         self.db_path = db_path
         self.table_name = table_name
@@ -25,15 +16,8 @@ class SQLDataset:
             # Connect to SQLite database
             self.connection = sqlite3.connect(db_path, check_same_thread=False)
             self.connection.row_factory = sqlite3.Row
-        # elif self.db_type == 'postgres' and pg_config:
-            # Connect to PostgreSQL database
-            # self.connection = psycopg2.connect(**pg_config)
-            # self.connection.autocommit = True
         else:
             raise ValueError("Invalid database type or missing PostgreSQL configuration")
-        # if self.db_type == 'postgres':
-            # cursor_args = {'cursor_factory': RealDictCursor}
-        # else:
         cursor_args = {}
         self.cursor = self.connection.cursor(**cursor_args)
         self._create_table()
