@@ -37,7 +37,7 @@ class Task():
     def __init__(self, 
                  name: str, 
                  prompt: str = "", 
-                 weight: int = 1,
+                 weight: int = 0.5,
                  desc: str = "", 
                  datas: List[dict] = [],
                  tools: List[Tool] = [],
@@ -105,7 +105,7 @@ class Task():
             task_type=(serialized["task_type"] if "None" != serialized["task_type"] else None), 
             task_id=(serialized["task_id"] if "None" != serialized["task_id"] else None),
             correct_answer = serialized["correct_answer"],
-            message_history = Conversation.from_list(serialized['messages_history'])
+            message_history = Conversation.from_list(serialized['message_history'])
             )
         return task
     
