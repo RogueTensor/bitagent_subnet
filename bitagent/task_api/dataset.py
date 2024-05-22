@@ -18,11 +18,13 @@
 
 import os
 import time
+import json
 import pickle
 import random
 import bittensor as bt
 from datasets import load_dataset, load_from_disk
 from collections.abc import Iterator
+from distutils.util import strtobool
 
 root_data_dir = "bitagent.data"
 
@@ -146,18 +148,19 @@ class AnsibleDataset(Iterator):
                             if len(task_set) > 3 and len(task_set) < 10:
                                 happy = True
                             num_tries += 1
+                return task_set
             except Exception as e:
                 bt.logging.debug(f"Github issue ... {e}")
         return task_set
-        
-                
-import json
+ 
+from bitagent.task_api.datasources.api_constants import apis
 class APIDataset(Iterator):
     def __init__(self):
         super().__init__()
         # countering the effect of setting seed for task orchestration from validators
         random.seed(None)
-        self.dataset = json.load(open(f"{root_data_dir}/apis.json", "r"))
+        # self.dataset = json.load(open(f"{root_data_dir}/apis.json", "r"))
+        self.dataset = apis
 
     def __next__(self):
         bt.logging.debug("Retrieving api data from dataset...")
@@ -169,3 +172,58 @@ class APIDataset(Iterator):
                 return api
             except Exception as e:
                 bt.logging.debug(f"Github issue ... {e}")
+
+def dataset_loader(dataset_name, split="train"):
+    bt.logging.debug("Loading PKU from HuggingFace")
+    dataset_dir = f"{root_data_dir}/{dataset_name.replace('/','_')}"
+    if os.path.exists(f"{dataset_dir}/state.json"):
+        bt.logging.debug(f"Loading from disk ({dataset_dir}) ...")
+        ds = load_from_disk(dataset_dir)
+    else:
+        bt.logging.debug("Loading from web ...")
+        ds = load_dataset(dataset_name, split=split)
+        ds.save_to_disk(dataset_dir)
+    bt.logging.debug("Loaded.")
+    return ds
+
+class FilterDataset(Iterator):
+    def __init__(self):
+        super().__init__()
+        # countering the effect of setting seed for task orchestration from validators
+        random.seed(None)
+        seed = random.randint(0, 1000)
+        safe_ds = dataset_loader("PKU-Alignment/PKU-SafeRLHF")
+        beaver_ds = dataset_loader("PKU-Alignment/BeaverTails", split="330k_train")
+
+        self.datasets = { 
+            "safe": iter(safe_ds.shuffle(seed=seed)),
+            "beaver": iter(beaver_ds.shuffle(seed=seed))
+        }
+    def __next__(self):
+        bt.logging.debug("Retrieving summarization data from dataset...")
+        # countering the effect of setting seed for task orchestration from validators
+        random.seed(None)
+        while True:
+            try:
+                dname, ds = random.choice(list(self.datasets.items()))
+                data = next(ds)
+                prompt = data['prompt']
+                response = None
+                if dname == "safe": # check if the output is unsafe
+                    if not data['is_response_0_safe']:
+                        response = data['response_0']
+                    elif not data['is_response_1_safe']:
+                        response = data['response_1']
+                
+                if dname == "beaver":
+                    response = data['response']
+                
+                if not response:
+                    continue
+                        
+                        
+                        
+
+                return {"prompt": prompt, "response": response}
+            except Exception as e:
+                bt.logging.debug(f"HuggingFace issue ... {e}")
