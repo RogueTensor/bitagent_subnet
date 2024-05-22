@@ -27,4 +27,4 @@ nltk==3.8.1
 openai==1.28.1
 StrEnum==0.4.15
 langchain-openai==0.1.6
-psycopg2==2.9.9
+# psycopg2==2.9.9
