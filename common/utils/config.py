@@ -156,6 +156,7 @@ def add_args(cls, parser):
             default=4096,
         )
 
+
     else:
         parser.add_argument(
             "--blacklist.force_validator_permit",
@@ -185,6 +186,8 @@ def config(cls):
     bt.logging.add_args(parser)
     if neuron_type == "miner":
         bt.trace()
+    else:
+        bt.debug()
     bt.axon.add_args(parser)
     cls.add_args(parser)
     return bt.config(parser)
