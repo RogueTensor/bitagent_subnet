@@ -18,7 +18,7 @@ import random
 from typing import List
 from tabulate import tabulate
 from bitagent.protocol import QnATask
-from bitagent.task_api.tasks import Task
+from bitagent.task_api.tasks import Task, TASK_WEIGHTS
 from common.base.validator import BaseValidatorNeuron
 from bitagent.task_api.criteria import default_criteria, gen_numerical_logic_task_criteria
 from bitagent.task_api.helpers.string_parse import extract_text_inside_quotes
@@ -32,7 +32,7 @@ class GeneratedLogicQnATask(Task):
         response = self.generate_random_logic_question_and_answer(sub_task_id_to_get)
         question, answer  = response
         self.correct_answer = answer
-    
+        self.weight = TASK_WEIGHTS["generated_logic_qna"]    
         self.criteria=default_criteria+gen_numerical_logic_task_criteria(expected_answer=answer)
         notes = """The task is built from a prompt that includes a question and a list of possible answers.
 The task is to provide the correct answer from the list of possible answers."""

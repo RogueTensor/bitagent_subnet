@@ -19,7 +19,7 @@ import time
 import random
 from typing import List
 from bitagent.protocol import QnATask
-from bitagent.task_api.tasks import Task
+from bitagent.task_api.tasks import Task, TASK_WEIGHTS
 from common.base.validator import BaseValidatorNeuron
 from bitagent.task_api.criteria import default_criteria, gen_data_task_criteria
 
@@ -37,7 +37,7 @@ class GeneratedQnATask(Task):
         self.name=self.name + f" for {n_texts} texts and {n_expected_citations} expected citations"
         self.validator=validator
         self.timeout=timeout
-
+        self.weight = TASK_WEIGHTS['generated_qna']
         # countering the effect of setting seed for task orchestration from validators
         random.seed(None)
 
