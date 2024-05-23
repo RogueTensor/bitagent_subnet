@@ -118,6 +118,7 @@ pm2 start neurons/validator.py --interpreter python3 -- --netuid 20 --subtensor.
 pm2 start run.sh --name bitagent_validators_autoupdate -- --wallet.name <your-wallet-name> --wallet.hotkey <your-wallet-hot-key> --netuid 20
 ```
 
+#### Running locally
 If you want to run the validator task generation and scoring locally:
 
 ```bash
@@ -125,9 +126,8 @@ If you want to run the validator task generation and scoring locally:
 pm2 start neurons/validator.py --interpreter python3 -- --netuid 20 --subtensor.network <LOCAL/FINNEY/TEST> --wallet.name <COLDKEY> --wallet.hotkey <HOTKEY> --axon.port <PORT> --run_local
 ```
 
-#### Running locally
-
-To run locally you must spin-up your own LLM's (the two mentioned below). After spinning them up you will have to modify `initiation.py` to point towards the endpoints of those LLM's. Previously we ran the LLM's inside the validator code with the transformer package, however we pivoted away from that due to the inefficiency of running the model using vanilla transformers. Hosting the models using llama.cpp, oobabooga, vllm, TGI, are much better options as they provide additional functionality.  
+To run locally you must spin-up your own LLMs (the two mentioned below). After spinning them up you must modify `initiation.py` to point towards the endpoints of those LLM's. 
+Note: Previously we ran the LLM's inside the validator code with the transformer package, however we pivoted away from that due to the inefficiency of running the model using vanilla transformers. Hosting the models using llama.cpp, oobabooga, vllm, TGI, are much better options as they provide additional functionality.  
 
 #### Hardware Requirements
 
