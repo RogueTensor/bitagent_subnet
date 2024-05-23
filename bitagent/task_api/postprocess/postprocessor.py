@@ -19,7 +19,7 @@ class PostProcessor():
         return self.func(task, validator, synapse, response, *self.func_args)
 
     @classmethod
-    def deSerialize(cls, serialized):
+    def fromSerialized(cls, serialized):
         return cls(
             name=serialized["name"],
             desc=serialized["desc"],
