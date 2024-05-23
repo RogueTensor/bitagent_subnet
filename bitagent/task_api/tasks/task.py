@@ -96,6 +96,7 @@ class Task():
             desc=serialized["desc"], 
             weight=serialized["weight"],
             datas=serialized["datas"], 
+            notes=serialized["notes"],
             tools=[Tool(**tool) for tool in serialized["tools"]], 
             urls=serialized["urls"], 
             criteria=[Criterion.fromSerialized(c) for c in serialized["criteria"]], 
