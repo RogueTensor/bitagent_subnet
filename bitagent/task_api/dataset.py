@@ -200,7 +200,7 @@ class FilterDataset(Iterator):
             "beaver": iter(beaver_ds.shuffle(seed=seed))
         }
     def __next__(self):
-        bt.logging.debug("Retrieving summarization data from dataset...")
+        bt.logging.debug("Retrieving filter data from dataset...")
         # countering the effect of setting seed for task orchestration from validators
         random.seed(None)
         while True:
