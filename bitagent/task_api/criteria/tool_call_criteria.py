@@ -39,7 +39,10 @@ def correct_tool_use_and_response(task, validator: BaseValidatorNeuron, synapse:
             miner_convo = Conversation.from_list(json.loads(resp))
         except Exception as e:
             reward = -0.5
-            feedback = bad_message(f"You failed to provide the correct response formatting - looking for a list of messages. Like so [{{\"role\": \"user\", \"content\": \"message\"}}, {{\"role\": \"assistant\", \"content\": \"message\"}}, {{\"role\": \"tool call\", \"content\": \"message\"}}]")
+            if any([msg.role == 'tool call' for msg in expected_convo.messages]):
+                feedback = bad_message(f"You failed to provide the correct response formatting - looking for a list of messages. Like so [{{\"role\": \"assistant\", \"content\": \"message\"}}, {{\"role\": \"tool call\", \"content\": \"message\"}}]")
+            else:
+                feedback = bad_message(f"You failed to provide the correct response formatting - looking for a list of messages. Like so [{{\"role\": \"assistant\", \"content\": \"message\"}}]")
             return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
     except KeyError:
         reward = -0.5
@@ -51,17 +54,39 @@ def correct_tool_use_and_response(task, validator: BaseValidatorNeuron, synapse:
             reward = -0.5
             feedback = bad_message(f"You failed to provide the correct response formatting. Was not looking for any tool calls")
             return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
-   
+    
+    # Check to ensure that it goes `tool call` then `assistant`
+    if any([msg.role == 'tool call' for msg in expected_convo.messages]):
+        for i in range(1, len(miner_convo.messages)):
+            if miner_convo.messages[i].role == 'tool call':
+                if miner_convo.messages[i-1].role != 'assistant':
+                    reward = -0.5
+                    feedback = bad_message(f"You failed to provide the correct response formatting - looking for an assistant response before a tool call")
+                    return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
+        if len(miner_convo.messages) != 2:
+            reward = -0.5
+            feedback = bad_message(f"You failed to provide the correct response formatting - looking for ONLY an assistant response and a tool call")
+            return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
+    else:
+        if len(miner_convo.messages) != 1:
+            reward = -0.5
+            feedback = bad_message(f"You failed to provide the correct response formatting - looking for ONLY an assistant response")
+            return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
+    
+
+    
     try:
         expected_tool_call = ast.literal_eval(find_first_tool_call(expected_convo).content)
     except Exception as e:
-        raise Exception(f"Couldnt load expected tool call. {e}")
+        feedback = good_message(f"We failed to load the expected tool, so you get full points!")
+        reward = max_reward
+        return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
     
     try: 
         miner_tool_call = [msg for msg in miner_convo.messages if msg.role == 'tool call'][0].content
     except:
         reward = -0.5
-        feedback = bad_message(f"You failed to provide the correct response formatting - looking for a tool call that is JSON formatted.")
+        feedback = bad_message(f"You failed to provide the correct response formatting - looking for a tool call") 
         return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
     # Compare arguments
     num_expected_keys = len(expected_tool_call['arguments'].keys()) + 1 # extra 1 is for the name
@@ -86,12 +111,15 @@ def correct_tool_use_and_response(task, validator: BaseValidatorNeuron, synapse:
         sim = validator.measure_relevance_of_texts(expected_assistant, miner_assistant)
         if sim>0.90:
             correct_assistant_percentage = 1
-        elif sim>0.75:
+        elif sim>0.85:
             correct_assistant_percentage = 0.75
         elif sim>0.50:
             correct_assistant_percentage = 0.25
     except Exception as e:
         bt.logging.error(f"Failed to find assistant response in miner messages. {e}")
+        feedback = bad_message(f"Your response did not have an assistant response.")
+        reward = -0.5
+        return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
     
     reward = 0.5 * max_reward * correct_tool_percentage + 0.5 * max_reward * correct_assistant_percentage
     
@@ -117,22 +145,24 @@ def correct_dataset_tool_call_response(task, validator: BaseValidatorNeuron, syn
             miner_convo = Conversation.from_list(json.loads(resp))
         except Exception as e:
             reward = -0.5
-            feedback = bad_message(f"You failed to provide the correct response formatting - looking for a list of messages. Like so [{{\"role\": \"user\", \"content\": \"message\"}}, {{\"role\": \"assistant\", \"content\": \"message\"}}, {{\"role\": \"tool call\", \"content\": \"message\"}}]")
+            feedback = bad_message(f"Your response was not json loadable. Error: {e}")
             return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
     except KeyError:
         reward = -0.5
-        feedback = bad_message(f"You failed to provide the correct response formatting - looking for a list of messages.")
+        feedback = bad_message(f"You failed to provide a response that could be correctly grabbed.")
         return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
     try:
         tool_call = find_first_tool_call(miner_convo).content
         if isinstance(tool_call, str):
-            tool_call = json.loads(tool_call)
-        
+            try: 
+                tool_call = json.loads(tool_call)
+            except:
+                raise Exception("Tool call was a string, but not json loadable. You likely didn't return a dictionary as the tool calls content.")
         if not 'name' in tool_call or not 'arguments' in tool_call:
             raise Exception("Tool call is not formatted correctly")
     except Exception as e:
         reward = -0.5
-        feedback = bad_message(f"You failed to provide the correct response formatting - looking for a tool call that is JSON formatted. Error: {e}")
+        feedback = bad_message(f"You failed to correctly response - error: {e}")
         return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
     
     feedback = good_message(f"You responded with the correct answer.")
