@@ -52,7 +52,7 @@ class ToolCallTask(Task):
     ):
         super().__init__(name=name, desc=desc)
         self.validator = validator
-        self.timeout = 12.0
+        self.timeout = 17.0
         self.name += " - Tool Call"
         self.real_task = bool(random.random() < 0.9)
         if self.real_task:
