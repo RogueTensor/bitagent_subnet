@@ -87,11 +87,15 @@ class ToolCallTask(Task):
         except Exception as e:
             bt.logging.warning(f"Issue getting fake data {e}")
         messages_before_call = find_msgs_before_tool_call(data.convo)
+        if messages_before_call[-1].role == "assistant":
+            messages_before_call = messages_before_call[:-1]
         return Conversation(messages=messages_before_call), data.tools, data
     def generate_task_data(self):
         data: ToolCallData = self.generate_data()
         
         messages_before_call = find_msgs_before_tool_call(data.convo)
+        if messages_before_call[-1].role == "assistant":
+            messages_before_call = messages_before_call[:-1]
         return Conversation(messages=messages_before_call), data.tools, data
         
         
