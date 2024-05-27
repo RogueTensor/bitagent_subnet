@@ -36,15 +36,15 @@ class BaseValidatorNeuron(BaseNeuron):
 
     neuron_type: str = "ValidatorNeuron"
 
-    @classmethod
-    def add_args(cls, parser: argparse.ArgumentParser):
-        util_add_args(cls, parser)
-        parser.add_argument(
-            "--task_api_host",
-            type=str,
-            default="https://roguetensor.com/api",
-            help="the Task API host if you need to point to your own"
-        )
+    # @classmethod
+    # def add_args(cls, parser: argparse.ArgumentParser):
+    #     util_add_args(cls, parser)
+    #     parser.add_argument(
+    #         "--task_api_host",
+    #         type=str,
+    #         default="https://roguetensor.com/api",
+    #         help="the Task API host if you need to point to your own"
+    #     )
 
     def __init__(self, config=None):
         super().__init__(config=config)
