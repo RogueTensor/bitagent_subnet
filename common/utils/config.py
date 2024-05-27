@@ -110,6 +110,13 @@ def add_args(cls, parser):
     if neuron_type == "validator":
 
         parser.add_argument(
+            "--task_api_host",
+            type=str,
+            default="https://roguetensor.com/api",
+            help="the Task API host if you need to point to your own"
+        )
+        
+        parser.add_argument(
             "--run_local",
             action="store_true",
             help="Set this flag to run locally",
