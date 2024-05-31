@@ -85,9 +85,11 @@ def correct_tool_use_and_response(task, validator: BaseValidatorNeuron, synapse:
     
     try: 
         miner_tool_call = [msg for msg in miner_convo.messages if msg.role == 'tool call'][0].content
+        if isinstance(miner_tool_call, str):
+            miner_tool_call = ast.literal_eval(miner_tool_call)
     except:
         reward = -0.5
-        feedback = bad_message(f"You failed to provide the correct response formatting - looking for a tool call") 
+        feedback = bad_message(f"You failed to provide the correct response formatting - looking for a tool call that can be converted into a dictionary") 
         return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
     # Compare arguments
     num_expected_keys = len(expected_tool_call['arguments'].keys()) + 1 # extra 1 is for the name
