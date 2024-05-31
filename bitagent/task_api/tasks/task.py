@@ -39,6 +39,7 @@ class Task():
                  prompt: str = "", 
                  weight: int = 0.5,
                  desc: str = "", 
+                 timeout: int = 12,
                  datas: List[dict] = [],
                  tools: List[Tool] = [],
                  message_history: Conversation = [],
@@ -61,7 +62,7 @@ class Task():
         self.task_type=task_type
         self.weight = weight
         self.desc=desc
-        self.timeout=10.0
+        self.timeout=timeout
         self.criteria=criteria
         self.postprocess=postprocess
         self.citation_sources_should_contain=citation_sources_should_contain
@@ -118,6 +119,7 @@ class Task():
             "name": self.name,
             "prompt": self.synapse.prompt,
             "desc": self.desc,
+            "timeout": self.timeout,
             "tools": [dict(tool) for tool in self.synapse.tools],
             "notes": self.synapse.notes,
             "message_history": self.synapse.message_history.to_list() if isinstance(self.synapse.message_history, Conversation) else [],
