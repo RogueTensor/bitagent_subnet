@@ -95,6 +95,7 @@ class Task():
             name=serialized["name"], 
             prompt=serialized["prompt"], 
             desc=serialized["desc"], 
+            timout=serialized["timeout"],
             weight=serialized["weight"],
             datas=serialized["datas"], 
             notes=serialized["notes"],
@@ -185,11 +186,11 @@ def get_random_task(validator, task_name=None, sub_task_id_to_get=None) -> Task:
                     sub_choice = random.choices([1,2,3], weights=[1,1,2])[0]
                     match sub_choice:
                         case 1:
-                            return GeneratedQnATask(validator=validator, name="Responds with correct citation source and valid response from larger corpus", n_texts=20, timeout= 6.0)
+                            return GeneratedQnATask(validator=validator, name="Responds with correct citation source and valid response from small corpus", n_texts=2, timeout=6.0)
                         case 2:
-                            return GeneratedQnATask(validator=validator, name="Responds with correct citation source and valid response from LARGE corpus", n_texts=50, timeout=8.0)
+                            return GeneratedQnATask(validator=validator, name="Responds with correct citation source and valid response from LARGE corpus", n_texts=3, timeout=8.0)
                         case 3:
-                            return GeneratedQnATask(validator=validator, name="Responds with correct citation source and valid response from VERY LARGE corpus", n_texts=100, timeout=10.0)
+                            return GeneratedQnATask(validator=validator, name="Responds with correct citation source and valid response from VERY LARGE corpus", n_texts=5, timeout=10.0)
                 case "generated_logic_qna":
                     return GeneratedLogicQnATask(validator=validator, name="Responds with correct answer for logic-based question", sub_task_id_to_get=sub_task_id_to_get)
                 case "summary":
