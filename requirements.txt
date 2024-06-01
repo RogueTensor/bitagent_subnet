@@ -28,3 +28,5 @@ openai==1.28.1
 StrEnum==0.4.15
 langchain-openai==0.1.6
 # psycopg2==2.9.9
+langchain_text_splitters==0.2.0
+comet_llm==2.2.4
