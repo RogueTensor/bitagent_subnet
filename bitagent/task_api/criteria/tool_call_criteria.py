@@ -92,7 +92,7 @@ def correct_tool_use_and_response(task, validator: BaseValidatorNeuron, synapse:
         feedback = bad_message(f"You failed to provide the correct response formatting - looking for a tool call that can be converted into a dictionary") 
         return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
     # Compare arguments
-    num_expected_keys = len(expected_tool_call['arguments'].keys()) + 1 # extra 1 is for the name
+    num_expected_keys = 2 * len(expected_tool_call['arguments'].keys()) + 1 # extra 1 is for the name
     num_gotten_keys = 0
     num_gotten_values = 0
     for miner_key, miner_value in miner_tool_call['arguments'].items():
@@ -103,12 +103,13 @@ def correct_tool_use_and_response(task, validator: BaseValidatorNeuron, synapse:
                 num_gotten_values += 1
     if difflib.SequenceMatcher(None, str(miner_tool_call['name']), str(expected_tool_call['name'])).ratio() > 0.75:
         num_gotten_values += 1
-    correct_tool_percentage = (num_gotten_values+num_gotten_keys)/(2*num_expected_keys)
+    correct_tool_percentage = (num_gotten_values+num_gotten_keys)/(num_expected_keys)
     try:
         expected_assistant = find_assistant_after_tool_call(expected_convo)['content']
     except Exception as e:
         bt.logging.error(f"Failed to find assistant response in expected response. {e}")
     correct_assistant_percentage = 0
+    
     try:
         miner_assistant = find_assistant_after_tool_call(miner_convo)['content']
         sim = validator.measure_relevance_of_texts(expected_assistant, miner_assistant)
@@ -120,7 +121,7 @@ def correct_tool_use_and_response(task, validator: BaseValidatorNeuron, synapse:
             correct_assistant_percentage = 0.25
     except Exception as e:
         bt.logging.error(f"Failed to find assistant response in miner messages. {e}")
-        feedback = bad_message(f"Your response did not have an assistant response.")
+        feedback = bad_message(f"Your response errored out the tool call criteria: {e}")
         reward = -0.5
         return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
     
