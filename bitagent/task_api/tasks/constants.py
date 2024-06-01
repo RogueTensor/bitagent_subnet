@@ -13,7 +13,7 @@ TASK_WEIGHTS = {
     "basic_qna": 0.0,
     "summary": 0.04,
     "unfilter": 0.09,
-    "generated_qna": 0.03,
+    "generated_qna": 0.09,
     "generated_logic_qna": 0.03,
     "generated_tool_selection": 0.00,
     "tool_call": 0.1,
