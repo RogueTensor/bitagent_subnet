@@ -52,7 +52,7 @@ class ToolCallTask(Task):
     ):
         super().__init__(name=name, desc=desc)
         self.validator = validator
-        self.timeout = 17.0
+        self.timeout = 12.0
         self.name += " - Tool Call"
         self.real_task = bool(random.random() < 0.9)
         if self.real_task:
@@ -90,6 +90,7 @@ class ToolCallTask(Task):
         if messages_before_call[-1].role == "assistant":
             messages_before_call = messages_before_call[:-1]
         return Conversation(messages=messages_before_call), data.tools, data
+    
     def generate_task_data(self):
         data: ToolCallData = self.generate_data()
         
@@ -126,15 +127,16 @@ class ToolCallTask(Task):
                 continue
             rewritten_messages = split_dialogue(rewritten_history)
             try: 
+                assistant = False
                 for message in rewritten_messages.messages:
                     if message.role == "tool call":
                         json.loads(message.content)
+                    if message.role == "assistant":
+                        assistant = True
+                if not assistant:
+                    raise ValueError("Assistant wasnt generated in the reworded message history.")
             except Exception as e:
-                raise ValueError(f'Failed to load tool call: {e}')
-                
-            return ToolCallData(convo=rewritten_messages, tools=data.tools)
-        if "TOOL CALL" in user_prompt and "TOOL CALL" not in rewritten_history:
-            raise ValueError("Unable to rewrite the system prompt")
+                raise ValueError(f'Reword failed: {e}')
             
 
 
