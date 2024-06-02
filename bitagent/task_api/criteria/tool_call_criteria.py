@@ -24,7 +24,7 @@ from typing import List
 from common.base.validator import BaseValidatorNeuron
 from bitagent.task_api.criteria.utils import good_message, bad_message, received_reward_template
 from bitagent.schemas.conversation import Conversation
-from bitagent.task_api.helpers.convo_parsing import find_assistant_after_tool_call, find_first_tool_call
+from bitagent.task_api.helpers.convo_parsing import find_assistant_after_tool_call, find_first_tool_call, find_last_assistant
 
 def json_quote_fix(s):
     p = re.compile('(?<!\\\\)\'')
@@ -50,7 +50,10 @@ def correct_tool_use_and_response(task, validator: BaseValidatorNeuron, synapse:
         feedback = bad_message(f"You failed to provide the correct response formatting - looking for a dict w/ a response key")
         return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
     
+    expect_tool_call = True
+
     if not any([msg.role == 'tool call' for msg in expected_convo.messages]):
+        expect_tool_call = False
         if any([msg.role == 'tool call' for msg in miner_convo.messages]):
             reward = -0.5
             feedback = bad_message(f"You failed to provide the correct response formatting. Was not looking for any tool calls")
@@ -105,13 +108,19 @@ def correct_tool_use_and_response(task, validator: BaseValidatorNeuron, synapse:
         num_gotten_values += 1
     correct_tool_percentage = (num_gotten_values+num_gotten_keys)/(num_expected_keys)
     try:
-        expected_assistant = find_assistant_after_tool_call(expected_convo)['content']
+        if expect_tool_call:
+            expected_assistant = find_assistant_after_tool_call(expected_convo)['content']
+        else:
+            expected_assistant = find_last_assistant(expected_convo)['content']
     except Exception as e:
         bt.logging.error(f"Failed to find assistant response in expected response. {e}")
     correct_assistant_percentage = 0
     
     try:
-        miner_assistant = find_assistant_after_tool_call(miner_convo)['content']
+        if expect_tool_call:
+            miner_assistant = find_assistant_after_tool_call(miner_convo)['content']
+        else:
+            miner_assistant = find_last_assistant(miner_convo)['content']
         sim = validator.measure_relevance_of_texts(expected_assistant, miner_assistant)
         if sim>0.90:
             correct_assistant_percentage = 1

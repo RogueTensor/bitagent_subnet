@@ -23,3 +23,13 @@ def find_assistant_after_tool_call(convo: Conversation):
         elif d.get('role') == 'assistant':
             return d
     return None  # If no matching dictionary is found after the 'tool call'
+
+
+def find_last_assistant(convo: Conversation):
+    found_last_assistant = False
+    for d in reversed(convo.to_list()):
+        if not found_last_assistant:
+            if d.get('role') == 'assistant':
+                found_last_assistant = True
+        elif d.get('role') == 'assistant':
+            return d
