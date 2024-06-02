@@ -130,7 +130,7 @@ def correct_tool_use_and_response(task, validator: BaseValidatorNeuron, synapse:
             correct_assistant_percentage = 0.25
     except Exception as e:
         bt.logging.error(f"Failed to find assistant response in miner messages. {e}")
-        feedback = bad_message(f"Your response errored out the tool call criteria: {e}")
+        feedback = bad_message(f"Your response errored out the tool call criteria: {e}\n This is likely due to an incorrect assistant response given.")
         reward = -0.5
         return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
     
