@@ -149,8 +149,16 @@ class ToolCallTask(Task):
                             json.loads(message.content)
                         except:
                             # it might return a dictionary without any punctuation so adding it is necessary. but only an LLM can do this properly
-                            new_tool_content = self.validator.chat_llm([{"role": "system", "content": "You will be given a dictionary by the user. You are to return that dictionary in valid json format. Your response should only contain the valid json and nothing else."},{"role": "user", "content": f"""{message.content}"""}]).replace('```json',"").replace("```","")
-                            json.loads(new_tool_content)
+                            new_tool_content = self.validator.chat_llm([{"role": "system", "content": f"""You will be given a dictionary by the user. You are to return that dictionary in valid json format. Your response should only contain the valid json and nothing else."""},{"role": "user", "content": f"""{message.content}"""}, {"role": "system", "content":f"""Your response should be in the following format: \n```json{{
+        "name": name of the tool,
+        "arguments": a dictionary of arguments to input into the tool, or {{}} if it takes no parameters
+    }}```"""}]).replace('```json',"").replace("```","")
+                            print(f'New tool content', new_tool_content)
+                            tool_dict = json.loads(new_tool_content)
+                            if 'name' not in tool_dict.keys():
+                                raise ValueError("The reworded tool call didnt have a name key")
+                            if 'arguments' not in tool_dict.keys():
+                                raise ValueError("The reworded tool call didnt have an arguments key")
                             message.content = new_tool_content
                         
                     if message.role == "assistant":
