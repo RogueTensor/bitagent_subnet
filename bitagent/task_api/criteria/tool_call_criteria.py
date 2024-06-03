@@ -63,7 +63,7 @@ def correct_tool_use_and_response(task, validator: BaseValidatorNeuron, synapse:
     if any([msg.role == 'tool call' for msg in expected_convo.messages]):
         for i in range(1, len(miner_convo.messages)):
             if miner_convo.messages[i].role == 'tool call':
-                if miner_convo.messages[i-1].role != 'assistant':
+                if miner_convo.messages[i+1].role != 'assistant':
                     reward = -0.5
                     feedback = bad_message(f"You failed to provide the correct response formatting - looking for an assistant response before a tool call")
                     return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
@@ -77,10 +77,9 @@ def correct_tool_use_and_response(task, validator: BaseValidatorNeuron, synapse:
             feedback = bad_message(f"You failed to provide the correct response formatting - looking for ONLY an assistant response")
             return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
     
-
     
     try:
-        expected_tool_call = ast.literal_eval(find_first_tool_call(expected_convo).content)
+        expected_tool_call = json.loads(find_first_tool_call(expected_convo).content)
     except Exception as e:
         feedback = good_message(f"We failed to load the expected tool, so you get full points!")
         reward = max_reward
@@ -113,7 +112,7 @@ def correct_tool_use_and_response(task, validator: BaseValidatorNeuron, synapse:
         else:
             expected_assistant = find_last_assistant(expected_convo)['content']
     except Exception as e:
-        bt.logging.error(f"Failed to find assistant response in expected response. {e}")
+        bt.logging.error(f"Failed to find assistant response in expected response.")
     correct_assistant_percentage = 0
     
     try:
@@ -148,6 +147,7 @@ def correct_tool_use_and_response(task, validator: BaseValidatorNeuron, synapse:
         feedback = bad_message(f"You failed to respond with the correct answer.")
             
     return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
+
 
 def correct_dataset_tool_call_response(task, validator: BaseValidatorNeuron, synapse: bt.Synapse, response:dict) -> [float, float, str]:
     max_reward = 3
