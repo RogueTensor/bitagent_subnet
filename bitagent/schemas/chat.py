@@ -28,4 +28,4 @@ class ChatMessage(BaseModel):
         return cls(role=ChatRole(data['role']), content=data['content'])
     
     def to_dict(self) -> Dict[str, str]:
-        return {"role": self.role, "content": self.content}
+        return {"role": self.role.value, "content": self.content}

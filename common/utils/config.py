@@ -117,6 +117,13 @@ def add_args(cls, parser):
         )
         
         parser.add_argument(
+            "--log_dir",
+            type=str,
+            default="./",
+            help="the location of the cometML logs"
+        )
+        
+        parser.add_argument(
             "--run_local",
             action="store_true",
             help="Set this flag to run locally",

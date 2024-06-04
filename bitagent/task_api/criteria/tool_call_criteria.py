@@ -24,15 +24,16 @@ from typing import List
 from common.base.validator import BaseValidatorNeuron
 from bitagent.task_api.criteria.utils import good_message, bad_message, received_reward_template
 from bitagent.schemas.conversation import Conversation
-from bitagent.task_api.helpers.convo_parsing import find_assistant_after_tool_call, find_first_tool_call
+from bitagent.task_api.helpers.convo_parsing import find_assistant_after_tool_call, find_first_tool_call, find_last_assistant
 
 def json_quote_fix(s):
     p = re.compile('(?<!\\\\)\'')
     s = p.sub('\"', s)
     return s
 
-def correct_tool_use_and_response(task, validator: BaseValidatorNeuron, synapse: bt.Synapse, response:dict, expected_convo: Conversation) -> [float, float, str]:
-    max_reward = 1.0
+def correct_tool_use_and_response(task, validator: BaseValidatorNeuron, synapse: bt.Synapse, response:dict, expected_convo: List[dict]) -> [float, float, str]:
+    max_reward = 2.0
+    expected_convo = Conversation.from_list(expected_convo)
     try:
         resp = synapse.response['response']
         try:
@@ -49,7 +50,10 @@ def correct_tool_use_and_response(task, validator: BaseValidatorNeuron, synapse:
         feedback = bad_message(f"You failed to provide the correct response formatting - looking for a dict w/ a response key")
         return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
     
+    expect_tool_call = True
+
     if not any([msg.role == 'tool call' for msg in expected_convo.messages]):
+        expect_tool_call = False
         if any([msg.role == 'tool call' for msg in miner_convo.messages]):
             reward = -0.5
             feedback = bad_message(f"You failed to provide the correct response formatting. Was not looking for any tool calls")
@@ -59,7 +63,7 @@ def correct_tool_use_and_response(task, validator: BaseValidatorNeuron, synapse:
     if any([msg.role == 'tool call' for msg in expected_convo.messages]):
         for i in range(1, len(miner_convo.messages)):
             if miner_convo.messages[i].role == 'tool call':
-                if miner_convo.messages[i-1].role != 'assistant':
+                if miner_convo.messages[i+1].role != 'assistant':
                     reward = -0.5
                     feedback = bad_message(f"You failed to provide the correct response formatting - looking for an assistant response before a tool call")
                     return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
@@ -73,10 +77,9 @@ def correct_tool_use_and_response(task, validator: BaseValidatorNeuron, synapse:
             feedback = bad_message(f"You failed to provide the correct response formatting - looking for ONLY an assistant response")
             return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
     
-
     
     try:
-        expected_tool_call = ast.literal_eval(find_first_tool_call(expected_convo).content)
+        expected_tool_call = json.loads(find_first_tool_call(expected_convo).content)
     except Exception as e:
         feedback = good_message(f"We failed to load the expected tool, so you get full points!")
         reward = max_reward
@@ -84,12 +87,14 @@ def correct_tool_use_and_response(task, validator: BaseValidatorNeuron, synapse:
     
     try: 
         miner_tool_call = [msg for msg in miner_convo.messages if msg.role == 'tool call'][0].content
+        if isinstance(miner_tool_call, str):
+            miner_tool_call = ast.literal_eval(miner_tool_call)
     except:
         reward = -0.5
-        feedback = bad_message(f"You failed to provide the correct response formatting - looking for a tool call") 
+        feedback = bad_message(f"You failed to provide the correct response formatting - looking for a tool call that can be converted into a dictionary") 
         return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
     # Compare arguments
-    num_expected_keys = len(expected_tool_call['arguments'].keys()) + 1 # extra 1 is for the name
+    num_expected_keys = 2 * len(expected_tool_call['arguments'].keys()) + 1 # extra 1 is for the name
     num_gotten_keys = 0
     num_gotten_values = 0
     for miner_key, miner_value in miner_tool_call['arguments'].items():
@@ -100,14 +105,21 @@ def correct_tool_use_and_response(task, validator: BaseValidatorNeuron, synapse:
                 num_gotten_values += 1
     if difflib.SequenceMatcher(None, str(miner_tool_call['name']), str(expected_tool_call['name'])).ratio() > 0.75:
         num_gotten_values += 1
-    correct_tool_percentage = (num_gotten_values+num_gotten_keys)/(2*num_expected_keys)
+    correct_tool_percentage = (num_gotten_values+num_gotten_keys)/(num_expected_keys)
     try:
-        expected_assistant = find_assistant_after_tool_call(expected_convo)['content']
+        if expect_tool_call:
+            expected_assistant = find_assistant_after_tool_call(expected_convo)['content']
+        else:
+            expected_assistant = find_last_assistant(expected_convo)['content']
     except Exception as e:
-        bt.logging.error(f"Failed to find assistant response in expected response. {e}")
+        bt.logging.error(f"Failed to find assistant response in expected response.")
     correct_assistant_percentage = 0
+    
     try:
-        miner_assistant = find_assistant_after_tool_call(miner_convo)['content']
+        if expect_tool_call:
+            miner_assistant = find_assistant_after_tool_call(miner_convo)['content']
+        else:
+            miner_assistant = find_last_assistant(miner_convo)['content']
         sim = validator.measure_relevance_of_texts(expected_assistant, miner_assistant)
         if sim>0.90:
             correct_assistant_percentage = 1
@@ -117,7 +129,7 @@ def correct_tool_use_and_response(task, validator: BaseValidatorNeuron, synapse:
             correct_assistant_percentage = 0.25
     except Exception as e:
         bt.logging.error(f"Failed to find assistant response in miner messages. {e}")
-        feedback = bad_message(f"Your response did not have an assistant response.")
+        feedback = bad_message(f"Your response errored out the tool call criteria: {e}\n This is likely due to an incorrect assistant response given.")
         reward = -0.5
         return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
     
@@ -135,6 +147,7 @@ def correct_tool_use_and_response(task, validator: BaseValidatorNeuron, synapse:
         feedback = bad_message(f"You failed to respond with the correct answer.")
             
     return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
+
 
 def correct_dataset_tool_call_response(task, validator: BaseValidatorNeuron, synapse: bt.Synapse, response:dict) -> [float, float, str]:
     max_reward = 3

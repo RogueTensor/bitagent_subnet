@@ -33,21 +33,11 @@ class QnADataset(Iterator):
         super().__init__()
         # countering the effect of setting seed for task orchestration from validators
         random.seed(None)
-        seed = random.randint(0, 1000)
-        bt.logging.debug("Loading OpenWebText from HuggingFace")
-        owt_data_dir = f"{root_data_dir}/openwebtext"
-        if os.path.exists(f"{owt_data_dir}/state.json"):
-            bt.logging.debug(f"Loading from disk ({owt_data_dir}) ...")
-            owt_ds = load_from_disk(owt_data_dir)
-        else:
-            bt.logging.debug("Loading from web ...")
-            owt_ds = load_dataset("openwebtext", split="train", trust_remote_code=True)
-            owt_ds.save_to_disk(owt_data_dir)
-
-        bt.logging.debug("Loaded.")
-        self.datasets = [ 
-            iter(owt_ds.shuffle(seed=seed)),
-        ]
+        seed = random.randint(0, 10000)
+        wiki = dataset_loader("wikipedia", name="20220301.en")
+        
+        self.datasets = {"wiki": iter(wiki.shuffle(seed=seed))}
+        
 
     def __next__(self):
         bt.logging.debug("Retrieving Q&A data from dataset...")
@@ -55,7 +45,9 @@ class QnADataset(Iterator):
         random.seed(None)
         while True:
             try:
-                ds = random.choice(self.datasets)
+                dname, ds = random.choice(list(self.datasets.items()))
+                print("the dataset")
+                print(ds)
                 text = next(ds)["text"]
 
                 # Check if the text is not empty or does not consist only of newline characters
@@ -173,7 +165,7 @@ class APIDataset(Iterator):
             except Exception as e:
                 bt.logging.debug(f"Github issue ... {e}")
 
-def dataset_loader(dataset_name, split="train"):
+def dataset_loader(dataset_name, split="train", name=None):
     bt.logging.debug("Loading PKU from HuggingFace")
     dataset_dir = f"{root_data_dir}/{dataset_name.replace('/','_')}"
     if os.path.exists(f"{dataset_dir}/state.json"):
@@ -181,7 +173,7 @@ def dataset_loader(dataset_name, split="train"):
         ds = load_from_disk(dataset_dir)
     else:
         bt.logging.debug("Loading from web ...")
-        ds = load_dataset(dataset_name, split=split)
+        ds = load_dataset(dataset_name, name=name, split=split)
         ds.save_to_disk(dataset_dir)
     bt.logging.debug("Loaded.")
     return ds
@@ -199,8 +191,9 @@ class FilterDataset(Iterator):
             "safe": iter(safe_ds.shuffle(seed=seed)),
             "beaver": iter(beaver_ds.shuffle(seed=seed))
         }
+    
     def __next__(self):
-        bt.logging.debug("Retrieving filter data from dataset...")
+        bt.logging.debug("Retrieving summarization data from dataset...")
         # countering the effect of setting seed for task orchestration from validators
         random.seed(None)
         while True:

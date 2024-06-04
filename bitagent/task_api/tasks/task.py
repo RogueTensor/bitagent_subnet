@@ -39,6 +39,7 @@ class Task():
                  prompt: str = "", 
                  weight: int = 0.5,
                  desc: str = "", 
+                 timeout: int = 12,
                  datas: List[dict] = [],
                  tools: List[Tool] = [],
                  message_history: Conversation = [],
@@ -61,7 +62,7 @@ class Task():
         self.task_type=task_type
         self.weight = weight
         self.desc=desc
-        self.timeout=10.0
+        self.timeout=timeout
         self.criteria=criteria
         self.postprocess=postprocess
         self.citation_sources_should_contain=citation_sources_should_contain
@@ -94,6 +95,7 @@ class Task():
             name=serialized["name"], 
             prompt=serialized["prompt"], 
             desc=serialized["desc"], 
+            timout=serialized["timeout"],
             weight=serialized["weight"],
             datas=serialized["datas"], 
             notes=serialized["notes"],
@@ -118,6 +120,7 @@ class Task():
             "name": self.name,
             "prompt": self.synapse.prompt,
             "desc": self.desc,
+            "timeout": self.timeout,
             "tools": [dict(tool) for tool in self.synapse.tools],
             "notes": self.synapse.notes,
             "message_history": self.synapse.message_history.to_list() if isinstance(self.synapse.message_history, Conversation) else [],
@@ -183,11 +186,11 @@ def get_random_task(validator, task_name=None, sub_task_id_to_get=None) -> Task:
                     sub_choice = random.choices([1,2,3], weights=[1,1,2])[0]
                     match sub_choice:
                         case 1:
-                            return GeneratedQnATask(validator=validator, name="Responds with correct citation source and valid response from larger corpus", n_texts=20, timeout= 6.0)
+                            return GeneratedQnATask(validator=validator, name="Responds with correct citation source and valid response from small corpus", n_texts=2, timeout=6.0)
                         case 2:
-                            return GeneratedQnATask(validator=validator, name="Responds with correct citation source and valid response from LARGE corpus", n_texts=50, timeout=8.0)
+                            return GeneratedQnATask(validator=validator, name="Responds with correct citation source and valid response from LARGE corpus", n_texts=3, timeout=8.0)
                         case 3:
-                            return GeneratedQnATask(validator=validator, name="Responds with correct citation source and valid response from VERY LARGE corpus", n_texts=100, timeout=10.0)
+                            return GeneratedQnATask(validator=validator, name="Responds with correct citation source and valid response from VERY LARGE corpus", n_texts=5, timeout=10.0)
                 case "generated_logic_qna":
                     return GeneratedLogicQnATask(validator=validator, name="Responds with correct answer for logic-based question", sub_task_id_to_get=sub_task_id_to_get)
                 case "summary":

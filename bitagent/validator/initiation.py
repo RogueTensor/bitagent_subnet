@@ -57,11 +57,13 @@ def comet_ml_logger(directory, project_name):
 # setup validator with wandb
 # clear out the old wandb dirs if possible
 def initiate_validator(self):
+    if not self.config.log_dir.endswith("/"):
+        self.config.log_dir = self.config.log_dir + "/"
     if self.config.netuid == 76: # testnet
-        self.log_directory = ".testnet-logs"
+        self.log_directory = self.config.log_dir +  ".testnet-logs"
         project_name = "bitagent-testnet"
     elif self.config.netuid == 20: # mainnet
-        self.log_directory = ".mainnet-logs"
+        self.log_directory = self.config.log_dir + ".mainnet-logs"
         project_name = "bitagent-mainnet"
     else: # unknown, maybe local
         self.log_directory = None

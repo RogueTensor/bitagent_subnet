@@ -52,18 +52,18 @@ class ToolCallTask(Task):
     ):
         super().__init__(name=name, desc=desc)
         self.validator = validator
-        self.timeout = 17.0
+        self.timeout = 12.0
         self.name += " - Tool Call"
-        self.real_task = bool(random.random() < 0.9)
-        if self.real_task:
+        self.dataset_task = bool(random.random() < 0.9)
+        if self.dataset_task:
             try:
                 message_history, tools, data = self.generate_task_data()
                 self.weight = TASK_WEIGHTS["tool_call"]
                 self.criteria = default_criteria + tool_call_criteria(
-                    expected_convo=data.convo
+                    expected_convo=data.convo.to_list()
                 )
             except Exception as e:
-                # bt.logging.error(f'Exception getting real task {e}')
+                bt.logging.error(f'Exception getting real task {e}')
                 pass
         else:
             try:
@@ -72,7 +72,7 @@ class ToolCallTask(Task):
                 self.postprocess = tool_call_postprocess()
                 self.weight = TASK_WEIGHTS["tool_call_dataset"]
             except Exception as e:
-                # bt.logging.error(f'Exception getting fake task {e}')
+                bt.logging.error(f'Exception getting dataset task {e}')
                 pass
         self.message_history = message_history
         notes = """Tool Calling"""
@@ -90,23 +90,31 @@ class ToolCallTask(Task):
         if messages_before_call[-1].role == "assistant":
             messages_before_call = messages_before_call[:-1]
         return Conversation(messages=messages_before_call), data.tools, data
-    def generate_task_data(self):
-        data: ToolCallData = self.generate_data()
-        
-        messages_before_call = find_msgs_before_tool_call(data.convo)
-        if messages_before_call[-1].role == "assistant":
-            messages_before_call = messages_before_call[:-1]
-        return Conversation(messages=messages_before_call), data.tools, data
+    
         
         
     
-    def generate_data(self) -> ToolCallData:
-        use_synth = bool(random.random() < 0.7)
-        # use_synth = False
+    def generate_task_data(self) -> ToolCallData:
+        use_synth = bool(random.random() < 0.6)
         if use_synth:
             data: ToolCallData = next(self.validator.local_tool_call_dataset)
         else:
             data: ToolCallData = next(self.validator.tool_dataset)
+        
+        # remove all the messages after the first tool call, keeping the assistant
+        # this reduces the number of messages needing rewording
+        messages = data.convo.messages
+        filtered_msgs = []
+        seen_tool_call = False
+        for msg in messages:
+            filtered_msgs.append(msg)
+            if seen_tool_call: # want to do break after to include the assistant response
+                break
+            if msg.role == 'tool call':
+                seen_tool_call = True
+        data.convo.messages = filtered_msgs
+        
+        
         system_prompt = REWRITE_SYSTEM_PROMPT.format("\n".join([json.dumps(dict(func)) for func in data.tools]))
         user_prompt = messages_to_string(data.convo)
         count = 0
@@ -116,27 +124,53 @@ class ToolCallTask(Task):
                 [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
+                    # {"role": "system", "content": f"""An example response format is: {user_prompt}"""}
                 ],
                 temperature=0.6,
                 max_new_tokens=4096,
             )
             
             rewritten_history = rewritten_history.replace("TOOL CALLS", "TOOL CALL").replace('\'','').replace("```json\n","").replace("```","").replace("```json","")
-            if "TOOL CALL" in user_prompt and "TOOL CALL" not in rewritten_history:
-                continue
-            rewritten_messages = split_dialogue(rewritten_history)
-            try: 
-                for message in rewritten_messages.messages:
-                    if message.role == "tool call":
-                        json.loads(message.content)
-            except Exception as e:
-                raise ValueError(f'Failed to load tool call: {e}')
-                
-            return ToolCallData(convo=rewritten_messages, tools=data.tools)
-        if "TOOL CALL" in user_prompt and "TOOL CALL" not in rewritten_history:
-            raise ValueError("Unable to rewrite the system prompt")
             
-
+            print(f'Rewritten history {rewritten_history}')
+            rewritten_convo = split_dialogue(rewritten_history)
+            
+            
+            
+            for idx in range(len(data.convo.messages)):
+                if data.convo.messages[idx].role != rewritten_convo.messages[idx]:
+                    continue
+            
+            try:
+                assistant = False
+                for idx, message in enumerate(rewritten_convo.messages):
+                    if message.role == "tool call":
+                        try:
+                            json.loads(message.content)
+                        except:
+                            # it might return a dictionary without any punctuation so adding it is necessary. but only an LLM can do this properly
+                            new_tool_content = self.validator.chat_llm([{"role": "system", "content": f"""You will be given a dictionary by the user. You are to return that dictionary in valid json format. Your response should only contain the valid json and nothing else."""},{"role": "user", "content": f"""{message.content}"""}]).replace('```json',"").replace("```","")
+                            tool_dict = json.loads(new_tool_content)
+                            if 'name' not in tool_dict.keys():
+                                raise ValueError("The reworded tool call didnt have a name key")
+                            if 'arguments' not in tool_dict.keys():
+                                raise ValueError("The reworded tool call didnt have an arguments key")
+                            rewritten_convo.messages[idx].content = new_tool_content
+                            
+                        
+                    if message.role == "assistant":
+                        assistant = True
+                if not assistant:
+                    raise ValueError("Assistant wasnt generated in the reworded message history.")
+            except Exception as e:
+                raise ValueError(f'Reword failed: {e}')
+            
+            data = ToolCallData(convo=rewritten_convo, tools=data.tools)
+            messages_before_call = find_msgs_before_tool_call(data.convo)
+            if messages_before_call[-1].role == "assistant":
+                messages_before_call = messages_before_call[:-1]
+            return Conversation(messages=messages_before_call), data.tools, data
+            
 
 def remove_special_characters(input_string):
     # Using a list comprehension to filter only alphabet letters

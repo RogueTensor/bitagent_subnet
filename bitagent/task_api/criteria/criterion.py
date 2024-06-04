@@ -108,7 +108,7 @@ def summary_task_criteria(summary: str, summary_gen: str) -> List[Criterion]:
     ]
 
 # Function Call
-def tool_call_criteria(expected_convo: Conversation) -> List[Criterion]:
+def tool_call_criteria(expected_convo: List[dict]) -> List[Criterion]:
     return [
         Criterion(name="Return valid function call response", desc="", eval_fx=correct_tool_use_and_response, eval_args=[expected_convo]),
     ]
