@@ -3,6 +3,7 @@ import json
 import random
 import bittensor as bt
 from pydantic import BaseModel
+from typing import List, Dict, Any
 from collections.abc import Iterator
 from bitagent.schemas.tool import Tool
 from bitagent.schemas.conversation import Conversation
@@ -67,6 +68,36 @@ class ToolCallData(BaseModel):
     tools: list[Tool]
 
 
+def detect_type(value: Any) -> str:
+    type_mapping = {
+        int: 'integer',
+        float: 'number',
+        str: 'string',
+        bool: 'boolean',
+        list: 'array',
+        dict: 'object'
+    }
+    return type_mapping.get(type(value), 'string')
+
+def add_extra_arguments(tool_call: Dict[str, Any], tools: List[Tool]):
+    # Find the tool in the list
+    tool_name = tool_call['name']
+    arguments = tool_call.get('arguments', {})
+    
+    for tool in tools:
+        if tool.name == tool_name:
+            for arg_name, arg_value in arguments.items():
+                if arg_name not in tool.arguments:
+                    # Detect the type of the argument
+                    arg_type = detect_type(arg_value)
+                    # Add the new argument to the tool's schema
+                    tool.arguments[arg_name] = {
+                        'required': False, # assume false
+                        'type': arg_type,
+                        'description': arg_name
+                    }
+            break
+
 class ToolDataset(Iterator):
     def __init__(self):
         super().__init__()
@@ -103,10 +134,21 @@ class ToolDataset(Iterator):
                 tools = [json_schema_to_pydantic_tool(tool) for tool in tools]
                 convo = split_dialogue(chat_history)
 
+                # Add arguments that werent defined in schema to the tool
+                for msg in convo.messages:
+                    if msg.role == "tool call":
+                        tool_call = None
+                        if isinstance(msg.content, str):
+                           tool_call = json.loads(msg.content)
+                        else:
+                            tool_call = msg.content
+                        
+                        add_extra_arguments(tool_call, tools) 
+
+                
                 return ToolCallData(convo=convo, tools=tools)
             except Exception as e:
                 bt.logging.debug(f"Issue getting tool call from dataset ... {e}")
-
 
 
 class LocalToolDataset(SQLDataset):

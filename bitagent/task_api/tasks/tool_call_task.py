@@ -95,7 +95,7 @@ class ToolCallTask(Task):
         
     
     def generate_task_data(self) -> ToolCallData:
-        use_synth = bool(random.random() < 0.7)
+        use_synth = bool(random.random() < 0.6)
         if use_synth:
             data: ToolCallData = next(self.validator.local_tool_call_dataset)
         else:
@@ -143,23 +143,20 @@ class ToolCallTask(Task):
             
             try:
                 assistant = False
-                for message in rewritten_convo.messages:
+                for idx, message in enumerate(rewritten_convo.messages):
                     if message.role == "tool call":
                         try:
                             json.loads(message.content)
                         except:
                             # it might return a dictionary without any punctuation so adding it is necessary. but only an LLM can do this properly
-                            new_tool_content = self.validator.chat_llm([{"role": "system", "content": f"""You will be given a dictionary by the user. You are to return that dictionary in valid json format. Your response should only contain the valid json and nothing else."""},{"role": "user", "content": f"""{message.content}"""}, {"role": "system", "content":f"""Your response should be in the following format: \n```json{{
-        "name": name of the tool,
-        "arguments": a dictionary of arguments to input into the tool, or {{}} if it takes no parameters
-    }}```"""}]).replace('```json',"").replace("```","")
-                            print(f'New tool content', new_tool_content)
+                            new_tool_content = self.validator.chat_llm([{"role": "system", "content": f"""You will be given a dictionary by the user. You are to return that dictionary in valid json format. Your response should only contain the valid json and nothing else."""},{"role": "user", "content": f"""{message.content}"""}]).replace('```json',"").replace("```","")
                             tool_dict = json.loads(new_tool_content)
                             if 'name' not in tool_dict.keys():
                                 raise ValueError("The reworded tool call didnt have a name key")
                             if 'arguments' not in tool_dict.keys():
                                 raise ValueError("The reworded tool call didnt have an arguments key")
-                            message.content = new_tool_content
+                            rewritten_convo.messages[idx].content = new_tool_content
+                            
                         
                     if message.role == "assistant":
                         assistant = True
