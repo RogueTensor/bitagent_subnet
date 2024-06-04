@@ -32,7 +32,7 @@ def json_quote_fix(s):
     return s
 
 def correct_tool_use_and_response(task, validator: BaseValidatorNeuron, synapse: bt.Synapse, response:dict, expected_convo: List[dict]) -> [float, float, str]:
-    max_reward = 1.0
+    max_reward = 2.0
     expected_convo = Conversation.from_list(expected_convo)
     try:
         resp = synapse.response['response']
