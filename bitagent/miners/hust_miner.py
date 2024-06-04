@@ -28,22 +28,25 @@ def miner_init(self, config=None):
 
 async def miner_process(self, synapse: bitagent.protocol.QnATask) -> bitagent.protocol.QnATask:
     message_history=[]
-    if "conversation history" in synapse.notes:
-        for item in synapse.message_history.messages:
-            role=str(item.role)
-            json_item={
-                "role":role,
-                "content":item.content
-            }
-            message_history.append(json_item)
-
-    data = {
+    try:
+        if "conversation history" in synapse.notes or "Tool Calling" in synapse.notes:
+            message_history=[]
+            for item in synapse.message_history.messages:
+                role=str(item.role)
+                json_item={
+                    "role":role,
+                    "content":item.content
+                }
+                message_history.append(json_item)
+        
+        tools = [t.to_dict() for t in synapse.tools]
+        data = {
             "prompt": synapse.prompt,
             "datas": synapse.datas,
             "timeout": synapse.timeout,
-            # "tools": synapse.tools,
             "notes": synapse.notes,
             "message_history": message_history,
+            "tools" : tools
         }
     try:
         async with httpx.AsyncClient(timeout=httpx.Timeout(timeout=synapse.timeout)) as client:
