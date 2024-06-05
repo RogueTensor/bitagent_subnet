@@ -113,6 +113,9 @@ def correct_tool_use_and_response(task, validator: BaseValidatorNeuron, synapse:
             expected_assistant = find_last_assistant(expected_convo)['content']
     except Exception as e:
         bt.logging.error(f"Failed to find assistant response in expected response.")
+        reward = max_reward
+        feedback = good_message(f"We experienced an error and do not want to punish you.") 
+        return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
     correct_assistant_percentage = 0
     
     try:
