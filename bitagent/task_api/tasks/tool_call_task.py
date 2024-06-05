@@ -136,10 +136,12 @@ class ToolCallTask(Task):
             rewritten_convo = split_dialogue(rewritten_history)
             
             
-            
+            cont = False
             for idx in range(len(data.convo.messages)):
                 if data.convo.messages[idx].role != rewritten_convo.messages[idx]:
-                    continue
+                    cont = True
+            if cont:
+                continue 
             
             try:
                 assistant = False
