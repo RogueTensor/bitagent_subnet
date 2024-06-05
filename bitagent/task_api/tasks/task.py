@@ -169,7 +169,7 @@ def evaluate_task(validator, task:Task, synapse:bt.Synapse, response:dict) -> [f
 # - Summarization
 # - Logic QnA (pet tricks)
 def get_random_task(validator, task_name=None, sub_task_id_to_get=None) -> Task:
-    from bitagent.task_api.tasks import SummaryTask, GeneratedQnATask, GeneratedLogicQnATask, GeneratedToolSelectionTask, basic_qna_miner_tasks, FilterTask, ToolCallTask, ToolGenTask, ConversationTask
+    from bitagent.task_api.tasks import SummaryTask, GeneratedQnATask, GeneratedLogicQnATask, FilterTask, ToolCallTask, ToolGenTask, ConversationTask
     random.seed(validator.random_seed())  
     task_names = list(TASK_FREQUENCY.keys())
     task_frequencies = list(TASK_FREQUENCY.values())
@@ -195,8 +195,8 @@ def get_random_task(validator, task_name=None, sub_task_id_to_get=None) -> Task:
                     return GeneratedLogicQnATask(validator=validator, name="Responds with correct answer for logic-based question", sub_task_id_to_get=sub_task_id_to_get)
                 case "summary":
                     return SummaryTask(validator=validator, name="Responds with correct summary")
-                case "generated_tool_selection":
-                    return GeneratedToolSelectionTask(validator=validator, name="Responds with correct tool selection")
+                # case "generated_tool_selection":
+                    # return GeneratedToolSelectionTask(validator=validator, name="Responds with correct tool selection")
                 case "unfilter":
                     return FilterTask(validator=validator, name="Responds with correct filter response")
                 case "tool_call":

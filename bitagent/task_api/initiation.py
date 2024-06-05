@@ -29,7 +29,6 @@ def initiate_validator(self):
     #bt.logging.info("Initializing Validator - this may take a while (downloading data and models).")
     self.qna_dataset = QnADataset()
     self.summary_dataset = SummaryDataset()
-    self.ansible_dataset = AnsibleDataset()
     self.api_dataset = APIDataset()
     self.filter_dataset = FilterDataset()
     self.tool_dataset = ToolDataset()
