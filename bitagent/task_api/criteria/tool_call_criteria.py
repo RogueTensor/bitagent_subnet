@@ -61,15 +61,13 @@ def correct_tool_use_and_response(task, validator: BaseValidatorNeuron, synapse:
     
     # Check to ensure that it goes `tool call` then `assistant`
     if any([msg.role == 'tool call' for msg in expected_convo.messages]):
-        for i in range(1, len(miner_convo.messages)):
-            if miner_convo.messages[i].role == 'tool call':
-                if miner_convo.messages[i+1].role != 'assistant':
-                    reward = -0.5
-                    feedback = bad_message(f"You failed to provide the correct response formatting - looking for an assistant response before a tool call")
-                    return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
         if len(miner_convo.messages) != 2:
             reward = -0.5
             feedback = bad_message(f"You failed to provide the correct response formatting - looking for ONLY an assistant response and a tool call")
+            return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
+        if miner_convo.messages[0].role != 'tool call' or miner_convo.messages[1].role != 'assistant':
+            reward = -0.5
+            feedback = bad_message(f"You failed to provide the correct response formatting - looking for an assistant response before a tool call")
             return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
     else:
         if len(miner_convo.messages) != 1:
@@ -88,7 +86,8 @@ def correct_tool_use_and_response(task, validator: BaseValidatorNeuron, synapse:
     try: 
         miner_tool_call = [msg for msg in miner_convo.messages if msg.role == 'tool call'][0].content
         if isinstance(miner_tool_call, str):
-            miner_tool_call = ast.literal_eval(miner_tool_call)
+            # miner_tool_call = ast.literal_eval(miner_tool_call)
+            miner_tool_call = json.loads(miner_tool_call)
     except:
         reward = -0.5
         feedback = bad_message(f"You failed to provide the correct response formatting - looking for a tool call that can be converted into a dictionary") 
