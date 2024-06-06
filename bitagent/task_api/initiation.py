@@ -38,30 +38,20 @@ def initiate_validator(self):
     #bt.logging.debug("Initializing Validator - this may take a while (downloading data and models) - loading model ...")
     self.sentence_transformer = CachedSentenceTransformer('BAAI/bge-small-en-v1.5')
 
-    def validator_llm(input_text, max_new_tokens = 160, temperature=0.7):
-        llm = VLLMOpenAI(
-        openai_api_key="EMPTY",
-        openai_api_base="http://localhost:14025/v1",
-        model_name="TheBloke/Mistral-7B-OpenOrca-GPTQ",
-        max_tokens = max_new_tokens,
-        temperature = temperature,
-    )
-        res = llm.invoke(f"""<|im_start|>user
-{input_text}<|im_end|>
-<|im_start|>assistant\n""")
-        return res
-    def chat_llm(messages: list[dict], max_new_tokens = 160, temperature=0.7):
+    def chat_llm(messages, max_new_tokens = 160, temperature=0.7):
+        if isinstance(messages, str):
+            messages = [{"role":"user","content":messages}]
         llm = ChatOpenAI(
             openai_api_key="EMPTY",
-            openai_api_base="http://localhost:14059/v1",
-            model_name="meta-llama/Meta-Llama-3-8B-Instruct",
+            openai_api_base="http://localhost:8000/v1",
+            model_name="thesven/Mistral-7B-Instruct-v0.3-GPTQ",
             max_tokens = max_new_tokens,
             temperature = temperature,
         )
-        return llm.invoke(messages).content
-
+        return llm.invoke(messages).content.strip()
+    
     self.chat_llm = chat_llm
-    self.validator_llm = validator_llm
+    self.validator_llm = chat_llm
     
     #bt.logging.debug("Initializing Validator - this may take a while (downloading data and models) - finished loading model")
 

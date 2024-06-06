@@ -1,8 +1,7 @@
 TASK_FREQUENCY = {
-    "summary": 1,
-    "unfilter": 4,
+    "summary": 0,
     "generated_qna": 2,
-    "generated_logic_qna": 1,
+    "generated_logic_qna": 0,
     "tool_call": 6,
     "tool_gen": 4,
     "conversation": 2,
@@ -11,7 +10,6 @@ TASK_FREQUENCY = {
 TASK_WEIGHTS = {
     "basic_qna": 0.0,
     "summary": 0.04,
-    "unfilter": 0.09,
     "generated_qna": 0.09,
     "generated_logic_qna": 0.03,
     "tool_call": 0.1,

@@ -18,20 +18,19 @@ class ChatDataset(Iterator):
         # countering the effect of setting seed for task orchestration from validators
         random.seed(None)
         seed = random.randint(0, 1000)
-        #TODO add API key if wanna use wildchat
         # wildchat = huggingface_loader("allenai/WildChat-1M")
         lmsys = huggingface_loader('lmsys/lmsys-chat-1m')
         wizardlm = huggingface_loader('cognitivecomputations/WizardLM_alpaca_evol_instruct_70k_unfiltered')
         wizard_vic = huggingface_loader('cognitivecomputations/wizard_vicuna_70k_unfiltered')
+        safe_ds = huggingface_loader("PKU-Alignment/PKU-SafeRLHF")
+        beaver_ds = huggingface_loader("PKU-Alignment/BeaverTails", split="330k_train")
+
         self.datasets = { 
-            #TODO Decide if to use wildchat
-            # "wildchat": iter(wildchat.shuffle(seed=seed)),
             "lmsys": iter(lmsys.shuffle(seed=seed)),
             "wizardlm": iter(wizardlm.shuffle(seed=seed)),
-            "wizard_vic": iter(wizard_vic.shuffle(seed=seed))
-            # https://huggingface.co/datasets/H-D-T/Buzz
-            # https://huggingface.co/datasets/xzuyn/open-instruct-uncensored-alpaca
-            
+            "wizard_vic": iter(wizard_vic.shuffle(seed=seed)),
+            "safe": iter(safe_ds.shuffle(seed=seed)),
+            "beaver": iter(beaver_ds.shuffle(seed=seed)) 
         }
     
     def wizardlm_formatter(self,row):
@@ -49,21 +48,38 @@ class ChatDataset(Iterator):
                 convo['role'] = 'assistant'
         return Conversation.from_list(convos)
     
+    def safe_formatter(self, row):
+        user = row['prompt']
+        if not row['is_response_0_safe']:
+            assistant = row['response_0']
+        elif not row['is_response_1_safe']:
+            assistant = row['response_1']
+        
+        return Conversation.from_list([{"role": "user","content":user},{"role":"assistant","content":assistant}])
+    
+    def beaver_formatter(self, row):
+        user = row['prompt']
+        assistant = row['response']
+        return Conversation.from_list([{"role": "user","content":user},{"role":"assistant","content":assistant}])
+     
     def __next__(self) -> Conversation:
         bt.logging.debug("Retrieving chat data from dataset...")
         # countering the effect of setting seed for task orchestration from validators
         random.seed(None)
         for _ in range(20):
             try:
-                dname, ds = random.choice(list(self.datasets.items()))
+                dname, ds = random.choices(list(self.datasets.items()), [1,1,1,2,2])[0]
+                row = next(ds)
+                
                 if dname == "wizardlm":
-                    row = next(ds)
                     return self.wizardlm_formatter(row)
                 if dname == "wizard_vic":
-                    row = next(ds)
                     return self.wizard_vic_formatter(row)
+                if dname == "safe":
+                    return self.safe_formatter(row)
+                if dname == "beaver":
+                    return self.beaver_formatter(row)
                 
-                row = next(ds)
                 if row['language'] != "English":
                     continue
                 conversation = row["conversation"]

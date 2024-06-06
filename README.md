@@ -126,15 +126,25 @@ If you want to run the validator task generation and scoring locally:
 pm2 start neurons/validator.py --interpreter python3 -- --netuid 20 --subtensor.network <LOCAL/FINNEY/TEST> --wallet.name <COLDKEY> --wallet.hotkey <HOTKEY> --axon.port <PORT> --run_local
 ```
 
-To run locally you must spin-up your own LLMs (the two mentioned below). After spinning them up you must modify `initiation.py` to point towards the endpoints of those LLM's. 
+To run locally you must spin-up your own LLM. After spinning them up you must modify `initiation.py` to point towards the endpoints of those LLM's. 
 Note: Previously we ran the LLM's inside the validator code with the transformer package, however we pivoted away from that due to the inefficiency of running the model using vanilla transformers. Hosting the models using llama.cpp, oobabooga, vllm, TGI, are much better options as they provide additional functionality.  
+
+To run with vLLM you can do the following:
+
+`sudo docker run -d -p 8000:8000  --gpus all --ipc host --name mistral-instruct docker.io/vllm/vllm-openai:latest --model thesven/Mistral-7B-Instruct-v0.3-GPTQ --max-model-len 8912 --quantization gptq --dtype half`
+
+This will run the LLM on port 8000. If you want to run it on another port you need to modify the port in `initation.py`
+
+The next step is to create a huggingface account and get access to `https://huggingface.co/datasets/lmsys/lmsys-chat-1m`. Once you access you will need to get an access token, then you must set the env var `HF_TOKEN=<The token you got>`.
 
 #### Hardware Requirements
 
-Validators have the option of using the Task API, or running everything locally. If running with the Task API the validator's do not have any strong requirements, no GPU is required. If running everything locally `--run_local`, there are higher hardware requirements. Two LLM's are required, `TheBloke/Mistral-7B-OpenOrca-GPTQ` and `meta-llama/Meta-Llama-3-8B-Instruct`. Mistral-7B can run off 10GB of VRAM. Llama-3 is quite large since it's unquantized, but can run very easily on 48GB of VRAM. 
+Validators have the option of using the Task API, or running everything locally. If running with the Task API the validator's do not have any strong requirements, no GPU is required. If running everything locally `--run_local`, there are higher hardware requirements. A single LLM `thesven/Mistral-7B-Instruct-v0.3-GPTQ` is needed, it can run off 10GB of VRAM.
 
-Miners will need to run LLMs and will require at least mistral 7B, needing a GPU with 15-20GB of VRAM. \
+Miners will need to run LLMs and will require at least mistral 7B, needing a GPU with 15-20GB of VRAM. 
 We had originally launched with Google Flan-T5 (800MB params) - which was suitable for the tasks we started with.  But it is not suitable for the tasks we generate and evaluate now.
+
+
 
 ### Miner
 If you just want to run the miner without the [script](./scripts/setup_and_run.sh) or are connecting to mainnet:

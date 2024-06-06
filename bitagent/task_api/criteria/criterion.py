@@ -22,7 +22,6 @@ from common.base.validator import BaseValidatorNeuron
 from bitagent.task_api.criteria.utils import good_message, bad_message
 from bitagent.task_api.criteria.default_criteria import *
 from bitagent.task_api.criteria.qna_criteria import *
-from bitagent.task_api.criteria.unfilter_criteria import *
 from bitagent.task_api.criteria.summary_criteria import *
 from bitagent.task_api.criteria.qna_logic_criteria import *
 from bitagent.task_api.criteria.tool_selection_criteria import *
@@ -129,12 +128,6 @@ def dataset_tool_gen_criteria() -> List[Criterion]:
     return [
         Criterion(name="Return valid function call response", desc="", eval_fx=correct_dataset_tool_gen, eval_args=[]),
     ]    
-
-# Filter
-def unfilter_task_criteria(ds_response: str, ds_response_gen: str) -> List[Criterion]:
-    return [
-        Criterion(name="Return valid unfilter response", desc="", eval_fx=correct_unfilter_response_provided, eval_args=[ds_response, ds_response_gen]),
-    ]
 
 # Conversation
 def conversation_task_criteria(correct_response: str) -> List[Criterion]:
