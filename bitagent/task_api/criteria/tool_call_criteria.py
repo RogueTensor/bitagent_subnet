@@ -36,6 +36,12 @@ def json_quote_fix(s):
 def correct_tool_use_and_response(task, validator: BaseValidatorNeuron, synapse: bt.Synapse, response:dict, expected_convo: List[dict]) -> [float, float, str]:
     max_reward = 3.0
     expected_convo = Conversation.from_list(expected_convo)
+    
+    if not synapse.response['response']:
+        reward = -0.5
+        feedback = bad_message(f"Your response was empty, please return something.")
+        return reward, max_reward, feedback + received_reward_template.format(reward, max_reward)
+    
     try:
         resp = synapse.response['response']
         try:
