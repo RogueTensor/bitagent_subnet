@@ -17,7 +17,7 @@
 
 import random
 from faker import Faker
-from bitagent.task_api.dataset import QnADataset, SummaryDataset, AnsibleDataset, APIDataset, FilterDataset
+from bitagent.task_api.dataset import QnADataset, SummaryDataset
 from bitagent.task_api.datasources import ToolDataset, ChatDataset, LocalToolDataset
 from langchain_community.llms import VLLMOpenAI
 from langchain_openai import ChatOpenAI, OpenAI
@@ -29,8 +29,6 @@ def initiate_validator(self):
     #bt.logging.info("Initializing Validator - this may take a while (downloading data and models).")
     self.qna_dataset = QnADataset()
     self.summary_dataset = SummaryDataset()
-    self.api_dataset = APIDataset()
-    self.filter_dataset = FilterDataset()
     self.tool_dataset = ToolDataset()
     self.convo_dataset = ChatDataset()
     self.local_tool_gen_dataset = LocalToolDataset(table_name='tool_gen', db_type='sqlite', db_path='bitagent.data/tools.db')
