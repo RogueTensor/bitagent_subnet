@@ -103,8 +103,7 @@ class ToolGenTask(Task):
     def generate_dataset_task(self):
         category = random.choice(categories)
         query = self.validator.chat_llm([
-            {"role": "system", "content": query_system_prompt},
-            {"role": "user", "content": f"Category: {category}\nQuery: "}
+            {"role": "user", "content": f"{query_system_prompt}\nCategory: {category}\nQuery: "}
         ], temperature=0.7)
         return query
   
