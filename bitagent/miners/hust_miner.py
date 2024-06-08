@@ -17,6 +17,7 @@
 # DEALINGS IN THE SOFTWARE.
 from bitagent.schemas.tool import Tool
 from bitagent.schemas.conversation import Conversation
+import bittensor as bt 
 import bitagent
 import httpx
 import os
@@ -48,6 +49,8 @@ async def miner_process(self, synapse: bitagent.protocol.QnATask) -> bitagent.pr
             "message_history": message_history,
             "tools" : tools
         }
+    except:
+        bt.logging.info('BBBBB')
     try:
         async with httpx.AsyncClient(timeout=httpx.Timeout(timeout=synapse.timeout)) as client:
             hust_response = await client.post(HUST_ENDPOINT, json=data)
@@ -58,6 +61,11 @@ async def miner_process(self, synapse: bitagent.protocol.QnATask) -> bitagent.pr
             "response": synapse.prompt * 10,
             "citations": [],
         }
+    try:
+        if "Tool Calling" in synapse.notes:
+            bt.logging.info(message_history)
+    except:
+        bt.logging.info("logging fail for tool calling message history")
     synapse.response = hust_response
 
     return synapse
