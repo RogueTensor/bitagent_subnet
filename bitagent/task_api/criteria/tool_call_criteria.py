@@ -182,6 +182,16 @@ def correct_dataset_tool_call_response(task, validator: BaseValidatorNeuron, syn
         reward = -0.5
         feedback = bad_message(f"You failed to provide a response that could be correctly grabbed.")
         return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
+    
+    if len(miner_convo.messages) != 2:
+        reward = -0.5
+        feedback = bad_message(f"You failed to provide the correct response formatting - looking for ONLY an assistant response and a tool call")
+        return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
+    if miner_convo.messages[0].role != 'tool call' or miner_convo.messages[1].role != 'assistant':
+        reward = -0.5
+        feedback = bad_message(f"You failed to provide the correct response formatting - looking for an assistant response before a tool call")
+        return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
+    
     try:
         tool_call = find_first_tool_call(miner_convo).content
         if isinstance(tool_call, str):
