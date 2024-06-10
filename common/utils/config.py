@@ -102,6 +102,23 @@ def add_args(cls, parser):
         default=False,
     )
 
+    #Force miner to use a default port unless specified
+    if '--axon.port' not in parser._option_string_actions:  # Check if the argument already exists
+        parser.add_argument(
+            "--axon.port",
+            type=int,
+            help="Port for the axon server to listen on.",
+            default=50000,  # Default port number
+)
+
+    parser.add_argument(
+        "--log_level",
+        type=str,
+        choices=["trace", "debug"],  # Add more levels if needed
+        help="Logging level to use",
+        default="debug"
+    )
+
     if neuron_type == "validator":
 
         parser.add_argument(
