@@ -49,7 +49,7 @@ def correct_tool_use_and_response(task, validator: BaseValidatorNeuron, synapse:
         except Exception as e:
             reward = -0.5
             if any([msg.role == 'tool call' for msg in expected_convo.messages]):
-                feedback = bad_message(f"You failed to provide the correct response formatting - looking for a list of messages. Like so [{{\"role\": \"assistant\", \"content\": \"message\"}}, {{\"role\": \"tool call\", \"content\": \"message\"}}]")
+                feedback = bad_message(f"You failed to provide the correct response formatting - looking for a list of messages. Like so [{{\"role\": \"tool call\", \"content\": \"message\"}}, {{\"role\": \"assistant\", \"content\": \"message\"}}]")
             else:
                 feedback = bad_message(f"You failed to provide the correct response formatting - looking for a list of messages. Like so [{{\"role\": \"assistant\", \"content\": \"message\"}}]")
             return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
