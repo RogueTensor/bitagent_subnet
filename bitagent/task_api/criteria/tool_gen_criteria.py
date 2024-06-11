@@ -122,13 +122,15 @@ def correct_dataset_tool_gen(task, validator: BaseValidatorNeuron, synapse: bt.S
         resp = synapse.response['response']
         try:
             miner_tool = json.loads(resp)
+            if not isinstance(miner_tool, dict):
+                raise Exception("Miner did not return a dictionary.")
         except Exception as e:
             reward = -0.5
-            feedback = bad_message(f"You failed to provide the correct response formatting - looking for a list of messages. Like so [{{\"role\": \"user\", \"content\": \"message\"}}, {{\"role\": \"assistant\", \"content\": \"message\"}}, {{\"role\": \"tool call\", \"content\": \"message\"}}]")
+            feedback = bad_message(f"You failed to respond with valid json. Please format the response like so: {{\"name\": \"tool_name\", \"description\": \"tool_description\", \"arguments\": {{\"arg1\": {{\"required\": true, \"type\": \"str\", \"description\": \"arg1_description\"}}, \"arg2\": {{\"required\": false, \"type\": \"int\", \"description\": \"arg2_description\"}}}}}}")
             return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
     except KeyError:
         reward = -0.5
-        feedback = bad_message(f"You failed to provide the correct response formatting - looking for a list of messages.")
+        feedback = bad_message(f"You failed to provide any response.")
         return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
     feedback = good_message(f"You responded with the correct answer.")
     if not 'name' in miner_tool.keys():
