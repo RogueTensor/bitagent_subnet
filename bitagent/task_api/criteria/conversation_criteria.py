@@ -37,10 +37,10 @@ def correct_assistant_response(task, validator: BaseValidatorNeuron, synapse: bt
     
     if response_similarity < 0.45:
         reward = 0
-        feedback = good_message(f"Your response was barely similar to what it should have been.", color="red")
+        feedback = bad_message(f"Your response was not at all similar to what it should have been.", color="red")
     elif response_similarity < 0.75:
         reward = 0.25*max_reward
-        feedback = good_message(f"Your response was pretty similar to what it should have been.", color="yellow")
+        feedback = bad_message(f"Your response was barely similar to what it should have been.", color="yellow")
     elif response_similarity < 0.8:
         reward = 0.5*max_reward
         feedback = good_message(f"Your response was almost perfect.", color="green")
