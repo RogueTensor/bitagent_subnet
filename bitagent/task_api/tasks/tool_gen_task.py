@@ -64,6 +64,7 @@ class ToolGenTask(Task):
 
             self.criteria = default_criteria + dataset_tool_gen_criteria() 
             self.postprocess = tool_gen_postprocess()
+            self.name += " Dataset"
             self.weight = TASK_WEIGHTS['tool_gen_dataset']
         notes = """Tool Generation"""
         self.synapse = QnATask(

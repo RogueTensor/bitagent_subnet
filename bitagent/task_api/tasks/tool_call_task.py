@@ -75,6 +75,7 @@ class ToolCallTask(Task):
                 message_history, tools, data = self.generate_dataset_task_data()
                 self.criteria = default_criteria + dataset_tool_call_criteria() 
                 self.postprocess = tool_call_postprocess()
+                self.name += " Dataset"
                 self.weight = TASK_WEIGHTS["tool_call_dataset"]
             except Exception as e:
                 bt.logging.error(f'Exception getting dataset task {e}')
