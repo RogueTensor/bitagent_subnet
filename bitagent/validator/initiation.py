@@ -59,34 +59,34 @@ def comet_ml_logger(directory, workspace, project_name):
 # clear out the old wandb dirs if possible
 def initiate_validator(self):
 
-    task_api_cml = f"{self.config.task_api_host}/task_api/get_cml_api_data"
-    headers = {"Content-Type": "application/json"}
-    data = {}
-    if self.config.netuid == 76: # testnet
-        data = {
-            "network": "testnet",
-        }
-    cml_results = requests.get(task_api_cml, headers=headers, json=data)
-    cml_data = cml_results.json()
-    comet_llm.init(api_key=cml_data['api_key'])
+    #task_api_cml = f"{self.config.task_api_host}/task_api/get_cml_api_data"
+    #headers = {"Content-Type": "application/json"}
+    #data = {}
+    #if self.config.netuid == 76: # testnet
+    #    data = {
+    #        "network": "testnet",
+    #    }
+    #cml_results = requests.get(task_api_cml, headers=headers, json=data)
+    #cml_data = cml_results.json()
+    #comet_llm.init(api_key=cml_data['api_key'])
 
-    if not self.config.log_dir.endswith("/"):
-        self.config.log_dir = self.config.log_dir + "/"
+    #if not self.config.log_dir.endswith("/"):
+    #    self.config.log_dir = self.config.log_dir + "/"
 
-    if self.config.netuid == 76: # testnet
-        self.log_directory = self.config.log_dir +  ".comet_testnet-llm-logs"
-        workspace = cml_data['workspace']
-        project_name = cml_data['project_name'] 
-    elif self.config.netuid == 20: # mainnet
-        self.log_directory = self.config.log_dir + ".comet_mainnet-llm-logs"
-        workspace = cml_data['workspace'] 
-        project_name = cml_data['project_name']
-    else: # unknown, maybe local
-        self.log_directory = None
-        workspace = None
-        project_name = None
+    #if self.config.netuid == 76: # testnet
+    #    self.log_directory = self.config.log_dir +  ".comet_testnet-llm-logs"
+    #    workspace = cml_data['workspace']
+    #    project_name = cml_data['project_name'] 
+    #elif self.config.netuid == 20: # mainnet
+    #    self.log_directory = self.config.log_dir + ".comet_mainnet-llm-logs"
+    #    workspace = cml_data['workspace'] 
+    #    project_name = cml_data['project_name']
+    #else: # unknown, maybe local
+    #    self.log_directory = None
+    #    workspace = None
+    #    project_name = None
 
-    if self.log_directory:
+    if False: #self.log_directory:
         os.makedirs(self.log_directory, exist_ok=True)
         logger_process = multiprocessing.Process(target=comet_ml_logger, args=(self.log_directory, workspace, project_name,))
         logger_process.start()
