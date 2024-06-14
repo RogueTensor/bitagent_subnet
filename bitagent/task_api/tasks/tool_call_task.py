@@ -13,6 +13,7 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
+import ast
 import json
 import random
 import bittensor as bt
@@ -120,19 +121,26 @@ class ToolCallTask(Task):
         
         user = data.convo.messages[0].content
         assistant = data.convo.messages[-1].content
-        for _ in range(10):
+        count = 0
+        while count < 10:
+            count += 1
             if find_first_tool_call(data.convo):
                 tool_call = find_first_tool_call(data.convo).content
                 rewritten_tool_call = self.validator.chat_llm([{"role": "user", "content": REWRITE_TOOL_PROMPT.format(tool_call=tool_call)}], max_new_tokens=1000, temperature=1.2)
                 try: # check that the tool call can be loaded, and that it's valid
-                    new_tool_call = json.dumps(json.loads(rewritten_tool_call))
-                    tool_call_dict = json.loads(rewritten_tool_call)
+                    try:
+                        new_tool_call = json.dumps(json.loads(rewritten_tool_call))
+                        tool_call_dict = json.loads(rewritten_tool_call)
+                    except:
+                        new_tool_call = json.dumps(ast.literal_eval(rewritten_tool_call))
+                        tool_call_dict = ast.literal_eval(rewritten_tool_call)
                     for tool in data.tools:
                         if tool.name == tool_call_dict['name']:
                             if not validate_tool_call(tool, tool_call_dict):
                                 raise Exception('The tool call is not valid')
                 except Exception as e:
                     bt.logging.warning(f'An error occured while rewriting the tool call {e}')
+                    count = 11
                     continue
                 
                 new_user = self.validator.chat_llm([{"role": "user", "content": REWRITE_TOOL_USER_PROMPT.format(tool_call=new_tool_call, user=user)}], max_new_tokens=1000, temperature=1)
