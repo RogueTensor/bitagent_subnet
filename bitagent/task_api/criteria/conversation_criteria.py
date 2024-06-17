@@ -24,6 +24,10 @@ def correct_assistant_response(task, validator: BaseValidatorNeuron, synapse: bt
     max_reward = 3
     try:
         miner_response = synapse.response['response']
+        if not miner_response or not isinstance(miner_response, str):
+            reward = -0.5
+            feedback = bad_message(f"You responded with {miner_response}. You must respond with a string.")
+            return reward, max_reward, feedback + received_reward_template.format(reward, max_reward)
     except KeyError:
         reward = -0.5
         feedback = bad_message(f"You failed to provide the correct data - see protocol details.")
@@ -33,10 +37,10 @@ def correct_assistant_response(task, validator: BaseValidatorNeuron, synapse: bt
     
     if response_similarity < 0.45:
         reward = 0
-        feedback = good_message(f"Your response was barely similar to what it should have been.", color="red")
+        feedback = bad_message(f"Your response was not at all similar to what it should have been.", color="red")
     elif response_similarity < 0.75:
         reward = 0.25*max_reward
-        feedback = good_message(f"Your response was pretty similar to what it should have been.", color="yellow")
+        feedback = bad_message(f"Your response was barely similar to what it should have been.", color="yellow")
     elif response_similarity < 0.8:
         reward = 0.5*max_reward
         feedback = good_message(f"Your response was almost perfect.", color="green")

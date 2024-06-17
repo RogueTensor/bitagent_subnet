@@ -64,6 +64,7 @@ class ToolGenTask(Task):
 
             self.criteria = default_criteria + dataset_tool_gen_criteria() 
             self.postprocess = tool_gen_postprocess()
+            self.name += " Dataset"
             self.weight = TASK_WEIGHTS['tool_gen_dataset']
         notes = """Tool Generation"""
         self.synapse = QnATask(
@@ -103,8 +104,7 @@ class ToolGenTask(Task):
     def generate_dataset_task(self):
         category = random.choice(categories)
         query = self.validator.chat_llm([
-            {"role": "system", "content": query_system_prompt},
-            {"role": "user", "content": f"Category: {category}\nQuery: "}
+            {"role": "user", "content": f"{query_system_prompt}\nCategory: {category}\nQuery: "}
         ], temperature=0.7)
         return query
   
