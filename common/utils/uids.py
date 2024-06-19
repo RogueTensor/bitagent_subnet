@@ -1,6 +1,6 @@
 import torch
 import random
-import bitagent
+import bitagent_hust
 import bittensor as bt
 from typing import List
 

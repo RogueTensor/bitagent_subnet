@@ -25,10 +25,14 @@ from rich.console import Console
 
 # Bittensor Miner Template:
 import bitagent
+
 # Sync calls set weights and also resyncs the metagraph.
 from common.utils.config import add_args as util_add_args
 from common.utils.config import config as util_config
-
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from bitagent_hust.miners.hust_miner import miner_init,miner_process
 
 # import base miner class which takes care of most of the boilerplate
 from common.base.miner import BaseMinerNeuron
@@ -71,11 +75,11 @@ class Miner(BaseMinerNeuron):
         super(Miner, self).__init__(config=config)
 
         # Dynamic module import based on the 'miner' argument
-        miner_name = f"bitagent.miners.{config.miner}_miner" # if config and config.miner else "bitagent.miners.t5_miner"
-        miner_module = importlib.import_module(miner_name)
+        # miner_name = f"bitagent.miners.{config.miner}_miner" # if config and config.miner else "bitagent.miners.t5_miner"
+        # miner_module = importlib.import_module(miner_name)
 
-        self.miner_init = miner_module.miner_init
-        self.miner_process = miner_module.miner_process
+        self.miner_init = miner_init
+        self.miner_process = miner_process
 
         self.miner_init(self)
 

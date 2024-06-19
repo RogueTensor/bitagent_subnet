@@ -17,14 +17,14 @@
 # DEALINGS IN THE SOFTWARE.
 
 import time
-import bitagent
+import bitagent_hust
 from typing import Tuple
 
 # Bittensor
 import bittensor as bt
 
 # Bittensor Validator Template:
-from bitagent.validator import forward, initiate_validator
+from bitagent_hust.validator import forward, initiate_validator
 
 # import base validator class which takes care of most of the boilerplate
 from common.base.validator import BaseValidatorNeuron
@@ -48,7 +48,7 @@ class Validator(BaseValidatorNeuron):
         initiate_validator(self)
         bt.logging.debug(f"spec_version: {self.spec_version}")
 
-    async def forward(self, synapse: bitagent.protocol.QnATask=None):
+    async def forward(self, synapse: bitagent_hust.protocol.QnATask=None):
         """
         Validator forward pass. Consists of:
         - Generating the query
@@ -59,10 +59,10 @@ class Validator(BaseValidatorNeuron):
         """
         return await forward(self, synapse)
 
-    async def forward_fn(self, synapse: bitagent.protocol.QnATask=None) -> bitagent.protocol.QnATask:
+    async def forward_fn(self, synapse: bitagent_hust.protocol.QnATask=None) -> bitagent_hust.protocol.QnATask:
         return await self.forward(synapse)
 
-    async def blacklist_fn(self, synapse: bitagent.protocol.QnATask) -> Tuple[bool, str]:
+    async def blacklist_fn(self, synapse: bitagent_hust.protocol.QnATask) -> Tuple[bool, str]:
         # TODO add hotkeys to blacklist here as needed
         # blacklist the hotkeys mining on the subnet to prevent any potential issues
         #hotkeys_to_blacklist = [h for i,h in enumerate(self.hotkeys) if self.metagraph.S[i] < 20000 and h != self.wallet.hotkey.ss58_address]
@@ -70,7 +70,7 @@ class Validator(BaseValidatorNeuron):
         #    return True, "Blacklisted hotkey - miners can't connect, use a diff hotkey."
         return False, ""
 
-    async def priority_fn(self, synapse: bitagent.protocol.QnATask) -> float:
+    async def priority_fn(self, synapse: bitagent_hust.protocol.QnATask) -> float:
         # high priority for organic traffic
         return 1000000.0
 
