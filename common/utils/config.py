@@ -20,8 +20,6 @@ import os
 import torch
 import argparse
 import bittensor as bt
-#from loguru import logger
-
 
 def check_config(cls, config: "bt.Config"):
     r"""Checks/validates the config namespace object."""
@@ -62,7 +60,6 @@ def add_args(cls, parser):
     """
     # Netuid Arg: The netuid of the subnet to connect to.
     parser.add_argument("--netuid", type=int, help="Subnet netuid", default=1)
-
     neuron_type = (
         "validator" if "miner" not in cls.__name__.lower() else "miner"
     )
@@ -101,7 +98,7 @@ def add_args(cls, parser):
         help="If set, we dont save events to a log file.",
         default=False,
     )
-
+    
     #Force miner to use a default port unless specified
     if '--axon.port' not in parser._option_string_actions:  # Check if the argument already exists
         parser.add_argument(
@@ -110,7 +107,7 @@ def add_args(cls, parser):
             help="Port for the axon server to listen on.",
             default=50000,  # Default port number
 )
-
+        
     parser.add_argument(
         "--log_level",
         type=str,
@@ -121,6 +118,20 @@ def add_args(cls, parser):
 
     if neuron_type == "validator":
 
+        parser.add_argument(
+            "--task_api_host",
+            type=str,
+            default="https://roguetensor.com/api",
+            help="the Task API host if you need to point to your own"
+        )
+        
+        parser.add_argument(
+            "--log_dir",
+            type=str,
+            default="./",
+            help="the location of the cometML logs"
+        )
+        
         parser.add_argument(
             "--run_local",
             action="store_true",
@@ -173,6 +184,7 @@ def add_args(cls, parser):
             default=4096,
         )
 
+
     else:
         parser.add_argument(
             "--blacklist.force_validator_permit",
@@ -193,15 +205,19 @@ def config(cls):
     """
     Returns the configuration object specific to this miner or validator after adding relevant arguments.
     """
-    neuron_type = (
-        "validator" if "miner" not in type(cls).__name__.lower() else "miner"
-    )
     parser = argparse.ArgumentParser()
     bt.wallet.add_args(parser)
     bt.subtensor.add_args(parser)
     bt.logging.add_args(parser)
-    if neuron_type == "miner":
-        bt.trace()
     bt.axon.add_args(parser)
     cls.add_args(parser)
+    args = parser.parse_args()
+
+    # Conditional logging based on the argument
+    logging_level = args.log_level
+    if logging_level == "trace":
+        bt.trace()
+    elif logging_level == "debug":
+        bt.debug()
+    
     return bt.config(parser)

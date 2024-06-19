@@ -17,9 +17,11 @@
 
 import random
 from faker import Faker
-from bitagent.task_api.dataset import QnADataset, SummaryDataset, AnsibleDataset, APIDataset
+from bitagent.task_api.dataset import QnADataset, SummaryDataset
+from bitagent.task_api.datasources import ToolDataset, ChatDataset, LocalToolDataset
 from langchain_community.llms import VLLMOpenAI
-from sentence_transformers import util
+from langchain_openai import ChatOpenAI, OpenAI
+from sentence_transformers import SentenceTransformer, util
 from bitagent.task_api.helpers.sbert import CachedSentenceTransformer
 
 # provide some capabilities to the task API (LLM, cossim and faker)
@@ -27,25 +29,28 @@ def initiate_validator(self):
     #bt.logging.info("Initializing Validator - this may take a while (downloading data and models).")
     self.qna_dataset = QnADataset()
     self.summary_dataset = SummaryDataset()
-    self.ansible_dataset = AnsibleDataset()
-    self.api_dataset = APIDataset()
+    self.tool_dataset = ToolDataset()
+    self.convo_dataset = ChatDataset()
+    self.local_tool_gen_dataset = LocalToolDataset(table_name='tool_gen', db_type='sqlite', db_path='bitagent.data/tools.db')
+    self.local_tool_call_dataset = LocalToolDataset(table_name='tool_call', db_type='sqlite', db_path='bitagent.data/tools.db')
     #bt.logging.debug("Initializing Validator - this may take a while (downloading data and models) - loading model ...")
-    self.sentence_transformer = CachedSentenceTransformer('BAAI/bge-large-en-v1.5')
+    self.sentence_transformer = CachedSentenceTransformer('BAAI/bge-small-en-v1.5')
 
-    def validator_llm(input_text, max_new_tokens = 160, temperature=0.7):
-        llm = VLLMOpenAI(
-        openai_api_key="EMPTY",
-        openai_api_base="http://localhost:6001/v1",
-        model_name="models/llm",
-        max_tokens = max_new_tokens,
-        temperature = temperature,
-    )
-        res = llm.invoke(f"""<|im_start|>user
-{input_text}<|im_end|>
-<|im_start|>assistant\n""")
-        return res
+    def chat_llm(messages, max_new_tokens = 160, temperature=0.7):
+        if isinstance(messages, str):
+            messages = [{"role":"user","content":messages}]
+        llm = ChatOpenAI(
+            openai_api_key="EMPTY",
+            openai_api_base="http://localhost:8000/v1",
+            model_name="thesven/Mistral-7B-Instruct-v0.3-GPTQ",
+            max_tokens = max_new_tokens,
+            temperature = temperature,
+        )
+        return llm.invoke(messages).content.strip()
     
-    self.validator_llm = validator_llm
+    self.chat_llm = chat_llm
+    self.validator_llm = chat_llm
+    
     #bt.logging.debug("Initializing Validator - this may take a while (downloading data and models) - finished loading model")
 
     # code to measure the relevance of the response to the question

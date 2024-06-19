@@ -24,14 +24,11 @@ import threading
 import bittensor as bt
 import argparse
 
-from typing import List
+from typing import List, Any
 from traceback import print_exception
 
 from common.base.neuron import BaseNeuron
 from common.utils.config import add_args as util_add_args
-from common.utils.config import config as util_config
-
-
 class BaseValidatorNeuron(BaseNeuron):
     """
     Base class for Bittensor validators. Your validator should inherit from this class.
@@ -39,15 +36,15 @@ class BaseValidatorNeuron(BaseNeuron):
 
     neuron_type: str = "ValidatorNeuron"
 
-    @classmethod
-    def add_args(cls, parser: argparse.ArgumentParser):
-        util_add_args(cls, parser)
-        parser.add_argument(
-            "--task_api_host",
-            type=str,
-            default="https://roguetensor.com/api",
-            help="the Task API host if you need to point to your own"
-        )
+    # @classmethod
+    # def add_args(cls, parser: argparse.ArgumentParser):
+    #     util_add_args(cls, parser)
+    #     parser.add_argument(
+    #         "--task_api_host",
+    #         type=str,
+    #         default="https://roguetensor.com/api",
+    #         help="the Task API host if you need to point to your own"
+    #     )
 
     def __init__(self, config=None):
         super().__init__(config=config)
@@ -62,7 +59,6 @@ class BaseValidatorNeuron(BaseNeuron):
         # Set up initial scoring weights for validation
         bt.logging.info("Building validation weights.")
         self.scores = torch.zeros_like(self.metagraph.S, dtype=torch.float32)
-
         # Init sync with the network. Updates the metagraph.
         
         if os.path.exists(self.config.neuron.full_path + "/state.pt"):
@@ -72,7 +68,6 @@ class BaseValidatorNeuron(BaseNeuron):
         else:
             # if no state file then we'll create one on init
             self.sync()
-
         # Serve axon to enable external connections.
         if not self.config.neuron.axon_off:
             self.serve_axon()
@@ -119,7 +114,7 @@ class BaseValidatorNeuron(BaseNeuron):
             self.forward()
             for _ in range(self.config.neuron.num_concurrent_forwards)
         ]
-        await asyncio.gather(*coroutines)
+        await asyncio.gather(*coroutines,return_exceptions=True)
 
     def run(self):
         """
@@ -143,7 +138,6 @@ class BaseValidatorNeuron(BaseNeuron):
 
         # Check that validator is registered on the network.
         self.sync()
-
         bt.logging.info(
             f"Running validator {self.axon} on network: {self.config.subtensor.chain_endpoint} with netuid: {self.config.netuid}"
         )
@@ -246,13 +240,12 @@ class BaseValidatorNeuron(BaseNeuron):
             bt.logging.warning(
                 f"Scores contain NaN values. This may be due to a lack of responses from miners, or a bug in your reward functions."
             )
-
+         
         # Calculate the average reward for each uid across non-zero values.
         # Replace any NaN values with 0.
         raw_weights = torch.nn.functional.normalize(
             self.scores, p=1, dim=0
         )
-
         bt.logging.debug("raw_weights", raw_weights)
         bt.logging.debug("raw_weight_uids", self.metagraph.uids.to("cpu"))
         # Process the raw weights to final_weights via subtensor limitations.
@@ -315,9 +308,7 @@ class BaseValidatorNeuron(BaseNeuron):
             # Zero out all hotkeys that have been replaced.
             for uid, hotkey in enumerate(self.hotkeys):
                 if hotkey != self.metagraph.hotkeys[uid]:
-                    #self.scores[uid] = 0  # hotkey has been replaced
-                    self.scores[uid] = self.scores.median()  # hotkey has been replaced
-
+                    self.scores[uid] = self.scores.median()
             # Check to see if the metagraph has changed size.
             # If so, we need to add new hotkeys and moving averages.
             if len(self.hotkeys) < len(self.metagraph.hotkeys):
@@ -334,10 +325,8 @@ class BaseValidatorNeuron(BaseNeuron):
         except Exception as e:
             bt.logging.error(f"Could not sync with metagraph right now, will try later. Error: {e}")
 
-    def update_scores(self, rewards: torch.FloatTensor, uids: List[int]):
+    def update_scores(self, rewards: torch.FloatTensor, uids: List[int], alpha=None):
         """Performs exponential moving average on the scores based on the rewards received from the miners."""
-
-        # Check if rewards contains NaN values.
         if torch.isnan(rewards).any():
             bt.logging.warning(f"NaN values detected in rewards: {rewards}")
             # Replace any NaN values in rewards with 0.
@@ -366,12 +355,13 @@ class BaseValidatorNeuron(BaseNeuron):
 
         # Update scores with rewards produced by this step.
         # shape: [ metagraph.n ]
-        alpha: float = self.config.neuron.moving_average_alpha
+        if not alpha:
+            alpha: float = self.config.neuron.moving_average_alpha
         self.scores: torch.FloatTensor = alpha * scattered_rewards + (
             1 - alpha
         ) * self.scores.to(self.device)
         bt.logging.debug(f"Updated moving avg scores: {self.scores}")
-
+    
     def save_state(self):
         """Saves the state of the validator to a file."""
         bt.logging.debug(f"Saving validator state - {self.config.neuron.full_path}/state.pt.")
@@ -384,13 +374,12 @@ class BaseValidatorNeuron(BaseNeuron):
             },
             self.config.neuron.full_path + "/state.pt",
         )
-
+        
     def load_state(self):
         """Loads the state of the validator from a file."""
         bt.logging.info("Loading validator state.")
 
-        # Load the state of the validator from file.
         state = torch.load(self.config.neuron.full_path + "/state.pt")
-        self.step = state["step"]
+        self.step = state["step"] 
         loaded_scores = state["scores"]
         self.scores[:loaded_scores.size(0)] = loaded_scores

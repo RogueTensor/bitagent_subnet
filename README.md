@@ -32,27 +32,9 @@
 
 **Key Objective** - provide intelligent agency to simplify tasks in your day-to-day
 
-**Core Capabilities of BitAgent**
-1) Semantic Q&A
-2) Summarization
-3) Recency Q&A
-4) Logic-based Q&A
-5) Integrated Orchestration
+**See our living document for more information** - https://docs.google.com/document/d/1QVCzDu0eMmkdglD65F_Q_UjnCJauVEr62WgG8SgACt0/edit
 
-**Example Use Cases**
-  - Form Filling - Fill in this tedious corporate form, from this source data, to match the tone and professionalism of these prior examples
-  - Data Analysis - Plot the occurrence of key topics as they accumulate in this data
-  - Code Testing - Provide metrics to align with these requirements and provide a test suite in python
-  - Key Insights - Grab the last 3 weeks of publications from arxiv that have to do with Generative AI and provide a summary for each
-  - Knowledge Base Management - We just received this support ticket, here's our knowledge base, please update the ticket with a procedure for the tier 1 support to follow
-  - Localized Q&A - You're using the browser plugin/extension built on this subnet (Coming Soon) - you can Q&A from that website about that website
-  - ELI5 - Again with the subnet's browser plugin - you're on a really complex web page and you just can't concentrate, it's too intense - you head over to the browser plugin and you click on the provided ELI5 (explain like I'm 5) button to convert all the complex text on the page to easy-to-understand text.
-  - Data Filtering - Again, with the plugin, you're on amazon and you're met with a TON of reviews, most of which look fake - your task to the subnet (via natural language to the plugin) is to "Hide all the reviews on this page that appear fake."
-  - Customer Support - This time you own your own company, let's say you own an IT support company that works with legal firms, dentist offices, etc.  You've collected a knowledge base over many years and you never know what requests will come through.  A few seconds ago, a new, verified request came in from the head of HR at some legal firm, letting you know that "so-in-so" just joined the team and needs their accounts and access setup.  Using our subnet API, you can have the subnet be your first line of defense, by doing the tasks that you give it access to perform.
-
-**Future Vision - Integrated Subnets**\
-To be successful, Core Capabilities #3-#5 require all aspects of Capability #1 and #2, so we're working initial efforts in those areas.
-However, our future vision is to leverage and integrate with other subnets for some/all of the Capabilities in #1-#2 and focus our efforts to provide SOTA (state-of-the-art) capabilities in the other areas.
+**GoGo Agent - Our Application** - https://gogoagent.ai
 
 **Key Features**
 - Leveraging concepts from [voyager](https://voyager.minedojo.org/) / [blenderGPT](https://github.com/gd3kr/BlenderGPT) / [chain of code](https://chain-of-code.github.io/) for real world applications
@@ -60,12 +42,6 @@ However, our future vision is to leverage and integrate with other subnets for s
 - No API / subscription requirements
 - Miner's receive [transparent feedback](#miner-feedback)
 - And a BONUS for getting this far - are you tired of waiting for registration slots?  Check out [register.sh](./scripts/register.sh)
-
-**Product Exemplars (coming soon)**\
-Downstream applications towards this vision are WIP:
-  - Discord bot - to, at a minimum, provide an answer to the seemingly daily (hourly?) question about getting testnet tao ;)
-  - Browser plugin (see examples above)
-  - Web application (form filling, automating business workflows)
 
 ---
 
@@ -118,13 +94,33 @@ pm2 start neurons/validator.py --interpreter python3 -- --netuid 20 --subtensor.
 pm2 start run.sh --name bitagent_validators_autoupdate -- --wallet.name <your-wallet-name> --wallet.hotkey <your-wallet-hot-key> --netuid 20
 ```
 
+#### Running locally
+If you want to run the validator task generation and scoring locally:
+
+```bash
+# for mainnet
+pm2 start neurons/validator.py --interpreter python3 -- --netuid 20 --subtensor.network <LOCAL/FINNEY/TEST> --wallet.name <COLDKEY> --wallet.hotkey <HOTKEY> --axon.port <PORT> --run_local
+```
+
+To run locally you must spin-up your own LLM. After spinning them up you must modify `initiation.py` to point towards the endpoints of those LLM's. 
+Note: Previously we ran the LLM's inside the validator code with the transformer package, however we pivoted away from that due to the inefficiency of running the model using vanilla transformers. Hosting the models using llama.cpp, oobabooga, vllm, TGI, are much better options as they provide additional functionality.  
+
+To run with vLLM you can do the following:
+
+`sudo docker run -d -p 8000:8000  --gpus all --ipc host --name mistral-instruct docker.io/vllm/vllm-openai:latest --model thesven/Mistral-7B-Instruct-v0.3-GPTQ --max-model-len 8912 --quantization gptq --dtype half`
+
+This will run the LLM on port 8000. If you want to run it on another port you need to modify the port in `initation.py`
+
+The next step is to create a huggingface account and get access to `https://huggingface.co/datasets/lmsys/lmsys-chat-1m`. Once you access you will need to get an access token, then you must set the env var `HF_TOKEN=<The token you got>`.
+
 #### Hardware Requirements
 
-Validators are responsible for fetching tasks from the Task API and sending them back for evaluation. \
-There are no aspects of generation and evaluation that require LLMs to accomplish on the Validator side.
+Validators have the option of using the Task API, or running everything locally. If running with the Task API the validator's do not have any strong requirements, no GPU is required. If running everything locally `--run_local`, there are higher hardware requirements. A single LLM `thesven/Mistral-7B-Instruct-v0.3-GPTQ` is needed, it can run off 10GB of VRAM.
 
-Miners will need to run LLMs and will require at least mistral 7B, needing a GPU with 15-20GB of VRAM. \
+Miners will need to run LLMs and will require at least mistral 7B, needing a GPU with 15-20GB of VRAM. 
 We had originally launched with Google Flan-T5 (800MB params) - which was suitable for the tasks we started with.  But it is not suitable for the tasks we generate and evaluate now.
+
+
 
 ### Miner
 If you just want to run the miner without the [script](./scripts/setup_and_run.sh) or are connecting to mainnet:

@@ -86,3 +86,14 @@ def get_random_uids(
         except Exception as e:
             bt.logging.debug(f"Reduced sample size from {k} to {k-1} and trying again.")
             k -= 1
+
+def get_uid_rank(self, uid: int) -> int:
+    """Returns the rank of the uid in the metagraph.
+    Args:
+        uid (int): uid to get the rank of.
+    Returns:
+        rank (int): Rank of the uid in the metagraph.
+    """
+    # Get the rank of the uid in the metagraph.
+    rank = (-self.metagraph.I).argsort().tolist().index(uid)
+    return rank

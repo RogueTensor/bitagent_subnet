@@ -14,36 +14,39 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-
-import time
 import random
 import bittensor as bt
-from pprint import pformat
 from typing import List
+from pprint import pformat
 from bitagent.protocol import QnATask
-from bitagent.task_api.criteria import Criterion, default_criteria
-from common.base.validator import BaseValidatorNeuron
-from redis import Redis
-from rq import Queue
 from bitagent.schemas.tool import Tool
-
-queue = Queue(connection=Redis(host='localhost', port=14000))
+from common.utils.uids import get_uid_rank
+from bitagent.task_api.tasks import TASK_FREQUENCY
+from common.base.validator import BaseValidatorNeuron
+from bitagent.schemas.conversation import Conversation
+from bitagent.task_api.postprocess import PostProcessor
+from bitagent.task_api.criteria import Criterion, default_criteria
 
 # Task()
 # combines criterion/criteria with the QnATask (prompt,data) for eval to form a task for the miner
 class Task():
     criteria: List[Criterion]
     synapse: QnATask
+    postprocess: List[PostProcessor]
 
     def __init__(self, 
                  name: str, 
                  prompt: str = "", 
+                 weight: int = 0.5,
                  desc: str = "", 
+                 timeout: int = 12,
                  datas: List[dict] = [],
                  tools: List[Tool] = [],
+                 message_history: Conversation = [],
                  notes: str = "No Notes",
                  urls: List[str] = [], 
                  criteria: List[Criterion] = default_criteria,
+                 postprocess: List[PostProcessor] = [],
                  citation_sources_should_contain: str = None, 
                  response_should_contain: str = None, 
                  task_type: str=None, 
@@ -57,12 +60,15 @@ class Task():
             self.task_id=str(random.getrandbits(128))
         self.name=name
         self.task_type=task_type
+        self.weight = weight
         self.desc=desc
-        self.timeout=10.0
+        self.timeout=timeout
         self.criteria=criteria
+        self.postprocess=postprocess
         self.citation_sources_should_contain=citation_sources_should_contain
+        self.message_history = message_history
         self.response_should_contain=response_should_contain
-        self.synapse = QnATask(prompt=prompt, urls=urls, datas=datas, notes=notes, tools=[Tool(tool) for tool in tools])
+        self.synapse = QnATask(prompt=prompt, urls=urls, datas=datas, notes=notes, tools=tools, message_history=message_history)
         self.correct_answer = correct_answer
 
     def reward(self, validator: BaseValidatorNeuron, synapse: QnATask, response:dict) -> [float, float, List[str]]:
@@ -78,7 +84,6 @@ class Task():
             correct_answer = self.correct_answer
         else:
             correct_answer = "N/A"
-
         return [total_score, total_possible, results, correct_answer]
 
     def __repr__(self):
@@ -90,15 +95,20 @@ class Task():
             name=serialized["name"], 
             prompt=serialized["prompt"], 
             desc=serialized["desc"], 
+            timout=serialized["timeout"],
+            weight=serialized["weight"],
             datas=serialized["datas"], 
+            notes=serialized["notes"],
             tools=[Tool(**tool) for tool in serialized["tools"]], 
             urls=serialized["urls"], 
             criteria=[Criterion.fromSerialized(c) for c in serialized["criteria"]], 
+            postprocess=[PostProcessor.fromSerialized(p) for p in serialized["postprocess"]],
             citation_sources_should_contain=(serialized["citation_sources_should_contain"] if "None" != serialized["citation_sources_should_contain"] else None), 
             response_should_contain=(serialized["response_should_contain"] if "None" != serialized["response_should_contain"] else None), 
             task_type=(serialized["task_type"] if "None" != serialized["task_type"] else None), 
             task_id=(serialized["task_id"] if "None" != serialized["task_id"] else None),
-            correct_answer = serialized["correct_answer"]
+            correct_answer = serialized["correct_answer"],
+            message_history = Conversation.from_list(serialized['message_history'])
             )
         return task
     
@@ -106,15 +116,19 @@ class Task():
         return {
             "task_id": str(self.task_id),
             "task_type": str(self.task_type),
+            "weight": self.weight,
             "name": self.name,
             "prompt": self.synapse.prompt,
             "desc": self.desc,
-            "tools": [dict(tool) for tool in self.synapse.tools],
+            "timeout": self.timeout,
+            "tools": [tool.to_dict() for tool in self.synapse.tools],
             "notes": self.synapse.notes,
+            "message_history": self.synapse.message_history.to_list() if isinstance(self.synapse.message_history, Conversation) else [],
             "datas": self.synapse.datas,
             "urls": self.synapse.urls,
             "timeout": self.timeout,
             "criteria": [c.serialize() for c in self.criteria],
+            "postprocess": [p.serialize() for p in self.postprocess],
             "citation_sources_should_contain": str(self.citation_sources_should_contain),
             "response_should_contain": str(self.response_should_contain),
             "correct_answer": (str(self.correct_answer) if self.correct_answer else "N/A")
@@ -124,9 +138,11 @@ class Task():
         return {
             "task_id": self.task_id,
             "task_type": self.task_type,
+            "weight": self.weight,
             "name": self.name,
             "prompt": self.synapse.prompt,
             "desc": self.desc,
+            "message_history": self.message_history.to_list() if isinstance(self.message_history, Conversation) else [],
             "datas": self.synapse.datas,
             "tools": [dict(tool) for tool in self.synapse.tools],
             "notes": self.synapse.notes,
@@ -134,68 +150,60 @@ class Task():
             "timeout": self.timeout,
         }
 
-# fetch organic tasks
-# organic tasks are non-generated tasks
-# in this case we are first looking to see if there are any tasks in the queue
-def get_organic_task():
-    jobs = [job for job in queue.jobs if job.is_queued]
-    if not jobs:
-        return None
-
-    job = jobs[0]
-    job.set_status('started')
-    try:
-        job_datas = job.args[1]
-    except Exception as e:
-        job_datas = []
-
-    return Task(name="Organic Task", task_type="organic", prompt=job.args[0], datas=job_datas, task_id=job.id)
-
 # evaluate task
 def evaluate_task(validator, task:Task, synapse:bt.Synapse, response:dict) -> [float, float, List[str]]:
-    return task.reward(validator, synapse, response)
+    total_score, total_possible, results, correct_answer = task.reward(validator, synapse, response)
+
+    # if the total score is above a threshold, it's a top MINER and we have post processes to run
+    # then use this data to build a dataset for future queries
+    # only used for "tool_call" and "tool_gen" tasks
+    if (total_score / total_possible) > 0.25 and task.postprocess and get_uid_rank(validator, validator.metagraph.hotkeys.index(response['axon_hotkey'])) < 10:
+        for postprocessor in task.postprocess:
+            postprocessor(task, validator, synapse, response)
+    
+    return [total_score, total_possible, results, correct_answer]
 
 # get random task
 # right now the core tasks are:
 # - QnA with Citations
 # - Summarization
 # - Logic QnA (pet tricks)
-def get_random_task(validator, task_id_to_get=None, sub_task_id_to_get=None) -> Task:
-    from bitagent.task_api.tasks import SummaryTask, GeneratedQnATask, GeneratedLogicQnATask, GeneratedToolSelectionTask, basic_qna_miner_tasks
+def get_random_task(validator, task_name=None, sub_task_id_to_get=None) -> Task:
+    from bitagent.task_api.tasks import SummaryTask, GeneratedQnATask, GeneratedLogicQnATask, ToolCallTask, ToolGenTask, ConversationTask
     random.seed(validator.random_seed())  
-    task_ids = [1,2,3,4,5,6,7,8,9,10]
-    weights  = [0,0,1,1,2,4,0,3,0,4]
-    choice = random.choices(task_ids, weights=weights)[0]
+    task_names = list(TASK_FREQUENCY.keys())
+    task_frequencies = list(TASK_FREQUENCY.values())
+    choice = random.choices(task_names, weights=task_frequencies)[0]
 
     # (optional) override the task with provided task id
-    if task_id_to_get and task_id_to_get in task_ids:
-        choice = task_id_to_get
+    if task_name and task_name in task_names:
+        choice = task_name
 
-    no_task_selected = True
-    while no_task_selected:
+    for _ in range(100):
         try:
             match choice:
-                case 1:
-                    return GeneratedQnATask(validator=validator, name="Responds with correct citation source and valid response", timeout=3.0)
-                case 2:
-                    return GeneratedQnATask(validator=validator, name="Responds with correct citation source and valid response from medium corpus", n_texts=10, timeout=4.0)
-                case 3:
-                    return GeneratedQnATask(validator=validator, name="Responds with correct citation source and valid response from larger corpus", n_texts=20, timeout= 6.0)
-                case 4:
-                    return GeneratedQnATask(validator=validator, name="Responds with correct citation source and valid response from LARGE corpus", n_texts=50, timeout=8.0)
-                case 5:
-                    return GeneratedQnATask(validator=validator, name="Responds with correct citation source and valid response from VERY LARGE corpus", n_texts=100, timeout=10.0)
-                case 6:
+                case "generated_qna":
+                    sub_choice = random.choices([1,2,3], weights=[1,1,2])[0]
+                    match sub_choice:
+                        case 1:
+                            return GeneratedQnATask(validator=validator, name="Responds with correct citation source and valid response from small corpus", n_texts=2, timeout=6.0)
+                        case 2:
+                            return GeneratedQnATask(validator=validator, name="Responds with correct citation source and valid response from LARGE corpus", n_texts=3, timeout=8.0)
+                        case 3:
+                            return GeneratedQnATask(validator=validator, name="Responds with correct citation source and valid response from VERY LARGE corpus", n_texts=5, timeout=10.0)
+                case "generated_logic_qna":
                     return GeneratedLogicQnATask(validator=validator, name="Responds with correct answer for logic-based question", sub_task_id_to_get=sub_task_id_to_get)
-                case 7:
-                    pass
-                    #return GeneratedAgentTask(validator=validator, name="Interact with simulation")
-                case 8:
+                case "summary":
                     return SummaryTask(validator=validator, name="Responds with correct summary")
-                case 9:
-                    return random.choice(basic_qna_miner_tasks)
-                case 10:
-                    return GeneratedToolSelectionTask(validator=validator, name="Responds with correct tool selection")
+                case "tool_call":
+                    return ToolCallTask(validator=validator, name="Responds with correct function call")
+                case "tool_gen":
+                    return ToolGenTask(validator=validator, name="Responds with correct function generation") 
+                case "conversation":
+                    return ConversationTask(validator=validator, name="Responds with correct assistant response") 
+
         except Exception as e:
-            print('Error: ', e)
-            time.sleep(15)
+            bt.logging.warning(f'Error getting task (name {choice}): ', e)
+            # time.sleep(15)
+
+    raise Exception(f"Failed to get task after 100 attempts. Task name: {choice}")

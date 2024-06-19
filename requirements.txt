@@ -7,8 +7,7 @@ datasets==2.16.1
 Faker==22.2.0
 gunicorn==21.2.0
 langchain>=0.1.5
-langchain-community==0.0.25
-langchain-text-splitters==0.0.1
+langchain-community==0.2.1
 py7zr==0.20.8
 sentence_transformers==2.2.2
 sentencepiece==0.1.99
@@ -23,5 +22,8 @@ wandb==0.16.4
 mlflow==2.12.1
 comet_ml==3.41.0
 nltk==3.8.1
-openai==1.23.2
+openai==1.28.1
 StrEnum==0.4.15
+langchain-openai==0.1.8
+langchain_text_splitters==0.2.0
+comet_llm==2.2.4

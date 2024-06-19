@@ -18,11 +18,14 @@
 
 import os
 import time
+import json
 import pickle
 import random
 import bittensor as bt
-from datasets import load_dataset, load_from_disk
 from collections.abc import Iterator
+from distutils.util import strtobool
+from datasets import load_dataset, load_from_disk
+from bitagent.task_api.datasources.loaders import huggingface_loader
 
 root_data_dir = "bitagent.data"
 
@@ -31,21 +34,11 @@ class QnADataset(Iterator):
         super().__init__()
         # countering the effect of setting seed for task orchestration from validators
         random.seed(None)
-        seed = random.randint(0, 1000)
-        bt.logging.debug("Loading OpenWebText from HuggingFace")
-        owt_data_dir = f"{root_data_dir}/openwebtext"
-        if os.path.exists(f"{owt_data_dir}/state.json"):
-            bt.logging.debug(f"Loading from disk ({owt_data_dir}) ...")
-            owt_ds = load_from_disk(owt_data_dir)
-        else:
-            bt.logging.debug("Loading from web ...")
-            owt_ds = load_dataset("openwebtext", split="train", trust_remote_code=True)
-            owt_ds.save_to_disk(owt_data_dir)
-
-        bt.logging.debug("Loaded.")
-        self.datasets = [ 
-            iter(owt_ds.shuffle(seed=seed)),
-        ]
+        seed = random.randint(0, 10000)
+        wiki = huggingface_loader("wikipedia", name="20220301.en")
+        
+        self.datasets = {"wiki": iter(wiki.shuffle(seed=seed))}
+        
 
     def __next__(self):
         bt.logging.debug("Retrieving Q&A data from dataset...")
@@ -53,7 +46,7 @@ class QnADataset(Iterator):
         random.seed(None)
         while True:
             try:
-                ds = random.choice(self.datasets)
+                dname, ds = random.choice(list(self.datasets.items()))
                 text = next(ds)["text"]
 
                 # Check if the text is not empty or does not consist only of newline characters
@@ -146,18 +139,19 @@ class AnsibleDataset(Iterator):
                             if len(task_set) > 3 and len(task_set) < 10:
                                 happy = True
                             num_tries += 1
+                return task_set
             except Exception as e:
                 bt.logging.debug(f"Github issue ... {e}")
         return task_set
-        
-                
-import json
+ 
+from bitagent.task_api.datasources.api_constants import apis
 class APIDataset(Iterator):
     def __init__(self):
         super().__init__()
         # countering the effect of setting seed for task orchestration from validators
         random.seed(None)
-        self.dataset = json.load(open(f"{root_data_dir}/apis.json", "r"))
+        # self.dataset = json.load(open(f"{root_data_dir}/apis.json", "r"))
+        self.dataset = apis
 
     def __next__(self):
         bt.logging.debug("Retrieving api data from dataset...")

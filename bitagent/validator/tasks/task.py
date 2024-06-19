@@ -22,7 +22,7 @@ from pprint import pformat
 from typing import List
 from bitagent.protocol import QnATask
 from bitagent.schemas.tool import Tool
-
+from bitagent.schemas.conversation import Conversation
 
 # combines criterion/criteria plus QnATask synapse for eval to form a task for the miner
 class Task:
@@ -33,24 +33,28 @@ class Task:
         self,
         task_id: str,
         name: str,
+        weight: int,
         prompt: str,
         desc: str = "",
         task_type: str = None,
         datas: List[dict] = [],
         tools: List[Tool] = [],
         notes: str = "No Notes",
+        message_history: Conversation = [],
         urls: List[str] = [],
         timeout: float = 12.0,
     ) -> None:
         self.task_id = task_id
         self.task_type = task_type
+        self.weight = weight
         self.name = name
         self.desc = desc
         self.tools = tools
         self.notes = notes
+        self.message_history = message_history
         self.timeout = timeout
         self.synapse = QnATask(
-            prompt=prompt, urls=urls, datas=datas, tools=tools, notes=notes
+            prompt=prompt, urls=urls, datas=datas, tools=tools, notes=notes, message_history=message_history
         )
 
     @classmethod
@@ -58,12 +62,14 @@ class Task:
         return Task(
             data["task_id"],
             data["name"],
+            data["weight"],
             data["prompt"],
             data["desc"],
             data["task_type"],
             data["datas"],
             [Tool(**tool) for tool in data["tools"]],
             data["notes"],
+            Conversation.from_list(data["message_history"]),
             data["urls"],
             data["timeout"],
         )
@@ -80,11 +86,12 @@ class Task:
                     "task_id": self.task_id,
                     "response": {
                         "response": response.response,
-                        "prompt": response.prompt,
-                        "urls": response.urls,
-                        "datas": response.datas,
-                        "tools": response.tools,
-                        "notes": response.notes,
+                        # "prompt": response.prompt,
+                        # "urls": response.urls,
+                        # "datas": response.datas,
+                        # "tools": response.tools,
+                        # "notes": response.notes,
+                        "axon_hotkey": response.axon.hotkey,
                         "dendrite_process_time": response.dendrite.process_time,
                         "dendrite_status_code": response.dendrite.status_code,
                         "axon_status_code": response.axon.status_code,

@@ -19,18 +19,17 @@ import random
 from typing import List
 from bitagent.schemas.tool import Tool
 from bitagent.protocol import QnATask
-from bitagent.task_api.tasks import Task
+from bitagent.task_api.tasks import Task, TASK_WEIGHTS
 from common.base.validator import BaseValidatorNeuron
 from bitagent.task_api.criteria import default_criteria, gen_tool_selection_criteria
 
-# generated task for logic-based q&a
 class GeneratedToolSelectionTask(Task):
     def __init__(self, validator: BaseValidatorNeuron, name: str, sub_task_id_to_get: int = None, desc: str = ""):
         super().__init__(name=name, desc=desc)
         self.validator=validator
         self.timeout=8.0
         self.name += " - Ansible Tools"
-
+        self.weight = TASK_WEIGHTS["generated_tool_selection"]
         prompt, tools, answer = self.generate_random_tool_prompt_tools_and_answer(sub_task_id_to_get)
         self.correct_answer = answer
 
