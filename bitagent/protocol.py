@@ -19,6 +19,7 @@
 from typing import Optional, List
 import bittensor as bt
 from bitagent.schemas.conversation import Conversation
+from bitagent.schema.chat import ChatMessage
 from bitagent.schemas.tool import Tool
 
 class QnATask(bt.Synapse):
@@ -47,6 +48,7 @@ class QnATask(bt.Synapse):
     notes: str = "No Notes"
     prompt: str = ""
     message_history: Conversation = []
+    messages: List[ChatMessage] = []
 
     # Optional request output, filled by recieving axon.
     response: Optional[dict] = {}
