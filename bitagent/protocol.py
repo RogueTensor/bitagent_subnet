@@ -19,7 +19,7 @@
 from typing import Optional, List
 import bittensor as bt
 from bitagent.schemas.conversation import Conversation
-from bitagent.schema.chat import ChatMessage
+from bitagent.schemas.chat import ChatMessage
 from bitagent.schemas.tool import Tool
 
 class QnATask(bt.Synapse):
