@@ -28,18 +28,17 @@ def miner_init(self, config=None):
     pass
 
 async def miner_process(self, synapse: bitagent.protocol.QnATask) -> bitagent.protocol.QnATask:
-    message_history=[]
+    # print(synapse.messages)
     try:
-        if "conversation history" in synapse.notes or "Tool Calling" in synapse.notes:
-            message_history=[]
-            for item in synapse.message_history.messages:
-                role=str(item.role)
-                json_item={
-                    "role":role,
-                    "content":item.content
-                }
-                message_history.append(json_item)
-        
+        # if "conversation history" in synapse.notes or "Tool Calling" in synapse.notes:
+        message_history=[]
+        for item in synapse.messages:
+            role=str(item.role)
+            json_item={
+                "role":role,
+                "content":item.content
+            }
+            message_history.append(json_item)
         tools = [t.to_dict() for t in synapse.tools]
         data = {
             "prompt": synapse.prompt,

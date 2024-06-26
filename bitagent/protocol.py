@@ -21,6 +21,7 @@ import bittensor as bt
 from bitagent.schemas.conversation import Conversation
 from bitagent.schemas.chat import ChatMessage
 from bitagent.schemas.tool import Tool
+from bitagent.schemas.chat import ChatMessage
 
 class QnATask(bt.Synapse):
     """
@@ -49,7 +50,7 @@ class QnATask(bt.Synapse):
     tools: List[Tool] = []
     notes: str = "No Notes"
     prompt: str = ""
-    message_history: Conversation = []
+    messages: List[ChatMessage] = []
     messages: List[ChatMessage] = []
 
     # Optional request output, filled by recieving axon.
