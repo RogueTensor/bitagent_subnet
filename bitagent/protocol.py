@@ -19,6 +19,7 @@
 from typing import Optional, List
 import bittensor as bt
 from bitagent.schemas.conversation import Conversation
+from bitagent.schemas.chat import ChatMessage
 from bitagent.schemas.tool import Tool
 
 class QnATask(bt.Synapse):
@@ -31,7 +32,9 @@ class QnATask(bt.Synapse):
     - datas: list of data {source & context} in a List of dicts
     - tools: list of tools {name, description, arguments } in a List of dicts
     - notes: just a string of notes describing the problem
-    - prompt: user prompt
+    - prompt: user prompt - will only be used for Tool Gen
+    - message_history: Will be deprecated soon for messages
+    - messages: a list of ChatMessage (see bitagent/schemas) - will be used for every task except Tool Gen
     - repsonse: a dict containing the response along with citations from the provided data context (urls or datas)
         - {response: str, citations: List[dict]}
         - the citations are a list of dicts {source & content: relevant content chunk from the source}
@@ -47,6 +50,7 @@ class QnATask(bt.Synapse):
     notes: str = "No Notes"
     prompt: str = ""
     message_history: Conversation = []
+    messages: List[ChatMessage] = []
 
     # Optional request output, filled by recieving axon.
     response: Optional[dict] = {}
