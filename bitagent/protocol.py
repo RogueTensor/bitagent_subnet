@@ -51,7 +51,7 @@ class QnATask(bt.Synapse):
     notes: str = "No Notes"
     prompt: str = ""
     messages: List[ChatMessage] = []
-    messages: List[ChatMessage] = []
+    message_history: Conversation = []
 
     # Optional request output, filled by recieving axon.
     response: Optional[dict] = {}
