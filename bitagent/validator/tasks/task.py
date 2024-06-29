@@ -22,7 +22,7 @@ from pprint import pformat
 from typing import List
 from bitagent.protocol import QnATask
 from bitagent.schemas.tool import Tool
-from bitagent.schemas.conversation import Conversation
+from bitagent.schemas.chat import ChatMessage, messages_from_list
 
 # combines criterion/criteria plus QnATask synapse for eval to form a task for the miner
 class Task:
@@ -40,7 +40,7 @@ class Task:
         datas: List[dict] = [],
         tools: List[Tool] = [],
         notes: str = "No Notes",
-        message_history: Conversation = [],
+        messages: List[ChatMessage] = [],
         urls: List[str] = [],
         timeout: float = 12.0,
     ) -> None:
@@ -51,10 +51,10 @@ class Task:
         self.desc = desc
         self.tools = tools
         self.notes = notes
-        self.message_history = message_history
+        self.messages =  messages
         self.timeout = timeout
         self.synapse = QnATask(
-            prompt=prompt, urls=urls, datas=datas, tools=tools, notes=notes, message_history=message_history
+            prompt=prompt, urls=urls, datas=datas, tools=tools, notes=notes, messages=messages
         )
 
     @classmethod
@@ -69,7 +69,7 @@ class Task:
             data["datas"],
             [Tool(**tool) for tool in data["tools"]],
             data["notes"],
-            Conversation.from_list(data["message_history"]),
+            messages_from_list(data["messages"]),
             data["urls"],
             data["timeout"],
         )
@@ -86,11 +86,11 @@ class Task:
                     "task_id": self.task_id,
                     "response": {
                         "response": response.response,
-                        # "prompt": response.prompt,
-                        # "urls": response.urls,
-                        # "datas": response.datas,
+                        "prompt": response.prompt,
+                        "urls": response.urls,
+                        "datas": response.datas,
                         # "tools": response.tools,
-                        # "notes": response.notes,
+                        "notes": response.notes,
                         "axon_hotkey": response.axon.hotkey,
                         "dendrite_process_time": response.dendrite.process_time,
                         "dendrite_status_code": response.dendrite.status_code,

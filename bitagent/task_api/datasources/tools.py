@@ -1,18 +1,19 @@
 import re
 import json
+import ast
 import random
 import bittensor as bt
 from pydantic import BaseModel
 from typing import List, Dict, Any
 from collections.abc import Iterator
 from bitagent.schemas.tool import Tool
-from bitagent.schemas.conversation import Conversation
 from bitagent.task_api.datasources.sql import SQLDataset
+from bitagent.schemas.chat import ChatMessage, messages_from_list
 from bitagent.task_api.datasources.loaders import huggingface_loader
 from bitagent.task_api.helpers.string_parse import parse_multiple_space_sep_json
 
 
-def split_dialogue(text):
+def split_dialogue(text) -> List[ChatMessage]:
     # Define a pattern to match the roles and capture messages
     pattern = r"(USER|ASSISTANT|TOOL CALL|TOOl RESPONSE): (.*?)(?=\s*(USER|ASSISTANT|TOOL CALL|TOOL RESPONSE):|$)"
 
@@ -26,7 +27,7 @@ def split_dialogue(text):
         if not message['role']:
             raise ValueError("There is a message with no role.")
      
-    return Conversation.from_list(dialogue_list)
+    return messages_from_list(dialogue_list)
 
 
 def clean_text(text):
@@ -59,12 +60,13 @@ def json_schema_to_pydantic_tool(schema: dict) -> Tool:
             "type": param_info.get("type", ""),
             "description": param_info.get("description", ""),
         }
-
     return Tool(name=tool_name, description=tool_description, arguments=parameters)
 
 
+
+
 class ToolCallData(BaseModel):
-    convo: Conversation
+    messages: List[ChatMessage]
     tools: list[Tool]
 
 
@@ -98,6 +100,7 @@ def add_extra_arguments(tool_call: Dict[str, Any], tools: List[Tool]):
                     }
             break
 
+# TODO (intern) - more datasets
 class ToolDataset(Iterator):
     def __init__(self):
         super().__init__()
@@ -132,10 +135,10 @@ class ToolDataset(Iterator):
                     )
                 )
                 tools = [json_schema_to_pydantic_tool(tool) for tool in tools]
-                convo = split_dialogue(chat_history)
+                messages = split_dialogue(chat_history)
 
                 # Add arguments that werent defined in schema to the tool
-                for msg in convo.messages:
+                for msg in messages:
                     if msg.role == "tool call":
                         tool_call = None
                         if isinstance(msg.content, str):
@@ -146,9 +149,10 @@ class ToolDataset(Iterator):
                         add_extra_arguments(tool_call, tools) 
 
                 
-                return ToolCallData(convo=convo, tools=tools)
+                return ToolCallData(messages=messages, tools=tools)
             except Exception as e:
                 bt.logging.debug(f"Issue getting tool call from dataset ... {e}")
+
 
 
 class LocalToolDataset(SQLDataset):
@@ -167,22 +171,22 @@ class LocalToolDataset(SQLDataset):
         tool_data = super().__next__()
         for key, value in tool_data.items():
             tool_data[key] = json.loads(value)
-        convo = Conversation.from_list(tool_data["conversation"])
+        messages = messages_from_list(tool_data["conversation"])
         if isinstance(tool_data["tools"], str):
             tools = [
                 json_schema_to_pydantic_tool(tool)
                 for tool in json.loads(tool_data["tools"])
             ]
         elif isinstance(tool_data["tools"], list):
-            tools = [json_schema_to_pydantic_tool(tool) for tool in tool_data["tools"]]
+            tools = [Tool(**tool) for tool in tool_data["tools"]]
         else:
             raise ValueError(f"Invalid format for tools: {tool_data['tools']}")
-        return ToolCallData(convo=convo, tools=tools)
+        return ToolCallData(messages=messages, tools=tools)
 
     def load_data(self, tool_data):
         for key, value in tool_data.items():
             tool_data[key] = json.loads(value)
-        convo = Conversation.from_list(tool_data["conversation"])
+        messages = messages_from_list(tool_data["conversation"])
         if isinstance(tool_data["tools"], str):
             tools = [
                 json_schema_to_pydantic_tool(tool)
@@ -192,4 +196,4 @@ class LocalToolDataset(SQLDataset):
             tools = [json_schema_to_pydantic_tool(tool) for tool in tool_data["tools"]]
         else:
             raise ValueError(f"Invalid format for tools: {tool_data['tools']}")
-        return ToolCallData(convo=convo, tools=tools)
+        return ToolCallData(messages=messages, tools=tools)

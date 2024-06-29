@@ -1,6 +1,5 @@
-from typing import Dict
 from strenum import StrEnum
-
+from typing import Dict, List
 from pydantic import BaseModel, Field
 
 class ChatRole(StrEnum):
@@ -29,3 +28,11 @@ class ChatMessage(BaseModel):
     
     def to_dict(self) -> Dict[str, str]:
         return {"role": self.role.value, "content": self.content}
+    
+
+def messages_from_list(data_list: List[Dict[str, str]]):
+    messages = [ChatMessage.from_dict(item) for item in data_list]
+    return messages
+
+def messages_to_list(messages: List[ChatMessage]):
+    return [msg.to_dict() for msg in messages]

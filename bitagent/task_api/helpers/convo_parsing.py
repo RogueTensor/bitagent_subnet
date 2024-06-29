@@ -1,22 +1,24 @@
-from bitagent.schemas.conversation import Conversation
+from bitagent.schemas.chat import ChatMessage, messages_to_list
+from typing import List
 
-
-def find_first_tool_call(convo: Conversation):
-    for msg in convo.messages:
+def find_first_tool_call(messages: List[ChatMessage]):
+    for msg in messages:
         if msg.role == 'tool call':
             return msg
     
-def find_msgs_before_tool_call(convo: Conversation):
+def find_msgs_before_tool_call(messages: List[ChatMessage]):
     result = []
-    for msg in convo.messages:
+    for msg in messages:
         if msg.role == 'tool call':
             break
         result.append(msg)
     return result
 
-def find_assistant_after_tool_call(convo: Conversation):
+
+# TODO this converts from type to dict, keep it typed
+def find_assistant_after_tool_call(messages: List[ChatMessage]):
     found_tool_call = False
-    for d in convo.to_list():
+    for d in messages_to_list(messages):
         if not found_tool_call:
             if d.get('role') == 'tool call':
                 found_tool_call = True
@@ -25,7 +27,7 @@ def find_assistant_after_tool_call(convo: Conversation):
     return None  # If no matching dictionary is found after the 'tool call'
 
 
-def find_last_assistant(convo: Conversation):
-    for d in reversed(convo.to_list()):
+def find_last_assistant(messages: List[ChatMessage]):
+    for d in reversed(messages_to_list(messages)):
         if d.get('role') == 'assistant':
             return d

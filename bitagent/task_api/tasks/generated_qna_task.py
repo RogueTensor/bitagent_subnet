@@ -23,6 +23,7 @@ from bitagent.task_api.tasks import Task, TASK_WEIGHTS
 from common.base.validator import BaseValidatorNeuron
 from bitagent.task_api.criteria import default_criteria, gen_data_task_criteria
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from bitagent.schemas.chat import messages_from_list
 
 
 # QnA Task
@@ -78,9 +79,8 @@ class GeneratedQnATask(Task):
             n_expected_citations=len(correct_chunks),
             response_gen=response_gen,
         )
-        notes = """The task is built from a prompt and a list of source context.
-The task is to provide a reasonable response to the prompt and a list of citations that informed the response."""
-        self.synapse = QnATask(prompt=question, urls=[], datas=all_chunks, notes=notes)
+        self.messages = messages_from_list([{"role":"user","content":question}])
+        self.synapse = QnATask(messages=self.messages, urls=[], datas=all_chunks)
 
     def generate_random_texts(self, n_texts: int = 3) -> [List[str], List[str]]:
         text_splitter = RecursiveCharacterTextSplitter(

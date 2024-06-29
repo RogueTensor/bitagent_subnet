@@ -23,9 +23,9 @@ from bitagent.schemas.tool import Tool
 from common.utils.uids import get_uid_rank
 from bitagent.task_api.tasks import TASK_FREQUENCY
 from common.base.validator import BaseValidatorNeuron
-from bitagent.schemas.conversation import Conversation
 from bitagent.task_api.postprocess import PostProcessor
 from bitagent.task_api.criteria import Criterion, default_criteria
+from bitagent.schemas.chat import ChatMessage, messages_from_list, messages_to_list
 
 # Task()
 # combines criterion/criteria with the QnATask (prompt,data) for eval to form a task for the miner
@@ -42,7 +42,7 @@ class Task():
                  timeout: int = 12,
                  datas: List[dict] = [],
                  tools: List[Tool] = [],
-                 message_history: Conversation = [],
+                 messages: List[ChatMessage] = [],
                  notes: str = "No Notes",
                  urls: List[str] = [], 
                  criteria: List[Criterion] = default_criteria,
@@ -66,9 +66,9 @@ class Task():
         self.criteria=criteria
         self.postprocess=postprocess
         self.citation_sources_should_contain=citation_sources_should_contain
-        self.message_history = message_history
+        self.messages = messages
         self.response_should_contain=response_should_contain
-        self.synapse = QnATask(prompt=prompt, urls=urls, datas=datas, notes=notes, tools=tools, message_history=message_history)
+        self.synapse = QnATask(prompt=prompt, urls=urls, datas=datas, notes=notes, tools=tools, messages=messages)
         self.correct_answer = correct_answer
 
     def reward(self, validator: BaseValidatorNeuron, synapse: QnATask, response:dict) -> [float, float, List[str]]:
@@ -95,7 +95,7 @@ class Task():
             name=serialized["name"], 
             prompt=serialized["prompt"], 
             desc=serialized["desc"], 
-            timout=serialized["timeout"],
+            timeout=serialized["timeout"],
             weight=serialized["weight"],
             datas=serialized["datas"], 
             notes=serialized["notes"],
@@ -108,7 +108,7 @@ class Task():
             task_type=(serialized["task_type"] if "None" != serialized["task_type"] else None), 
             task_id=(serialized["task_id"] if "None" != serialized["task_id"] else None),
             correct_answer = serialized["correct_answer"],
-            message_history = Conversation.from_list(serialized['message_history'])
+            messages = messages_from_list(serialized['messages'])
             )
         return task
     
@@ -120,10 +120,9 @@ class Task():
             "name": self.name,
             "prompt": self.synapse.prompt,
             "desc": self.desc,
-            "timeout": self.timeout,
-            "tools": [tool.to_dict() for tool in self.synapse.tools],
+            "tools": [dict(tool) for tool in self.synapse.tools],
             "notes": self.synapse.notes,
-            "message_history": self.synapse.message_history.to_list() if isinstance(self.synapse.message_history, Conversation) else [],
+            "messages": messages_to_list(self.synapse.messages) if isinstance(self.synapse.messages, list) else [],
             "datas": self.synapse.datas,
             "urls": self.synapse.urls,
             "timeout": self.timeout,
@@ -142,9 +141,9 @@ class Task():
             "name": self.name,
             "prompt": self.synapse.prompt,
             "desc": self.desc,
-            "message_history": self.message_history.to_list() if isinstance(self.message_history, Conversation) else [],
+            "messages": messages_to_list(self.messages) if isinstance(self.messages, list) else [], 
             "datas": self.synapse.datas,
-            "tools": [dict(tool) for tool in self.synapse.tools],
+            "tools": [tool.to_dict() for tool in self.synapse.tools],
             "notes": self.synapse.notes,
             "urls": self.synapse.urls,
             "timeout": self.timeout,
@@ -157,10 +156,12 @@ def evaluate_task(validator, task:Task, synapse:bt.Synapse, response:dict) -> [f
     # if the total score is above a threshold, it's a top MINER and we have post processes to run
     # then use this data to build a dataset for future queries
     # only used for "tool_call" and "tool_gen" tasks
-    if (total_score / total_possible) > 0.25 and task.postprocess and get_uid_rank(validator, validator.metagraph.hotkeys.index(response['axon_hotkey'])) < 10:
-        for postprocessor in task.postprocess:
-            postprocessor(task, validator, synapse, response)
-    
+    try:
+        if (total_score / total_possible) > 0.25 and task.postprocess and get_uid_rank(validator, validator.metagraph.hotkeys.index(response['axon_hotkey'])) < 10:
+            for postprocessor in task.postprocess:
+                postprocessor(task, validator, synapse, response)
+    except:
+        pass
     return [total_score, total_possible, results, correct_answer]
 
 # get random task
@@ -174,11 +175,9 @@ def get_random_task(validator, task_name=None, sub_task_id_to_get=None) -> Task:
     task_names = list(TASK_FREQUENCY.keys())
     task_frequencies = list(TASK_FREQUENCY.values())
     choice = random.choices(task_names, weights=task_frequencies)[0]
-
     # (optional) override the task with provided task id
     if task_name and task_name in task_names:
         choice = task_name
-
     for _ in range(100):
         try:
             match choice:
@@ -205,5 +204,4 @@ def get_random_task(validator, task_name=None, sub_task_id_to_get=None) -> Task:
         except Exception as e:
             bt.logging.warning(f'Error getting task (name {choice}): ', e)
             # time.sleep(15)
-
-    raise Exception(f"Failed to get task after 100 attempts. Task name: {choice}")
+    raise Exception("Failed to get task after 100 attempts")

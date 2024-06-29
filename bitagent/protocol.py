@@ -49,7 +49,6 @@ class QnATask(bt.Synapse):
     tools: List[Tool] = []
     notes: str = "No Notes"
     prompt: str = ""
-    message_history: Conversation = []
     messages: List[ChatMessage] = []
 
     # Optional request output, filled by recieving axon.

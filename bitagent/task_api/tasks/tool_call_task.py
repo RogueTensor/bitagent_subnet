@@ -21,13 +21,13 @@ from bitagent.protocol import QnATask
 from bitagent.task_api.tasks import Task
 from bitagent.task_api.tasks import TASK_WEIGHTS
 from common.base.validator import BaseValidatorNeuron
-from bitagent.schemas.conversation import Conversation
+from bitagent.schemas.chat import messages_to_list
 from bitagent.task_api.datasources.tools import ToolCallData
 from bitagent.task_api.postprocess import tool_call_postprocess
 from bitagent.task_api.helpers.tool_parsing import validate_tool_call
 from bitagent.task_api.helpers.convo_parsing import find_msgs_before_tool_call, find_first_tool_call
 from bitagent.task_api.criteria import default_criteria, tool_call_criteria, dataset_tool_call_criteria
-
+from bitagent.schemas.conversation import Conversation
 REWRITE_PROPMT = """Please rewrite the following text, ensuring to maintain the original meaning and nuances but altering the sentence structures, vocabulary, and overall presentation. 
 The goal is to produce a version of the text that conveys the same information and sentiments as the original, but in a fresh and distinct manner. 
 Avoid summarizing or omitting any details; instead, focus on presenting the same concepts and messages in a new light.
@@ -48,6 +48,7 @@ Task: Rewrite the incorrect answer to accurately reflect the result of the given
 
 
 
+# TODO add handling for when theres multiple function calls in the messages 
 class ToolCallTask(Task):
     def __init__(
         self,
@@ -60,20 +61,20 @@ class ToolCallTask(Task):
         self.validator = validator
         self.timeout = 12.0
         self.name += " - Tool Call"
-        self.real_task = bool(random.random() < 0.90) # want a super low chance
+        self.real_task = bool(random.random() < 0.99)
         if self.real_task:
             try:
-                message_history, tools, data = self.generate_task_data()
+                messages, tools, data = self.generate_task_data()
                 self.weight = TASK_WEIGHTS["tool_call"]
                 self.criteria = default_criteria + tool_call_criteria(
-                    expected_convo=data.convo.to_list()
+                    expected_convo=messages_to_list(data.messages)
                 )
             except Exception as e:
                 bt.logging.error(f'Exception getting real task {e}')
                 pass
         else:
             try:
-                message_history, tools, data = self.generate_dataset_task_data()
+                messages, tools, data = self.generate_dataset_task_data()
                 self.criteria = default_criteria + dataset_tool_call_criteria() 
                 self.postprocess = tool_call_postprocess()
                 self.name += " Dataset"
@@ -81,10 +82,9 @@ class ToolCallTask(Task):
             except Exception as e:
                 bt.logging.error(f'Exception getting dataset task {e}')
                 pass
-        self.message_history = message_history
-        notes = """Tool Calling"""
+        self.messages = messages
         self.synapse = QnATask(
-            urls=[], datas=[], tools=tools, notes=notes, message_history=message_history
+            urls=[], datas=[], tools=tools, messages=messages, notes="Tool Calling", message_history=Conversation(messages=messages)
         )
 
     
@@ -93,14 +93,15 @@ class ToolCallTask(Task):
             data: ToolCallData = next(self.validator.local_tool_gen_dataset)
         except Exception as e:
             bt.logging.warning(f"Issue getting fake data {e}")
-        messages_before_call = find_msgs_before_tool_call(data.convo)
+        messages_before_call = find_msgs_before_tool_call(data.messages)
         if messages_before_call[-1].role == "assistant":
             messages_before_call = messages_before_call[:-1]
-        return Conversation(messages=messages_before_call), data.tools, data
+        return messages_before_call, data.tools, data
     
     
     def generate_task_data(self) -> ToolCallData:
-        use_synth = bool(random.random() < 0.1) # want a super low chance
+        # use_synth = bool(random.random() < 0.01)
+        use_synth = False
         if use_synth:
             data: ToolCallData = next(self.validator.local_tool_call_dataset)
         else:
@@ -108,7 +109,7 @@ class ToolCallTask(Task):
         
         # remove all the messages after the first tool call, keeping the assistant
         # this reduces the number of messages needing rewording
-        messages = data.convo.messages
+        messages = data.messages
         filtered_msgs = []
         seen_tool_call = False
         for msg in messages:
@@ -117,15 +118,15 @@ class ToolCallTask(Task):
                 break
             if msg.role == 'tool call':
                 seen_tool_call = True
-        data.convo.messages = filtered_msgs
+        data.messages = filtered_msgs
         
-        user = data.convo.messages[0].content
-        assistant = data.convo.messages[-1].content
+        user = data.messages[0].content
+        assistant = data.messages[-1].content
         count = 0
         while count < 10:
             count += 1
-            if find_first_tool_call(data.convo):
-                tool_call = find_first_tool_call(data.convo).content
+            if find_first_tool_call(data.messages):
+                tool_call = find_first_tool_call(data.messages).content
                 rewritten_tool_call = self.validator.chat_llm([{"role": "user", "content": REWRITE_TOOL_PROMPT.format(tool_call=tool_call)}], max_new_tokens=1000, temperature=1.2)
                 try: # check that the tool call can be loaded, and that it's valid
                     try:
@@ -151,15 +152,15 @@ class ToolCallTask(Task):
                 if not self.check_rewrite_alignment(new_assistant, assistant):
                     raise Exception(f"Assistant rewrite is not in alignment\nOriginal: {assistant}\n Rewrite: {new_assistant}")
                 
-                data.convo.messages[0].content = new_user
-                data.convo.messages[-1].content = new_assistant
+                data.messages[0].content = new_user
+                data.messages[-1].content = new_assistant
                 
-                data = ToolCallData(convo=data.convo, tools=data.tools)
-                messages_before_call = find_msgs_before_tool_call(data.convo)
+                data = ToolCallData(messages=data.messages, tools=data.tools)
+                messages_before_call = find_msgs_before_tool_call(data.messages)
                 if messages_before_call[-1].role == "assistant":
                     messages_before_call = messages_before_call[:-1]
                 
-                return Conversation(messages=messages_before_call), data.tools, data
+                return messages_before_call, data.tools, data
             else:
                 new_user = self.validator.validator_llm(REWRITE_PROPMT.format(query=user))
                 if not self.check_rewrite_alignment(new_user, user):
@@ -169,12 +170,12 @@ class ToolCallTask(Task):
                 if not self.check_rewrite_alignment(new_assistant, assistant):
                     raise Exception(f"Assistant rewrite is not in alignment\nOriginal: {assistant}\n Rewrite: {new_assistant}")
                 
-                data.convo.messages[0].content = new_user
-                data.convo.messages[-1].content = new_assistant
+                data.messages[0].content = new_user
+                data.messages[-1].content = new_assistant
                 if messages_before_call[-1].role == "assistant":
                     messages_before_call = messages_before_call[:-1]
                 
-                return Conversation(messages=messages_before_call), data.tools, data
+                return messages_before_call, data.tools, data
 
     def check_rewrite_alignment(self, original: str, rewrite: str) -> bool:
         score = self.validator.measure_relevance_of_texts(original, rewrite)
