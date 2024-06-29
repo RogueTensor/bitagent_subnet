@@ -131,50 +131,51 @@ async def process_rewards_update_scores_and_send_feedback(validator: BaseValidat
     except Exception as e:
         bt.logging.warning(f"Error in process reward logging: {e}")
     try:
-        with open(validator.log_directory + "/"+ str(uuid.uuid4())+".txt", "a") as f:
-            for i, result in enumerate(results):
-                if result is not None:
-                    response = responses[i]
-                    miner_uid = miner_uids[i]
-                    score,max_possible_score,_,correct_answer = rewards[i][0]
-                    normalized_score = score/max_possible_score
-                    resp = "None"
-                    citations = "None"
-                    try:
-                        resp = response.response["response"]
-                        citations = json.dumps(response.response["citations"])
-                    except:
-                        pass
-                    step_log = {
-                        "completion_response": resp,
-                        "completion_citations": citations,
-                        "correct_answer": correct_answer,
-                        "miner_uid": miner_uids[i].item(),
-                        "score": score,
-                        "max_possible_score": max_possible_score,
-                        "normalized_score": normalized_score,
-                        "average_score_for_miner_with_this_validator": validator.scores[miner_uid].item(),
-                        "stake": validator.metagraph.S[miner_uid].item(),
-                        "trust": validator.metagraph.T[miner_uid].item(),
-                        "incentive": validator.metagraph.I[miner_uid].item(),
-                        "consensus": validator.metagraph.C[miner_uid].item(),
-                        "dividends": validator.metagraph.D[miner_uid].item(),
-                        "task_results": "\n".join(result),
-                        "dendrite_process_time": response.dendrite.process_time,
-                        "dendrite_status_code": response.dendrite.status_code,
-                        "axon_status_code": response.axon.status_code,
-                        **log_basics
-                    }
-
-                    # validator_network = validator.config.subtensor.network
-                    validator_netuid = validator.config.netuid
-                    if (step_log["axon_status_code"] == 200 or step_log["dendrite_status_code"] == 200):
-                        if  validator_netuid in [76,20]: # testnet or mainnet comet ML
-                            #bt.logging.debug("going to log to comet ML")
-                            f.write(json.dumps(step_log)+"\n")
-                        else: # unknown network, not initializing wandb
-                            # bt.logging.debug("Not initializing wandb, unknown network")
+        if False:
+            with open(validator.log_directory + "/"+ str(uuid.uuid4())+".txt", "a") as f:
+                for i, result in enumerate(results):
+                    if result is not None:
+                        response = responses[i]
+                        miner_uid = miner_uids[i]
+                        score,max_possible_score,_,correct_answer = rewards[i][0]
+                        normalized_score = score/max_possible_score
+                        resp = "None"
+                        citations = "None"
+                        try:
+                            resp = response.response["response"]
+                            citations = json.dumps(response.response["citations"])
+                        except:
                             pass
+                        step_log = {
+                            "completion_response": resp,
+                            "completion_citations": citations,
+                            "correct_answer": correct_answer,
+                            "miner_uid": miner_uids[i].item(),
+                            "score": score,
+                            "max_possible_score": max_possible_score,
+                            "normalized_score": normalized_score,
+                            "average_score_for_miner_with_this_validator": validator.scores[miner_uid].item(),
+                            "stake": validator.metagraph.S[miner_uid].item(),
+                            "trust": validator.metagraph.T[miner_uid].item(),
+                            "incentive": validator.metagraph.I[miner_uid].item(),
+                            "consensus": validator.metagraph.C[miner_uid].item(),
+                            "dividends": validator.metagraph.D[miner_uid].item(),
+                            "task_results": "\n".join(result),
+                            "dendrite_process_time": response.dendrite.process_time,
+                            "dendrite_status_code": response.dendrite.status_code,
+                            "axon_status_code": response.axon.status_code,
+                            **log_basics
+                        }
+
+                        # validator_network = validator.config.subtensor.network
+                        validator_netuid = validator.config.netuid
+                        if (step_log["axon_status_code"] == 200 or step_log["dendrite_status_code"] == 200):
+                            if  validator_netuid in [76,20]: # testnet or mainnet comet ML
+                                #bt.logging.debug("going to log to comet ML")
+                                f.write(json.dumps(step_log)+"\n")
+                            else: # unknown network, not initializing wandb
+                                # bt.logging.debug("Not initializing wandb, unknown network")
+                                pass
                                 
     except Exception as e:
         bt.logging.warning(f"Error logging reward data: {e}")

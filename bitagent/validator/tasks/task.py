@@ -56,7 +56,7 @@ class Task:
         self.message_history = Conversation(messages=messages)
         self.timeout = timeout
         self.synapse = QnATask(
-            prompt=prompt, urls=urls, datas=datas, tools=tools, notes=notes, messages=messages, message_history=message_history
+            prompt=prompt, urls=urls, datas=datas, tools=tools, notes=notes, messages=messages, message_history=self.message_history
         )
 
     @classmethod
