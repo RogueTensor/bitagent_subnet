@@ -23,6 +23,7 @@ from typing import List
 from bitagent.protocol import QnATask
 from bitagent.schemas.tool import Tool
 from bitagent.schemas.chat import ChatMessage, messages_from_list
+from bitagent.schemas.conversation import Conversation
 
 # combines criterion/criteria plus QnATask synapse for eval to form a task for the miner
 class Task:
@@ -52,9 +53,10 @@ class Task:
         self.tools = tools
         self.notes = notes
         self.messages =  messages
+        self.message_history = Conversation(messages=messages)
         self.timeout = timeout
         self.synapse = QnATask(
-            prompt=prompt, urls=urls, datas=datas, tools=tools, notes=notes, messages=messages
+            prompt=prompt, urls=urls, datas=datas, tools=tools, notes=notes, messages=messages, message_history=message_history
         )
 
     @classmethod
@@ -69,7 +71,7 @@ class Task:
             data["datas"],
             [Tool(**tool) for tool in data["tools"]],
             data["notes"],
-            messages_from_list(data["messages"]),
+            messages_from_list(data["messages"]) if "messages" in data else [],
             data["urls"],
             data["timeout"],
         )
@@ -149,6 +151,8 @@ def get_random_task(validator) -> [List[int], Task]:
                         # bt.logging.debug("Received miner uids: ", miner_uids)
                     else:
                         miner_uids = []
+                    if "message_history" in jdata.keys() and jdata['mesasge_history'] is not None:
+                        jdata['messages'] = jdata.pop('message_history')
                     task = Task.create_from_json(jdata["task"])
                     return miner_uids, task
 
