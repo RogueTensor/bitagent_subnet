@@ -151,8 +151,8 @@ def get_random_task(validator) -> [List[int], Task]:
                         # bt.logging.debug("Received miner uids: ", miner_uids)
                     else:
                         miner_uids = []
-                    if "message_history" in jdata.keys() and jdata['mesasge_history'] is not None:
-                        jdata['messages'] = jdata.pop('message_history')
+                    if "message_history" in jdata['task'].keys() and jdata['task']['message_history'] is not None:
+                        jdata['task']['messages'] = jdata['task']['message_history']
                     task = Task.create_from_json(jdata["task"])
                     return miner_uids, task
 
