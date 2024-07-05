@@ -19,6 +19,7 @@ import random
 from bitagent.protocol import QnATask
 from bitagent.task_api.tasks import Task
 from common.base.validator import BaseValidatorNeuron
+from bitagent.task_api.tasks import TASK_WEIGHTS
 from bitagent.task_api.criteria import default_criteria, summary_task_criteria
 
 # Summarization task
@@ -32,7 +33,7 @@ class SummaryTask(Task):
         super().__init__(name=name, desc=desc)
         self.validator=validator
         self.timeout=6.0
-
+        self.weight = TASK_WEIGHTS['summary']
         prompt, summary, summary_gen = self.get_random_task()
         self.criteria=default_criteria+summary_task_criteria(summary=summary, summary_gen=summary_gen)
         notes = """The task is built from a prompt that includes the text to be summarized.

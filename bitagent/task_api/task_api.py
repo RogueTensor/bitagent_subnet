@@ -26,8 +26,9 @@ from rq.job import Job
 from rq.results import Result
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from bitagent.task_api.tasks import get_random_task, evaluate_task, get_organic_task
+from bitagent.task_api.tasks import get_random_task, evaluate_task
 from bitagent.task_api.initiation import initiate_validator
+from bitagent.task_api.tasks.task import Task
 from bitagent.protocol import QnATask
 import logging
 import torch
@@ -62,6 +63,7 @@ while not have_data:
         have_data = True
     except Exception as e:
         logging.error(f"Exception is raised when looking for top miners: {e}")
+
 
 
 @ttl_cache(maxsize=100, ttl=60*60)
@@ -105,6 +107,22 @@ class ValidatorStub:
         def random_seed():
             return int(str(int(time.time()))[:-2])
         self.random_seed = random_seed
+        self.subtensor = bt.subtensor(network="finney")
+        self.metagraph = self.subtensor.metagraph(netuid=20)
+
+def get_organic_task():
+        jobs = [job for job in queue.jobs if job.is_queued]
+        if not jobs:
+            return None
+
+        job = jobs[0]
+        job.set_status('started')
+        try:
+            job_datas = job.args[1]
+        except Exception as e:
+            job_datas = []
+
+        return Task(name="Organic Task", task_type="organic", prompt=job.args[0], datas=job_datas, task_id=job.id)
 
 validator = ValidatorStub()
 initiate_validator(validator)
@@ -122,9 +140,8 @@ async def evaluate_task_response(request: Request):
         task = tasks[task_id]
 
         response = request_data["response"]
-        synapse = QnATask(prompt=response["prompt"], urls=response["urls"], datas=response["datas"], response=response["response"])
-
-        result = evaluate_task(validator, task, synapse, response)
+        task.synapse.response = response['response']
+        result = evaluate_task(validator, task, task.synapse, response)
         return {"result": result}
     except Exception as e:
         logging.error(f"Error with a task id during evaluation: {e}")
@@ -136,10 +153,10 @@ async def get_new_task(request: Request):
     request_data = await request.json()
 
     # handle optional task selection via API call
-    task_id_to_get = None
+    task_name_to_get = None
     sub_task_id_to_get = None
-    if "task_id" in request_data.keys(): # task id (optional)
-        task_id_to_get = int(request_data["task_id"])
+    if "task_name" in request_data.keys(): # task id (optional)
+        task_name_to_get = request_data["task_name"]
     if "sub_task_id" in request_data.keys(): # sub level task (optional)
         sub_task_id_to_get = int(request_data["sub_task_id"])
     
@@ -149,7 +166,7 @@ async def get_new_task(request: Request):
     miner_uids = []
     if not task:
         # get a generated task
-        task = get_random_task(validator, task_id_to_get, sub_task_id_to_get)
+        task = get_random_task(validator, task_name_to_get, sub_task_id_to_get)
         # store task via task id for evaluation - only for generated tasks
         tasks[task.task_id] = task
         # no miner uids

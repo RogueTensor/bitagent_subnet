@@ -25,7 +25,10 @@ from bitagent.task_api.criteria.qna_criteria import *
 from bitagent.task_api.criteria.summary_criteria import *
 from bitagent.task_api.criteria.qna_logic_criteria import *
 from bitagent.task_api.criteria.tool_selection_criteria import *
-
+from bitagent.task_api.criteria.tool_call_criteria import *
+from bitagent.task_api.criteria.tool_gen_criteria import *
+from bitagent.task_api.criteria.conversation_criteria import *
+from bitagent.schemas.conversation import Conversation
 # building block for the criteria used to evaluate the miner's response
 class Criterion():
     name: str
@@ -102,6 +105,37 @@ def summary_task_criteria(summary: str, summary_gen: str) -> List[Criterion]:
         Criterion(name="Return summary shorter than original", desc="", eval_fx=shorter_summary_length, eval_args=[summary, summary_gen]),
         Criterion(name="Return valid summary", desc="", eval_fx=correct_summary_provided, eval_args=[summary, summary_gen]),
     ]
+
+# Function Call
+def tool_call_criteria(expected_convo: List[dict]) -> List[Criterion]:
+    return [
+        Criterion(name="Return valid function call response", desc="", eval_fx=correct_tool_use_and_response, eval_args=[expected_convo]),
+    ]
+
+def dataset_tool_call_criteria() -> List[Criterion]:
+    return [
+        Criterion(name="Return valid function call response", desc="", eval_fx=correct_dataset_tool_call_response, eval_args=[]),
+    ]
+
+
+# Function Generation
+def tool_gen_criteria(expected_tool: dict) -> List[Criterion]:
+    return [
+        Criterion(name="Return valid function call response", desc="", eval_fx=correct_tool_gen, eval_args=[expected_tool]),
+    ]   
+     
+def dataset_tool_gen_criteria() -> List[Criterion]:
+    return [
+        Criterion(name="Return valid function call response", desc="", eval_fx=correct_dataset_tool_gen, eval_args=[]),
+    ]    
+
+# Conversation
+def conversation_task_criteria(correct_response: str) -> List[Criterion]:
+    return [
+        Criterion(name="Return valid assistant response", desc="", eval_fx=correct_assistant_response, eval_args=[correct_response]),
+    ]
+
+
 
 # simple, defaults
 default_criteria = [

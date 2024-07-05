@@ -43,7 +43,6 @@ async def forward(self, synapse: QnATask=None) -> QnATask:
         self (:obj:`bittensor.neuron.Neuron`): The neuron object which contains all the necessary state for the validator.
 
     """
-
     # Define how the validator selects a miner to query, how often, etc.
     # get_random_uids is an example method, but you can replace it with your own.
     try:
@@ -54,7 +53,6 @@ async def forward(self, synapse: QnATask=None) -> QnATask:
         #bt.logging.warning(f"Trouble setting miner_uids: {e}")
         bt.logging.warning("Defaulting to 1 uid, k=1 ... likely due to low # of miners available.")
         miner_uids = get_random_uids(self, k=1)
-
     # Organic Validator Axon Request
     # if a request comes into the validator through the axon handle it 
     # in this case, timeout can be provided to work with your application's needs
@@ -127,7 +125,6 @@ async def forward(self, synapse: QnATask=None) -> QnATask:
         deserialize=False,
         timeout=task_timeout,
     )
-
     # Organic Task API Request
     # if organic then return the response to the task API for the downstream application
     if task and task.task_type == "organic":
@@ -150,7 +147,6 @@ async def forward(self, synapse: QnATask=None) -> QnATask:
     # also gets results for feedback to the miners
     if not synapse and task and task.task_type != "organic":
         await asyncio.create_task(process_rewards_update_scores_and_send_feedback(self, task=task, responses=responses, miner_uids=miner_uids))
-
     # Organic Validator Axon Request
     # If the request came in through the axon, return the response to the validator
     if synapse:

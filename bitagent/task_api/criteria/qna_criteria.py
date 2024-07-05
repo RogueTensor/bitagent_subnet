@@ -242,7 +242,7 @@ def ensure_unique_response(task, validator: BaseValidatorNeuron, synapse: bt.Syn
 def relevant_to_provided_content(task, validator: BaseValidatorNeuron, synapse: bt.Synapse, response: dict, selected_datas: List[dict]) -> [float, float, str]:
     max_reward = 1.0
     try:
-        prompt = task.synapse.prompt
+        prompt = task.synapse.messages[0].content
         completion = synapse.response['response']
     except KeyError:
         # no citations provided and no placeholder available or maybe something wrong with the data sources

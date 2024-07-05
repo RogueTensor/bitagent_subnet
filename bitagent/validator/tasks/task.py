@@ -22,7 +22,8 @@ from pprint import pformat
 from typing import List
 from bitagent.protocol import QnATask
 from bitagent.schemas.tool import Tool
-
+from bitagent.schemas.chat import ChatMessage, messages_from_list
+from bitagent.schemas.conversation import Conversation
 
 # combines criterion/criteria plus QnATask synapse for eval to form a task for the miner
 class Task:
@@ -33,24 +34,29 @@ class Task:
         self,
         task_id: str,
         name: str,
+        weight: int,
         prompt: str,
         desc: str = "",
         task_type: str = None,
         datas: List[dict] = [],
         tools: List[Tool] = [],
         notes: str = "No Notes",
+        messages: List[ChatMessage] = [],
         urls: List[str] = [],
         timeout: float = 12.0,
     ) -> None:
         self.task_id = task_id
         self.task_type = task_type
+        self.weight = weight
         self.name = name
         self.desc = desc
         self.tools = tools
         self.notes = notes
+        self.messages =  messages
+        self.message_history = Conversation(messages=messages)
         self.timeout = timeout
         self.synapse = QnATask(
-            prompt=prompt, urls=urls, datas=datas, tools=tools, notes=notes
+            prompt=prompt, urls=urls, datas=datas, tools=tools, notes=notes, messages=messages, message_history=self.message_history
         )
 
     @classmethod
@@ -58,12 +64,14 @@ class Task:
         return Task(
             data["task_id"],
             data["name"],
+            data["weight"],
             data["prompt"],
             data["desc"],
             data["task_type"],
             data["datas"],
             [Tool(**tool) for tool in data["tools"]],
             data["notes"],
+            messages_from_list(data["messages"]) if "messages" in data else [],
             data["urls"],
             data["timeout"],
         )
@@ -83,8 +91,9 @@ class Task:
                         "prompt": response.prompt,
                         "urls": response.urls,
                         "datas": response.datas,
-                        "tools": response.tools,
+                        # "tools": response.tools,
                         "notes": response.notes,
+                        "axon_hotkey": response.axon.hotkey,
                         "dendrite_process_time": response.dendrite.process_time,
                         "dendrite_status_code": response.dendrite.status_code,
                         "axon_status_code": response.axon.status_code,
@@ -142,6 +151,8 @@ def get_random_task(validator) -> [List[int], Task]:
                         # bt.logging.debug("Received miner uids: ", miner_uids)
                     else:
                         miner_uids = []
+                    if "message_history" in jdata['task'].keys() and jdata['task']['message_history'] is not None:
+                        jdata['task']['messages'] = jdata['task']['message_history']
                     task = Task.create_from_json(jdata["task"])
                     return miner_uids, task
 

@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 class Tool(BaseModel):
     """
@@ -10,4 +10,13 @@ class Tool(BaseModel):
     """
     name: str
     description: str
-    arguments: Dict[str, Dict[str, Any]]
+    arguments: Dict[str, Any]
+    
+    def to_dict(self):
+        return self.dict()
+    
+    
+class ToolCall(BaseModel):
+    name: str
+    arguments: Dict[str, Any]
+    
