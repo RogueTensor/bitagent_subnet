@@ -16,11 +16,12 @@
 # DEALINGS IN THE SOFTWARE.
 
 import random
+from typing import List
 from bitagent.protocol import QnATask
 from bitagent.task_api.tasks import Task, TASK_WEIGHTS
 from common.base.validator import BaseValidatorNeuron
 from bitagent.task_api.criteria import default_criteria, conversation_task_criteria 
-from bitagent.schemas.conversation import Conversation
+from bitagent.schemas.chat import ChatMessage
 
 REWRITE_PROMPT = """Please rewrite the following text, ensuring to maintain the original meaning and nuances but altering the sentence structures, vocabulary, and overall presentation. 
 The goal is to produce a version of the text that conveys the same information and sentiments as the original, but in a fresh and distinct manner. 
@@ -36,26 +37,26 @@ class ConversationTask(Task):
         self.timeout=12.0
         self.weight = TASK_WEIGHTS['conversation']
         # convo is of type Conversation
-        self.message_history, assistant_response = self.get_convo()
+        self.messages, assistant_response = self.get_convo()
         self.criteria = default_criteria + conversation_task_criteria(correct_response=assistant_response)
-        notes = """The task is to correctly respond to the user based on the conversation history."""
-        self.synapse=QnATask(notes=notes, message_history=self.message_history)
+        # notes = """The task is to correctly respond to the user based on the conversation history."""
+        self.synapse=QnATask(messages=self.messages)
 
     def reword(self, text: str) -> str:
         return self.validator.validator_llm(REWRITE_PROMPT.format(text=text))
     
-    def get_convo(self) -> [Conversation, str]:
-        convo: Conversation = next(self.validator.convo_dataset)
+    def get_convo(self) -> [List[ChatMessage], str]:
+        messages: List[ChatMessage]  = next(self.validator.convo_dataset)
         
-        assistant_idxs = [idx for idx,msg in enumerate(convo.messages) if msg.role == 'assistant']
+        assistant_idxs = [idx for idx,msg in enumerate(messages) if msg.role == 'assistant']
         rand_idx = random.choice(assistant_idxs)
         
         # truncate convo upto (not including) the last assistants response 
-        convo.messages = convo.messages[0:rand_idx+1]
-        for msg in convo.messages: #message is of type ChatMessage
+        messages = messages[0:rand_idx+1]
+        for msg in messages: #message is of type ChatMessage
             msg.content = self.reword(msg.content)
-        assistant_response = convo.messages[rand_idx].content
+        assistant_response = messages[rand_idx].content
         
-        convo.messages = convo.messages[0:rand_idx] 
-        return convo, assistant_response
+        messages = messages[0:rand_idx] 
+        return messages, assistant_response
             

@@ -27,7 +27,11 @@ from bitagent.task_api.postprocess import tool_gen_postprocess
 from bitagent.task_api.tasks import TASK_WEIGHTS
 
 query_system_prompt = """
+# System Preamble
+## Basic Rules
 You are a IT automation assistant. 
+# User Preamble
+## Task and Context
 Given a category you will generate a user query that will be given to an AI chatbot. The user's query should be very concise, specific, and require a single step to complete (simple). The query should include all the information needed to complete the task.
 
 For example:
@@ -49,10 +53,10 @@ class ToolGenTask(Task):
     ):
         super().__init__(name=name, desc=desc)
         self.validator = validator
-        self.timeout = 17.0
+        self.timeout = 12.0
         self.name += " - Tool Generation"
-        self.real_task = bool(random.random() < 0.90) # 90% chance of it being a real task
-        if self.real_task:
+        self.dataset_task = bool(random.random() < 0.90) # 10% chance of it being a real task
+        if self.dataset_task:
             prompt, tool = self.generate_real_task()
 
             self.criteria = default_criteria + tool_gen_criteria(
@@ -62,24 +66,23 @@ class ToolGenTask(Task):
         else:
             prompt = self.generate_dataset_task()
 
-            self.criteria = default_criteria + dataset_tool_gen_criteria() 
+            self.criteria = default_criteria + dataset_tool_gen_criteria()
             self.postprocess = tool_gen_postprocess()
             self.name += " Dataset"
             self.weight = TASK_WEIGHTS['tool_gen_dataset']
-        notes = """Tool Generation"""
         self.synapse = QnATask(
-            prompt=prompt, urls=[], datas=[], notes=notes, 
+            prompt=prompt, urls=[], datas=[]
         )
 
-    def generate_real_task(self) -> ToolCallData:
+    def generate_real_task(self):
         for _ in range(100):
-            if  bool(random.random() < 0.50):
+            if  bool(random.random() < 0.01):
                 data: ToolCallData = next(self.validator.tool_dataset)
             else:
                 data: ToolCallData = next(self.validator.local_tool_gen_dataset)
-            if not any(msg for msg in data.convo.messages if msg.role == 'tool call'):
+            if not any(msg for msg in data.messages if msg.role == 'tool call'):
                 continue
-            query = data.convo.messages[0].content
+            query = data.messages[0].content
             
             rewrite_prompt = f"""Please rewrite the following text, ensuring to maintain the original meaning and nuances but altering the sentence structures, vocabulary, and overall presentation. 
             The goal is to produce a version of the text that conveys the same information and sentiments as the original, but in a fresh and distinct manner. 
@@ -91,7 +94,7 @@ class ToolGenTask(Task):
             
             rewritten_query = self.validator.validator_llm(rewrite_prompt, max_new_tokens=200)
             try:
-                first_tool_call = json.loads(find_first_tool_call(data.convo).content)
+                first_tool_call = json.loads(find_first_tool_call(data.messages).content)
             except Exception as e:
                 # bt.logging.error(f"first tool call error {e}")
                 pass
