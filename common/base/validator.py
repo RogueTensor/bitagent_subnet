@@ -17,6 +17,22 @@
 # DEALINGS IN THE SOFTWARE.
 
 import os
+import sys
+import copy
+import torch
+import asyncio
+import threading
+import bittensor as bt
+import argparse
+
+from typing import List, Any
+from traceback import print_exception
+
+from common.base.neuron import BaseNeuron
+from common.utils.config import add_args as util_add_args
+
+
+import os
 import copy
 import torch
 import asyncio
@@ -143,7 +159,6 @@ class BaseValidatorNeuron(BaseNeuron):
         )
 
         bt.logging.info(f"Validator starting at block: {self.block}")
-
         # This loop maintains the validator's operations until intentionally stopped.
         try:
             while True:
@@ -151,6 +166,11 @@ class BaseValidatorNeuron(BaseNeuron):
                     bt.logging.info(f"step({self.step}) block({self.block})")
                 except Exception as e:
                     bt.logging.error("Error logging step and block, likely socket issue, will update next round", e)
+                    if "Broken pipe" in str(e):
+                        print("======= Exiting due to a broken pipe ========")
+                        self.axon.stop()
+                        self.should_exit = True
+                        exit()
 
                 # Run multiple forwards concurrently.
                 self.loop.run_until_complete(self.concurrent_forward())
@@ -378,7 +398,6 @@ class BaseValidatorNeuron(BaseNeuron):
     def load_state(self):
         """Loads the state of the validator from a file."""
         bt.logging.info("Loading validator state.")
-
         state = torch.load(self.config.neuron.full_path + "/state.pt")
         self.step = state["step"] 
         loaded_scores = state["scores"]
