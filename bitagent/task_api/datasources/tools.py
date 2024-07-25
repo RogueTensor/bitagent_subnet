@@ -111,7 +111,7 @@ class ToolDataset(Iterator):
 
         self.datasets = {
             "glaive": iter(glaive_ds.shuffle(seed=seed)),
-            "bitagent": iter(bitagent_ds.shuffle(seed=seed)),
+           # "bitagent": iter(bitagent_ds.shuffle(seed=seed)),
         }
 
     def __next__(self) -> ToolCallData:
@@ -122,7 +122,7 @@ class ToolDataset(Iterator):
             count += 1
             try:
                 random.seed(None)
-                dname, ds = random.choices(list(self.datasets.items()), [10, 100])[0]
+                dname, ds = random.choices(list(self.datasets.items()), [10])[0]
                 data = next(ds)
                 if dname == "glaive":
                     system_prompt = data["system"].replace("SYSTEM: ", "")
