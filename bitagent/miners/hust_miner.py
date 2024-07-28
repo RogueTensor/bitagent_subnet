@@ -21,6 +21,7 @@ import bittensor as bt
 import bitagent
 import httpx
 import os
+import traceback
 
 HUST_ENDPOINT = os.environ.get("HUST_ENDPOINT", "http://localhost:10001/api/bitagent")
 
@@ -28,7 +29,7 @@ def miner_init(self, config=None):
     pass
 
 async def miner_process(self, synapse: bitagent.protocol.QnATask) -> bitagent.protocol.QnATask:
-    # print(synapse.messages)
+
     try:
         # New protocol
         message_history=[]
@@ -44,7 +45,9 @@ async def miner_process(self, synapse: bitagent.protocol.QnATask) -> bitagent.pr
         # Old protocol
         old_message_history=[]
         if "conversation history" in synapse.notes or "Tool Calling" in synapse.notes:
-            for item in synapse.message_history.messages:
+            print(synapse.notes)
+            print("---------",type(synapse.message_history))
+            for item in synapse.message_history:
                 role=str(item.role)
                 json_item={
                     "role":role,
@@ -60,10 +63,14 @@ async def miner_process(self, synapse: bitagent.protocol.QnATask) -> bitagent.pr
             "notes": synapse.notes,
             "message_history": message_history,
             "old_history":old_message_history,
-            "tools" : tools
+            "tools" : tools,
+            "files": list(synapse.files)
         }
-    except:
+    except Exception as e:
         bt.logging.info('BBBBB')
+        print(synapse.messages)
+        print(e)
+        traceback.print_exc()
     try:
         async with httpx.AsyncClient(timeout=httpx.Timeout(timeout=synapse.timeout)) as client:
             hust_response = await client.post(HUST_ENDPOINT, json=data)

@@ -52,6 +52,7 @@ class QnATask(bt.Synapse):
     prompt: str = ""
     messages: List[ChatMessage] = []
     message_history: Conversation = []
+    files: List[dict] = []
 
     # Optional request output, filled by recieving axon.
     response: Optional[dict] = {}
