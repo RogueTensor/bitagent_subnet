@@ -28,6 +28,7 @@ from bitagent.task_api.criteria.tool_selection_criteria import *
 from bitagent.task_api.criteria.tool_call_criteria import *
 from bitagent.task_api.criteria.tool_gen_criteria import *
 from bitagent.task_api.criteria.conversation_criteria import *
+from bitagent.task_api.criteria.qna_plot_criteria import *
 from bitagent.schemas.conversation import Conversation
 # building block for the criteria used to evaluate the miner's response
 class Criterion():
@@ -135,6 +136,11 @@ def conversation_task_criteria(correct_response: str) -> List[Criterion]:
         Criterion(name="Return valid assistant response", desc="", eval_fx=correct_assistant_response, eval_args=[correct_response]),
     ]
 
+# Numerical logic and "tool" selection (pet tricks)
+def gen_plot_task_criteria(expected_answer:int) -> List[Criterion]:
+    return [
+        Criterion(name=f"Returns expected value", desc="", eval_fx=contains_correct_numerical_plot_answer, eval_args=[expected_answer]),
+    ]
 
 
 # simple, defaults

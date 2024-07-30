@@ -28,3 +28,4 @@ StrEnum==0.4.15
 langchain-openai==0.1.8
 langchain_text_splitters==0.2.0
 comet_llm==2.2.4
+matplotlib==3.9.1

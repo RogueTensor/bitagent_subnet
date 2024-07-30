@@ -50,6 +50,7 @@ class QnATask(bt.Synapse):
     notes: str = "No Notes"
     prompt: str = ""
     messages: List[ChatMessage] = []
+    files: List[dict] = [] # list of dicts with the keys ['content', 'type']
 
     # Optional request output, filled by recieving axon.
     response: Optional[dict] = {}

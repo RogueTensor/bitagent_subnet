@@ -5,6 +5,7 @@ TASK_FREQUENCY = {
     "tool_call": 6,
     "tool_gen": 4,
     "conversation": 2,
+    "generated_plot_qna": 4,
 }
 
 TASK_WEIGHTS = {
@@ -17,4 +18,5 @@ TASK_WEIGHTS = {
     "tool_gen": 0.1,
     "tool_gen_dataset": 0.025,
     "conversation": 0.03,
+    "generated_plot_qna": 0.1,
 }

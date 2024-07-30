@@ -44,6 +44,7 @@ class Task:
         messages: List[ChatMessage] = [],
         urls: List[str] = [],
         timeout: float = 12.0,
+        files: List[dict] = []
     ) -> None:
         self.task_id = task_id
         self.task_type = task_type
@@ -51,12 +52,13 @@ class Task:
         self.name = name
         self.desc = desc
         self.tools = tools
+        self.files = files
         self.notes = notes
         self.messages =  messages
         self.message_history = Conversation(messages=messages)
         self.timeout = timeout
         self.synapse = QnATask(
-            prompt=prompt, urls=urls, datas=datas, tools=tools, notes=notes, messages=messages, message_history=self.message_history
+            prompt=prompt, urls=urls, datas=datas, tools=tools, notes=notes, messages=messages, message_history=self.message_history, files=files
         )
 
     @classmethod
@@ -74,6 +76,7 @@ class Task:
             messages_from_list(data["messages"]) if "messages" in data else [],
             data["urls"],
             data["timeout"],
+            data["files"]
         )
 
     def reward(self, validator, response):
@@ -132,6 +135,7 @@ def get_random_task(validator) -> [List[int], Task]:
                 response = requests.post(
                     task_url, headers=headers, json=data
                 )  # , verify=False)
+
                 if response.status_code == 502:
                     # bt.logging.debug("Task API is down, should be back up shortly: ", response)
                     time.sleep(25)
