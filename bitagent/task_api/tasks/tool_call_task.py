@@ -155,7 +155,9 @@ class ToolCallTask(Task):
                 
                 data.messages[0].content = new_user
                 data.messages[-1].content = new_assistant
-                data.messages[1].content = new_tool_call
+                for i, msg in enumerate(data.messages):
+                    if msg.role == 'tool call':
+                        data.messages[i].content = new_tool_call
 
                 data = ToolCallData(messages=data.messages, tools=data.tools)
                 messages_before_call = find_msgs_before_tool_call(data.messages)
