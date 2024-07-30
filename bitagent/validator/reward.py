@@ -16,9 +16,9 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 import json
-import uuid
 import torch
 import asyncio
+import requests
 import bittensor as bt
 from typing import List, Any
 from rich.console import Console
@@ -113,14 +113,7 @@ async def process_rewards_update_scores_and_send_feedback(validator: BaseValidat
     """
     # common wandb setup
     prompt = task.synapse.prompt
-    log_basics = {
-        "task_name": task.name,
-        "prompt": prompt,
-        "validator_uid": validator.metagraph.hotkeys.index(validator.wallet.hotkey.ss58_address),
-        "val_spec_version": validator.spec_version,
-        "highest_score_for_miners_with_this_validator": validator.scores.max().item(),
-        "median_score_for_miners_with_this_validator": validator.scores.median().item(),
-    }
+    messages = task.synapse.messages
     # run these in parallel but wait for the reuslts b/c we need them downstream
     rewards = await asyncio.gather(*[evaluate_task(validator, task, response) for response in responses])
     try:
@@ -131,51 +124,54 @@ async def process_rewards_update_scores_and_send_feedback(validator: BaseValidat
     except Exception as e:
         bt.logging.warning(f"Error in process reward logging: {e}")
     try:
-        if False:
-            with open(validator.log_directory + "/"+ str(uuid.uuid4())+".txt", "a") as f:
-                for i, result in enumerate(results):
-                    if result is not None:
-                        response = responses[i]
-                        miner_uid = miner_uids[i]
-                        score,max_possible_score,_,correct_answer = rewards[i][0]
-                        normalized_score = score/max_possible_score
-                        resp = "None"
-                        citations = "None"
-                        try:
-                            resp = response.response["response"]
-                            citations = json.dumps(response.response["citations"])
-                        except:
-                            pass
-                        step_log = {
-                            "completion_response": resp,
-                            "completion_citations": citations,
-                            "correct_answer": correct_answer,
-                            "miner_uid": miner_uids[i].item(),
-                            "score": score,
-                            "max_possible_score": max_possible_score,
-                            "normalized_score": normalized_score,
-                            "average_score_for_miner_with_this_validator": validator.scores[miner_uid].item(),
-                            "stake": validator.metagraph.S[miner_uid].item(),
-                            "trust": validator.metagraph.T[miner_uid].item(),
-                            "incentive": validator.metagraph.I[miner_uid].item(),
-                            "consensus": validator.metagraph.C[miner_uid].item(),
-                            "dividends": validator.metagraph.D[miner_uid].item(),
-                            "task_results": "\n".join(result),
-                            "dendrite_process_time": response.dendrite.process_time,
-                            "dendrite_status_code": response.dendrite.status_code,
-                            "axon_status_code": response.axon.status_code,
-                            **log_basics
-                        }
+        for i, result in enumerate(results):
+            if result is not None:
+                response = responses[i]
+                miner_uid = miner_uids[i]
+                score,max_possible_score,_,correct_answer = rewards[i][0]
+                normalized_score = score/max_possible_score
+                resp = "None"
+                citations = "None"
+                try:
+                    resp = response.response["response"]
+                    citations = json.dumps(response.response["citations"])
+                except:
+                    pass
 
-                        # validator_network = validator.config.subtensor.network
-                        validator_netuid = validator.config.netuid
-                        if (step_log["axon_status_code"] == 200 or step_log["dendrite_status_code"] == 200):
-                            if  validator_netuid in [76,20]: # testnet or mainnet comet ML
-                                #bt.logging.debug("going to log to comet ML")
-                                f.write(json.dumps(step_log)+"\n")
-                            else: # unknown network, not initializing wandb
-                                # bt.logging.debug("Not initializing wandb, unknown network")
-                                pass
+                try:
+                    task_id = task.task_id
+                    data = {
+                        "task_id": task_id,
+                        "response": resp,
+                        #"response": "\n".join([m.content for m in messages]),
+                        "citations": citations,
+                        "miner_uid": miner_uids[i].item(),
+                        "score": score,
+                        "normalized_score": normalized_score,
+                        "average_score_for_miner_with_this_validator": validator.scores[miner_uid].item(),
+                        "stake": validator.metagraph.S[miner_uid].item(),
+                        "trust": validator.metagraph.T[miner_uid].item(),
+                        "incentive": validator.metagraph.I[miner_uid].item(),
+                        "consensus": validator.metagraph.C[miner_uid].item(),
+                        "dividends": validator.metagraph.D[miner_uid].item(),
+                        "results": "\n".join(result),
+                        "dendrite_process_time": response.dendrite.process_time,
+                        "dendrite_status_code": response.dendrite.status_code,
+                        "axon_status_code": response.axon.status_code,
+                        "validator_uid": validator.metagraph.hotkeys.index(validator.wallet.hotkey.ss58_address),
+                        "val_spec_version": validator.spec_version,
+                        "highest_score_for_miners_with_this_validator": validator.scores.max().item(),
+                        "median_score_for_miners_with_this_validator": validator.scores.median().item(),
+                    }
+                    if validator.config.netuid == 76:
+                        experiment_id = 2
+                    elif validator.config.netuid == 20:
+                        experiment_id = 3
+                    requests.post(f"https://tracker.roguetensor.com/experiments/{experiment_id}/tasks/{task_id}/runs", json=data, headers={"Content-Type": "application/json", "Accept": "application/json"})
+
+                except Exception as e:
+                    pass
+
                                 
     except Exception as e:
         bt.logging.warning(f"Error logging reward data: {e}")
