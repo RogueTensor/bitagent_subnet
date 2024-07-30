@@ -122,6 +122,7 @@ class ToolCallTask(Task):
         
         user = data.messages[0].content
         assistant = data.messages[-1].content
+        
         count = 0
         while count < 10:
             count += 1
@@ -154,7 +155,8 @@ class ToolCallTask(Task):
                 
                 data.messages[0].content = new_user
                 data.messages[-1].content = new_assistant
-                
+                data.messages[1].content = new_tool_call
+
                 data = ToolCallData(messages=data.messages, tools=data.tools)
                 messages_before_call = find_msgs_before_tool_call(data.messages)
                 if messages_before_call[-1].role == "assistant":
