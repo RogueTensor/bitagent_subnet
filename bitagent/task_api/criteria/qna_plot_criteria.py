@@ -89,15 +89,15 @@ def contains_correct_numerical_plot_answer(task, validator: BaseValidatorNeuron,
     except ValueError:
         expected_answer = datetime.strptime(expected_answer, '%m/%d/%Y')
         is_date = True
-
+    
+    feedback = None
+    reward = None
     #if the expected answer is a date
     if is_date:
         try:
             #convert miner response to datetime
             response_date = datetime.strptime(resp, '%m/%d/%Y')
             reward = calculate_date_points(abs((response_date - expected_answer).days))
-            feedback = good_message(f"You responded with a valid answer.")
-            return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
         except:
             #failed to convert to datetime
             reward = 0.0
@@ -107,13 +107,22 @@ def contains_correct_numerical_plot_answer(task, validator: BaseValidatorNeuron,
     elif isinstance(expected_answer, float):
         try:
             reward = (calculate_float_points(abs(float(resp) - expected_answer)) / 5) * max_reward
-            feedback = good_message(f"You responded with a valid answer.")
-            return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
         except:
             reward = 0.0
             feedback = bad_message(f"You failed to respond with the correct answer. We were expecting a stringified float (e.g. '3.14').")
             return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
 
+    if reward and not feedback:
+        if reward > 3:
+            feedback = good_message(f"Correct, you scored {reward}/5 points.")
+        elif reward > 1:
+            feedback = good_message(f"Close, you scored {reward}/5 points.")
+        else:
+            feedback = bad_message(f"Incorrect, you scored {reward}/5 points.")
+        return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
+        
+    
+    
     #if we got here, they failed to get the correct answer
     reward = 0.0
     feedback = bad_message(f"You failed to respond with the correct answer.")
