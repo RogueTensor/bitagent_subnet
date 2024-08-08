@@ -177,11 +177,16 @@ def add_args(cls, parser):
 
 
     else:
+        # grab the command line arguments to find the netuid and set the default accordingly
+        # for mainnet (SN20), we'll set to blacklist any validator without a validator permit
+        # for testnet (SN76), or any other netuid besides 20, we'll allow validators without a permit
+        # this is b/c our testnet validator does not have enough stake to have a "permit"
+        args, _ = parser.parse_known_args()
         parser.add_argument(
             "--blacklist.force_validator_permit",
             action="store_true",
             help="If set, we will force incoming requests to have a permit.",
-            default=True,
+            default=(args.netuid==20),
         )
 
         parser.add_argument(
