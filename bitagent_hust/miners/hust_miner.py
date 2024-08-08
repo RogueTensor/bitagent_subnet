@@ -21,25 +21,29 @@ import bittensor as bt
 import bitagent
 import httpx
 import os
+import traceback
 HUST_ENDPOINT1 = "http://localhost:10002/api/bitagent"
 
 def miner_init(self, config=None):
     pass
 
 async def miner_process(self, synapse: bitagent.protocol.QnATask) -> bitagent.protocol.QnATask:
-    # print("++++++++++++++++++++++++++++++")
-    message_history=[]
+
     try:
-        if "conversation history" in synapse.notes or "Tool Calling" in synapse.notes:
-            message_history=[]
-            for item in synapse.message_history.messages:
+        # New protocol
+        message_history=[]
+        if synapse.messages:
+            for item in synapse.messages:
                 role=str(item.role)
                 json_item={
                     "role":role,
                     "content":item.content
                 }
                 message_history.append(json_item)
-        
+
+        # Old protocol
+        old_message_history=[]
+
         tools = [t.to_dict() for t in synapse.tools]
         data = {
             "prompt": synapse.prompt,
@@ -47,10 +51,16 @@ async def miner_process(self, synapse: bitagent.protocol.QnATask) -> bitagent.pr
             "timeout": synapse.timeout,
             "notes": synapse.notes,
             "message_history": message_history,
-            "tools" : tools
+            "old_history":old_message_history,
+            "tools" : tools,
+            "files": list(synapse.files)
         }
-    except:
+    except Exception as e:
         bt.logging.info('BBBBB')
+        print(synapse.messages)
+        print(e)
+        traceback.print_exc()
+
     try:
         print(HUST_ENDPOINT1)
         async with httpx.AsyncClient(timeout=httpx.Timeout(timeout=synapse.timeout)) as client:
@@ -62,11 +72,6 @@ async def miner_process(self, synapse: bitagent.protocol.QnATask) -> bitagent.pr
             "response": synapse.prompt * 10,
             "citations": [],
         }
-    try:
-        if "Tool Calling" in synapse.notes:
-            bt.logging.info(message_history)
-    except:
-        bt.logging.info("logging fail for tool calling message history")
     synapse.response = hust_response
 
     return synapse
