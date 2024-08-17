@@ -31,7 +31,6 @@ class QnATask(bt.Synapse):
     #- urls: list of urls for data context (urls can be empty, urls can contain wildcards)
     - datas: list of data {source & context} in a List of dicts
     - tools: list of tools {name, description, arguments } in a List of dicts
-    - notes: just a string of notes describing the problem
     - prompt: user prompt - will only be used for Tool Gen
     - message_history: Will be deprecated soon for messages
     - messages: a list of ChatMessage (see bitagent/schemas) - will be used for every task except Tool Gen
@@ -47,7 +46,6 @@ class QnATask(bt.Synapse):
     urls: Optional[List[str]] = [] # not used at the moment
     datas: List[dict] = []
     tools: List[Tool] = []
-    notes: str = "No Notes"
     prompt: str = ""
     messages: List[ChatMessage] = []
     files: List[dict] = [] # list of dicts with the keys ['content', 'type']

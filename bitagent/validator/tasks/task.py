@@ -40,7 +40,6 @@ class Task:
         task_type: str = None,
         datas: List[dict] = [],
         tools: List[Tool] = [],
-        notes: str = "No Notes",
         messages: List[ChatMessage] = [],
         urls: List[str] = [],
         timeout: float = 12.0,
@@ -53,12 +52,11 @@ class Task:
         self.desc = desc
         self.tools = tools
         self.files = files
-        self.notes = notes
         self.messages =  messages
         self.message_history = Conversation(messages=messages)
         self.timeout = timeout
         self.synapse = QnATask(
-            prompt=prompt, urls=urls, datas=datas, tools=tools, notes=notes, messages=messages, message_history=self.message_history, files=files
+            prompt=prompt, urls=urls, datas=datas, tools=tools, messages=messages, message_history=self.message_history, files=files
         )
 
     @classmethod
@@ -72,7 +70,6 @@ class Task:
             data["task_type"],
             data["datas"],
             [Tool(**tool) for tool in data["tools"]],
-            data["notes"],
             messages_from_list(data["messages"]) if "messages" in data else [],
             data["urls"],
             data["timeout"],
@@ -95,7 +92,6 @@ class Task:
                         "urls": response.urls,
                         "datas": response.datas,
                         # "tools": response.tools,
-                        "notes": response.notes,
                         "axon_hotkey": response.axon.hotkey,
                         "dendrite_process_time": response.dendrite.process_time,
                         "dendrite_status_code": response.dendrite.status_code,
