@@ -118,7 +118,7 @@ if [ $only_launch -eq 0 ]; then
 fi
 
 local_var="--local"
-# DO NOT LOCAL THINGS
+# DO NON LOCAL THINGS
 # skip using faucet if not local
 # skip creating subnet if not local
 if [[ $test_net -eq 0 || $main_net -eq 0 ]]; then
@@ -189,7 +189,7 @@ fi
 if [ $skip_faucet -eq 1 ]; then
     ### FUND OWNER
     # needs to run 4 times to get 1200 tao
-    for i in {1..4}
+    for i in {1} #{1..4}
     do
         expect -c "
           spawn btcli wallet faucet --wallet.name ${owner_coldkey}_0 --subtensor.chain_endpoint ws://127.0.0.1:9946 --faucet.num_processes 8
@@ -221,7 +221,8 @@ if [ $skip_subnet -eq 1 ]; then
     # create the subnet with the owner wallet
     expect -c "
         spawn btcli subnet create --wallet.name ${owner_coldkey}_0 --subtensor.chain_endpoint ws://127.0.0.1:9946
-        expect -re \"register a subnet for\" {send \"y\r\"; interact}
+        expect -re \"register a subnet for\" {send \"y\r\";}
+        expect -re \"set your identify\" {send \"n\r\"; interact}
     "
 fi
 
@@ -271,7 +272,7 @@ if [ $skip_launch -eq 1 ]; then
 
         for i in $(seq $num_validators)
         do
-            python3 neurons/validator.py --netuid $netuid $subnet_network --wallet.name ${validator_coldkey_prefix}_$((i-1)) --wallet.hotkey ${validator_hotkey_prefix}_$((i-1)) --logging.debug --axon.port $((8090+i+num_miners)) &
+            python3 neurons/validator.py --netuid $netuid $subnet_network --wallet.name ${validator_coldkey_prefix}_$((i-1)) --wallet.hotkey ${validator_hotkey_prefix}_$((i-1)) --run_local --logging.debug --axon.port $((8090+i+num_miners)) &
         done
     fi
 fi
