@@ -172,3 +172,9 @@ bitagent.data*
 repo
 .cometml-runs
 old.*
+
+node_modules
+package-lock.json
+package.json
+*.old
+
