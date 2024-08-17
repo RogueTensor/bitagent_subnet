@@ -172,7 +172,8 @@ async def process_rewards_update_scores_and_send_feedback(validator: BaseValidat
                     
                     if experiment_id:
                         requests.post(f"https://tracker.roguetensor.com/experiments/{experiment_id}/tasks/{task_id}/runs", json=data, headers={"Content-Type": "application/json", "Accept": "application/json"})
-                        validator.log_event(data)
+
+                    validator.log_event(data)
 
                 except Exception as e:
                     bt.logging.warning("Exception in log_rewards: {}".format(e))
