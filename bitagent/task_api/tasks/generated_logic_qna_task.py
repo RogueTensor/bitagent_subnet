@@ -34,9 +34,7 @@ class GeneratedLogicQnATask(Task):
         self.correct_answer = answer
         self.weight = TASK_WEIGHTS["generated_logic_qna"]    
         self.criteria=default_criteria+gen_numerical_logic_task_criteria(expected_answer=answer)
-        notes = """The task is built from a prompt that includes a question and a list of possible answers.
-The task is to provide the correct answer from the list of possible answers."""
-        self.synapse=QnATask(prompt=question, urls=[], datas=[], notes=notes)
+        self.synapse=QnATask(prompt=question, urls=[], datas=[])
 
     # only pet tricks is still used, the rest are mostly exploitable
     def generate_random_logic_question_and_answer(self, sub_task_id_to_get: int = None) -> [str, int, List[int]]:

@@ -84,7 +84,7 @@ class ToolCallTask(Task):
                 pass
         self.messages = messages
         self.synapse = QnATask(
-            urls=[], datas=[], tools=tools, messages=messages, notes="Tool Calling", message_history=Conversation(messages=messages)
+            urls=[], datas=[], tools=tools, messages=messages, message_history=Conversation(messages=messages)
         )
 
     

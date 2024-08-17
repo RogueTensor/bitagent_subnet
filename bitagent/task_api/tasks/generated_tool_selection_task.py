@@ -34,14 +34,7 @@ class GeneratedToolSelectionTask(Task):
         self.correct_answer = answer
 
         self.criteria=default_criteria+gen_tool_selection_criteria(expected_answer=answer)
-        notes = """The task combines a prompt and a list of tools. 
-The task is to generate a query that would require the tools to be completed in order as a list.
-The provided prompt does not include everything, it does not include the tools for example.
-This means you will need to build a query combining the provided prompt and the tools.
-For example, your query (new prompt) to your LLM may look like: 
-    "From these tools: <tools>, please provide the correct tools in the correct order (as a JSON list) for this task: <prompt>."
-The correct answer is a list of the tools in the correct order, with the right spelling and syntax/case."""
-        self.synapse=QnATask(prompt=prompt, urls=[], datas=[], tools=tools, notes=notes)
+        self.synapse=QnATask(prompt=prompt, urls=[], datas=[], tools=tools)
 
     # we need 3 things - 
     # many task sets randomly fetched

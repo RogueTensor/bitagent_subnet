@@ -36,9 +36,7 @@ class SummaryTask(Task):
         self.weight = TASK_WEIGHTS['summary']
         prompt, summary, summary_gen = self.get_random_task()
         self.criteria=default_criteria+summary_task_criteria(summary=summary, summary_gen=summary_gen)
-        notes = """The task is built from a prompt that includes the text to be summarized.
-The task is to provide a reasonable summary of the provided text using an LLM."""
-        self.synapse=QnATask(prompt=prompt, urls=[], datas=[], notes=notes)
+        self.synapse=QnATask(prompt=prompt, urls=[], datas=[])
 
     def get_random_texts(self) -> [str, str]:
         data = next(self.validator.summary_dataset)

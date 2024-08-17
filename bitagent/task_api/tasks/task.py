@@ -45,7 +45,6 @@ class Task():
                  tools: List[Tool] = [],
                  messages: List[ChatMessage] = [],
                  files: List[dict] = [],
-                 notes: str = "No Notes",
                  urls: List[str] = [], 
                  criteria: List[Criterion] = default_criteria,
                  postprocess: List[PostProcessor] = [],
@@ -71,7 +70,7 @@ class Task():
         self.messages = messages
         self.files = files
         self.response_should_contain=response_should_contain
-        self.synapse = QnATask(prompt=prompt, urls=urls, datas=datas, notes=notes, tools=tools, messages=messages, files=files)
+        self.synapse = QnATask(prompt=prompt, urls=urls, datas=datas, tools=tools, messages=messages, files=files)
         self.correct_answer = correct_answer
 
     def reward(self, validator: BaseValidatorNeuron, synapse: QnATask, response:dict) -> [float, float, List[str]]:
@@ -101,7 +100,6 @@ class Task():
             timeout=serialized["timeout"],
             weight=serialized["weight"],
             datas=serialized["datas"], 
-            notes=serialized["notes"],
             tools=[Tool(**tool) for tool in serialized["tools"]], 
             urls=serialized["urls"], 
             criteria=[Criterion.fromSerialized(c) for c in serialized["criteria"]], 
@@ -125,7 +123,6 @@ class Task():
             "prompt": self.synapse.prompt,
             "desc": self.desc,
             "tools": [dict(tool) for tool in self.synapse.tools],
-            "notes": self.synapse.notes,
             "messages": messages_to_list(self.synapse.messages) if isinstance(self.synapse.messages, list) else [],
             "datas": self.synapse.datas,
             "urls": self.synapse.urls,
@@ -149,7 +146,6 @@ class Task():
             "messages": messages_to_list(self.messages) if isinstance(self.messages, list) else [], 
             "datas": self.synapse.datas,
             "tools": [tool.to_dict() for tool in self.synapse.tools],
-            "notes": self.synapse.notes,
             "urls": self.synapse.urls,
             "timeout": self.timeout,
             "files": self.synapse.files,
