@@ -17,9 +17,24 @@
 # DEALINGS IN THE SOFTWARE.
 
 import os
-import torch
 import argparse
+import subprocess
 import bittensor as bt
+
+def is_cuda_available():
+    try:
+        output = subprocess.check_output(["nvidia-smi", "-L"], stderr=subprocess.STDOUT)
+        if "NVIDIA" in output.decode("utf-8"):
+            return "cuda"
+    except Exception:
+        pass
+    try:
+        output = subprocess.check_output(["nvcc", "--version"]).decode("utf-8")
+        if "release" in output:
+            return "cuda"
+    except Exception:
+        pass
+    return "cpu"
 
 def check_config(cls, config: "bt.Config"):
     r"""Checks/validates the config namespace object."""
@@ -75,7 +90,7 @@ def add_args(cls, parser):
         "--neuron.device",
         type=str,
         help="Device to run on.",
-        default= torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        default=is_cuda_available(),
     )
 
     parser.add_argument(
@@ -158,6 +173,12 @@ def add_args(cls, parser):
             default=0.05,
         )
 
+        parser.add_argument(
+            "--wandb.on",
+            type=bool,
+            default=True,
+            help="Enable wandb logging.",
+        )
         parser.add_argument(
             "--neuron.axon_off",
             "--axon_off",
