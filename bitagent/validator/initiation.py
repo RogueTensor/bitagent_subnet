@@ -19,6 +19,7 @@
 import copy
 import wandb
 import bittensor as bt
+from datetime import datetime
 from bitagent.task_api.initiation import initiate_validator as initiate_validator_local
 
 # setup validator with wandb
@@ -54,6 +55,7 @@ def initiate_validator(self):
         if self.config.netuid == 20:
             project_name = "mainnet"
 
+
         self.wandb = wandb.init(
             anonymous="allow",
             reinit=reinit,
@@ -63,7 +65,7 @@ def initiate_validator(self):
             dir=self.config.neuron.full_path,
             tags=tags,
             resume='allow',
-            name=f"{uid}-{spec_version}",
+            name=f"{uid}-{spec_version}-{datetime.today().strftime('%Y-%m-%d')}",
         )
         bt.logging.success(f"Started a new wandb run <blue> {self.wandb.name} </blue>")
 
@@ -76,8 +78,8 @@ def initiate_validator(self):
 
     def log_event(event):
         #bt.logging.debug("Writing to WandB ....")
-        if self.config.netuid != 20 and self.config.netuid != 76:
-            return
+        #if self.config.netuid != 20 and self.config.netuid != 76:
+        #    return
 
         if not self.config.wandb.on:
             return
