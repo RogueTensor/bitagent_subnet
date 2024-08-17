@@ -263,7 +263,7 @@ class BaseValidatorNeuron(BaseNeuron):
         # Calculate the average reward for each uid across non-zero values.
         # Replace any NaN values with 0.
         norm = np.linalg.norm(self.scores, ord=1, axis=0, keepdims=True)
-        if np.any(norm == 0) or np.is_nan(norm).any():
+        if np.any(norm == 0) or np.isnan(norm).any():
             norm = np.ones_like(norm)
         raw_weights = self.scores/norm
 
