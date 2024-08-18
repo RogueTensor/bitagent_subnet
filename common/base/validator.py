@@ -22,7 +22,6 @@ import asyncio
 import threading
 import numpy as np
 import bittensor as bt
-import matplotlib.pyplot as plt
 
 from common.utils.weight_utils import (
     process_weights_for_netuid,
@@ -357,27 +356,6 @@ class BaseValidatorNeuron(BaseNeuron):
                 updated_weights[index] = y_values[i]
         
         return updated_weights
-
-    def plot_curves(self, raw_values, weighted_values):
-        plt.figure(figsize=(10, 6))
-        plt.scatter(range(len(raw_values)), sorted(raw_values), label='Raw Scores', marker='o')
-        plt.scatter(range(len(weighted_values)), sorted(weighted_values), label='Weighted Scores', marker='o')
-        plt.xlabel('Miner UID')
-        plt.ylabel('Scores')
-        plt.legend()
-        plt.grid(True)
-        plt.show()
-
-        # Save the plot as a file
-        # Generate a timestamp
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        # Create the filename with the timestamp
-        plot_filename = f'{timestamp}.png'
-        output_dir = "./plots"
-        plot_filepath = os.path.join(output_dir, plot_filename)
-        os.makedirs(output_dir, exist_ok=True)
-        plt.savefig(plot_filepath)
-        plt.close()
 
     def resync_metagraph(self):
         """Resyncs the metagraph and updates the hotkeys and moving averages based on the new metagraph."""
