@@ -405,7 +405,8 @@ class BaseValidatorNeuron(BaseNeuron):
             uids_array = uids.copy()
         else:
             uids_array = np.array(uids)
-        scattered_rewards: np.ndarray = np.zeros_like(self.scores)
+
+        scattered_rewards: np.ndarray = self.scores.copy()
         scattered_rewards[uids_array] = rewards
 
         bt.logging.debug(f"Scattered rewards: {rewards}")
