@@ -24,6 +24,7 @@ import numpy as np
 import bittensor as bt
 
 from typing import List, Any
+from datetime import datetime
 from traceback import print_exception
 
 from common.base.neuron import BaseNeuron
@@ -256,6 +257,13 @@ class BaseValidatorNeuron(BaseNeuron):
 
         bt.logging.debug("raw_weights", raw_weights)
         bt.logging.debug("raw_weight_uids", self.metagraph.uids)
+
+        fit_curve = False
+        if fit_curve:
+            raw_weights = get_weighted_scores(raw_weights, False)
+        else:
+            weighted_scores = get_weighted_scores(raw_weights, True)
+
         # Process the raw weights to final_weights via subtensor limitations.
         (
             processed_weight_uids,
@@ -293,6 +301,79 @@ class BaseValidatorNeuron(BaseNeuron):
             bt.logging.info(f"set_weights on chain for version: {self.spec_version} successfully!")
         else:
             bt.logging.error(f"set_weights failed: {msg}")
+
+    def get_weighted_scores(raw_weights, should_plot=False):
+        # Adjustable parameters
+        num_points_log = 206        # Number of points for the logarithmic curve
+        num_points_exp2 = 50        # Number of points for the second exponential curve
+
+        # Parameters for the logarithmic section
+        x_start_log = 1           # Start of the x-value range for logarithmic
+        x_end_log = x_start_log + num_points_log  # End of the x-value range for logarithmic
+        y_start_log = 0.01            # Start y-value for the logarithmic section
+        y_end_log = 0.60                     # End y-value for the logarithmic section
+        log_factor = 3
+
+        # Parameters for the second exponential section
+        x_start_exp2 = x_end_log            # Start of the x-value range for the second exponential
+        x_end_exp2 = x_start_exp2 + num_points_exp2      # End of the x-value range for the second exponential
+        y_start_exp2 = y_end_log            # Start y-value for the second exponential section
+        y_end_exp2 = 1.00                    # End y-value for the second exponential section
+        exp_base2 = 1.1                       # Base of the second exponential function
+
+        # Generate x-values for the logarithmic section
+        x_values_log = np.linspace(x_start_log, x_end_log, num_points_log)
+
+        # Generate logarithmic y-values for the second section
+        # Shift and scale to start from y_max_exp1 and end at y_end_log
+        raw_y_values_log = np.log(x_values_log - x_values_log.min() + log_factor)
+        y_values_log = (raw_y_values_log - raw_y_values_log.min()) / (raw_y_values_log.max() - raw_y_values_log.min())
+        y_values_log = y_values_log * (y_end_log - y_start_log) + y_start_log
+
+        # Generate x-values and exponential y-values for the third section
+        x_values_exp2 = np.linspace(x_start_exp2, x_end_exp2, num_points_exp2)
+        raw_y_values_exp2 = exp_base2 ** x_values_exp2
+        y_values_exp2 = (raw_y_values_exp2 - raw_y_values_exp2.min()) / (raw_y_values_exp2.max() - raw_y_values_exp2.min())
+        y_values_exp2 = y_values_exp2 * (y_end_exp2 - y_start_exp2) + y_start_exp2
+
+        # Combine the y values
+        y_values = np.concatenate((y_values_log, y_values_exp2))
+
+        # Get the indices that would sort the raw_weights array
+        sorted_indices = np.argsort(raw_weights)
+
+        # Create a new array for updated raw_weights using y_values in the sorted order
+        updated_weights = raw_weights.copy()
+
+        # Replace the raw_weights in the original order with the corresponding y_value from the sorted order
+        for i, index in enumerate(sorted_indices):
+            updated_weights[index] = y_values[i]
+        
+        if should_plot:
+            plot_curves(raw_weights, updated_weights)
+
+        return updated_weights
+
+    def plot_curves(raw_values, weighted_values):
+        plt.figure(figsize=(10, 6))
+        plt.scatter(range(len(raw_values)), sorted(raw_values), label='Raw Scores', marker='o')
+        plt.scatter(range(len(weighted_values)), sorted(weighted_values), label='Weighted Scores', marker='o')
+        plt.xlabel('Miner UID')
+        plt.ylabel('Scores')
+        plt.legend()
+        plt.grid(True)
+        plt.show()
+
+        # Save the plot as a file
+        # Generate a timestamp
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        # Create the filename with the timestamp
+        plot_filename = f'{timestamp}.png'
+        output_dir = "./plots"
+        plot_filepath = os.path.join(output_dir, plot_filename)
+        os.makedirs(output_dir, exist_ok=True)
+        plt.savefig(plot_filepath)
+        plt.close()
 
     def resync_metagraph(self):
         """Resyncs the metagraph and updates the hotkeys and moving averages based on the new metagraph."""
