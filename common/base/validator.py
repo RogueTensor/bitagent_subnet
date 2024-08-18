@@ -22,6 +22,12 @@ import asyncio
 import threading
 import numpy as np
 import bittensor as bt
+import matplotlib.pyplot as plt
+
+from common.utils.weight_utils import (
+    process_weights_for_netuid,
+    convert_weights_and_uids_for_emit,
+)  # TODO: Replace when bittensor switches to numpy
 
 from typing import List, Any
 from datetime import datetime
@@ -260,15 +266,15 @@ class BaseValidatorNeuron(BaseNeuron):
 
         fit_curve = False
         if fit_curve:
-            raw_weights = get_weighted_scores(raw_weights, False)
+            raw_weights = self.get_weighted_scores(raw_weights, False)
         else:
-            weighted_scores = get_weighted_scores(raw_weights, True)
+            weighted_scores = self.get_weighted_scores(raw_weights, True)
 
         # Process the raw weights to final_weights via subtensor limitations.
         (
             processed_weight_uids,
             processed_weights,
-        ) = bt.utils.weight_utils.process_weights_for_netuid(
+        ) = process_weights_for_netuid(
             uids=self.metagraph.uids,
             weights=raw_weights,
             netuid=self.config.netuid,
@@ -282,7 +288,7 @@ class BaseValidatorNeuron(BaseNeuron):
         (
             uint_uids,
             uint_weights,
-        ) = bt.utils.weight_utils.convert_weights_and_uids_for_emit(
+        ) = convert_weights_and_uids_for_emit(
             uids=processed_weight_uids, weights=processed_weights
         )
 
@@ -302,7 +308,7 @@ class BaseValidatorNeuron(BaseNeuron):
         else:
             bt.logging.error(f"set_weights failed: {msg}")
 
-    def get_weighted_scores(raw_weights, should_plot=False):
+    def get_weighted_scores(self, raw_weights, should_plot=False):
         # Adjustable parameters
         num_points_log = 206        # Number of points for the logarithmic curve
         num_points_exp2 = 50        # Number of points for the second exponential curve
@@ -350,11 +356,11 @@ class BaseValidatorNeuron(BaseNeuron):
             updated_weights[index] = y_values[i]
         
         if should_plot:
-            plot_curves(raw_weights, updated_weights)
+            self.plot_curves(raw_weights, updated_weights)
 
         return updated_weights
 
-    def plot_curves(raw_values, weighted_values):
+    def plot_curves(self, raw_values, weighted_values):
         plt.figure(figsize=(10, 6))
         plt.scatter(range(len(raw_values)), sorted(raw_values), label='Raw Scores', marker='o')
         plt.scatter(range(len(weighted_values)), sorted(weighted_values), label='Weighted Scores', marker='o')
@@ -450,6 +456,6 @@ class BaseValidatorNeuron(BaseNeuron):
         """Loads the state of the validator from a file."""
         bt.logging.info("Loading validator state.")
         state = np.load(self.config.neuron.full_path + "/state.npz")
-        self.step = state["step"] 
+        self.step = state["step"]
         loaded_scores = state["scores"]
         self.scores[:len(loaded_scores)] = loaded_scores
