@@ -254,21 +254,21 @@ class BaseValidatorNeuron(BaseNeuron):
                 f"Scores contain NaN values. This may be due to a lack of responses from miners, or a bug in your reward functions."
             )
          
+        fit_curve = False
+        if fit_curve:
+            weighted_scores = self.get_weighted_scores()
+        else:
+            weighted_scores = self.scores.copy()
+
         # Calculate the average reward for each uid across non-zero values.
         # Replace any NaN values with 0.
-        norm = np.linalg.norm(self.scores, ord=1, axis=0, keepdims=True)
+        norm = np.linalg.norm(weighted_scores, ord=1, axis=0, keepdims=True)
         if np.any(norm == 0) or np.isnan(norm).any():
             norm = np.ones_like(norm)
-        raw_weights = self.scores/norm
+        raw_weights = weighted_scores/norm
 
         bt.logging.debug("raw_weights", raw_weights)
         bt.logging.debug("raw_weight_uids", self.metagraph.uids)
-
-        fit_curve = False
-        if fit_curve:
-            raw_weights = self.get_weighted_scores(raw_weights, False)
-        else:
-            weighted_scores = self.get_weighted_scores(raw_weights, True)
 
         # Process the raw weights to final_weights via subtensor limitations.
         (
@@ -308,7 +308,7 @@ class BaseValidatorNeuron(BaseNeuron):
         else:
             bt.logging.error(f"set_weights failed: {msg}")
 
-    def get_weighted_scores(self, raw_weights, should_plot=False):
+    def get_weighted_scores(self):
         # Adjustable parameters
         num_points_log = 206        # Number of points for the logarithmic curve
         num_points_exp2 = 50        # Number of points for the second exponential curve
@@ -346,18 +346,15 @@ class BaseValidatorNeuron(BaseNeuron):
         y_values = np.concatenate((y_values_log, y_values_exp2))
 
         # Get the indices that would sort the raw_weights array
-        sorted_indices = np.argsort(raw_weights)
+        sorted_indices = np.argsort(self.scores)
 
         # Create a new array for updated raw_weights using y_values in the sorted order
-        updated_weights = raw_weights.copy()
+        updated_weights = self.scores.copy()
 
         # Replace the raw_weights in the original order with the corresponding y_value from the sorted order
         for i, index in enumerate(sorted_indices):
             updated_weights[index] = y_values[i]
         
-        if should_plot:
-            self.plot_curves(raw_weights, updated_weights)
-
         return updated_weights
 
     def plot_curves(self, raw_values, weighted_values):
