@@ -353,7 +353,8 @@ class BaseValidatorNeuron(BaseNeuron):
 
         # Replace the raw_weights in the original order with the corresponding y_value from the sorted order
         for i, index in enumerate(sorted_indices):
-            updated_weights[index] = y_values[i]
+            if self.scores[index] > 0:  # Only update if the score is greater than 0
+                updated_weights[index] = y_values[i]
         
         return updated_weights
 
