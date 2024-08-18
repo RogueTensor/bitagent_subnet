@@ -171,7 +171,8 @@ async def process_rewards_update_scores_and_send_feedback(validator: BaseValidat
                         experiment_id = 3
                     
                     if experiment_id:
-                        requests.post(f"https://tracker.roguetensor.com/experiments/{experiment_id}/tasks/{task_id}/runs", json=data, headers={"Content-Type": "application/json", "Accept": "application/json"})
+                        #requests.post(f"https://tracker.roguetensor.com/experiments/{experiment_id}/tasks/{task_id}/runs", json=data, headers={"Content-Type": "application/json", "Accept": "application/json"})
+                        pass
 
                     validator.log_event(data)
 
