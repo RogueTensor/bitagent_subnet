@@ -29,19 +29,6 @@ from traceback import print_exception
 from common.base.neuron import BaseNeuron
 from common.utils.config import add_args as util_add_args
 
-
-import os
-import copy
-import asyncio
-import threading
-import bittensor as bt
-import argparse
-
-from typing import List, Any
-from traceback import print_exception
-
-from common.base.neuron import BaseNeuron
-from common.utils.config import add_args as util_add_args
 class BaseValidatorNeuron(BaseNeuron):
     """
     Base class for Bittensor validators. Your validator should inherit from this class.
