@@ -142,8 +142,9 @@ async def process_rewards_update_scores_and_send_feedback(validator: BaseValidat
                     task_id = task.task_id
                     data = {
                         "task_id": task_id,
+                        "prompt": prompt,
+                        "messages": "\n".join([m.content for m in messages]),
                         "response": resp,
-                        #"response": "\n".join([m.content for m in messages]),
                         "citations": citations,
                         "miner_uid": miner_uids[i],
                         "score": score,
@@ -162,27 +163,20 @@ async def process_rewards_update_scores_and_send_feedback(validator: BaseValidat
                         "val_spec_version": validator.spec_version,
                         "highest_score_for_miners_with_this_validator": validator.scores.max(),
                         "median_score_for_miners_with_this_validator": np.median(validator.scores),
-                        #"correct_answer": correct_answer,
+                        #"correct_answer": correct_answer, # TODO best way to send this without lookup attack?
                     }
-                    experiment_id = None
-                    if validator.config.netuid == 76:
-                        experiment_id = 2
-                    elif validator.config.netuid == 20:
-                        experiment_id = 3
-                    
-                    if experiment_id:
-                        #requests.post(f"https://tracker.roguetensor.com/experiments/{experiment_id}/tasks/{task_id}/runs", json=data, headers={"Content-Type": "application/json", "Accept": "application/json"})
-                        pass
 
-                    validator.log_event(data)
+                    try:
+                        validator.log_event(data)
+                    except Exception as e:
+                        bt.logging.debug("WandB failed to log, moving on ... exception: ", e)
 
                 except Exception as e:
                     bt.logging.warning("Exception in log_rewards: {}".format(e))
-                    pass
 
-                                
     except Exception as e:
         bt.logging.warning(f"Error logging reward data: {e}")
+
     # Update the scores based on the rewards. You may want to define your own update_scores function for custom behavior.
     miner_uids = temp_miner_uids
     validator.update_scores(scores, miner_uids, alpha=task.weight)
