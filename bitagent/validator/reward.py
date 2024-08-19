@@ -112,8 +112,16 @@ async def process_rewards_update_scores_and_send_feedback(validator: BaseValidat
     - miner_uids (List[int]): A list of miner UIDs. The miner at a particular index has a response in responses at the same index.
     """
     # common wandb setup
-    prompt = task.synapse.prompt
-    messages = task.synapse.messages
+    try:
+        prompt = task.synapse.prompt
+        messages = task.synapse.messages
+        tools = task.synapse.tools
+        datas = task.synapse.datas
+        files = task.synapse.files
+        task_name = task.name
+    except Exception as e:
+        bt.logging.error("Could not setup common data - ", e)
+
     # run these in parallel but wait for the reuslts b/c we need them downstream
     rewards = await asyncio.gather(*[evaluate_task(validator, task, response) for response in responses])
     try:
@@ -142,8 +150,16 @@ async def process_rewards_update_scores_and_send_feedback(validator: BaseValidat
                     task_id = task.task_id
                     data = {
                         "task_id": task_id,
+                        "task_name": task_name,
                         "prompt": prompt,
                         "messages": "\n".join([m.content for m in messages]),
+                        "prompt_len": len(prompt),
+                        "tools": [{'name': t.name, 'description': t.description, 'arguments': t.arguments} for t in tools],
+                        "miners_count": len(miner_uids),
+                        "messages_count": len(messages),
+                        "tools_count": len(tools),
+                        "datas_count": len(datas),
+                        "files_count": len(files),
                         "response": resp,
                         "citations": citations,
                         "miner_uid": miner_uids[i],
