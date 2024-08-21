@@ -18,6 +18,7 @@
 
 import os
 import copy
+import torch
 import asyncio
 import threading
 import numpy as np
@@ -254,10 +255,10 @@ class BaseValidatorNeuron(BaseNeuron):
             )
          
         fit_curve = False
+
+        weighted_scores = self.scores.copy()
         if fit_curve:
             weighted_scores = self.get_weighted_scores()
-        else:
-            weighted_scores = self.scores.copy()
 
         # Calculate the average reward for each uid across non-zero values.
         # Replace any NaN values with 0.
@@ -308,54 +309,8 @@ class BaseValidatorNeuron(BaseNeuron):
             bt.logging.error(f"set_weights failed: {msg}")
 
     def get_weighted_scores(self):
-        # Adjustable parameters
-        num_points_log = 206        # Number of points for the logarithmic curve
-        num_points_exp2 = 50        # Number of points for the second exponential curve
-
-        # Parameters for the logarithmic section
-        x_start_log = 1           # Start of the x-value range for logarithmic
-        x_end_log = x_start_log + num_points_log  # End of the x-value range for logarithmic
-        y_start_log = 0.01            # Start y-value for the logarithmic section
-        y_end_log = 0.60                     # End y-value for the logarithmic section
-        log_factor = 3
-
-        # Parameters for the second exponential section
-        x_start_exp2 = x_end_log            # Start of the x-value range for the second exponential
-        x_end_exp2 = x_start_exp2 + num_points_exp2      # End of the x-value range for the second exponential
-        y_start_exp2 = y_end_log            # Start y-value for the second exponential section
-        y_end_exp2 = 1.00                    # End y-value for the second exponential section
-        exp_base2 = 1.1                       # Base of the second exponential function
-
-        # Generate x-values for the logarithmic section
-        x_values_log = np.linspace(x_start_log, x_end_log, num_points_log)
-
-        # Generate logarithmic y-values for the second section
-        # Shift and scale to start from y_max_exp1 and end at y_end_log
-        raw_y_values_log = np.log(x_values_log - x_values_log.min() + log_factor)
-        y_values_log = (raw_y_values_log - raw_y_values_log.min()) / (raw_y_values_log.max() - raw_y_values_log.min())
-        y_values_log = y_values_log * (y_end_log - y_start_log) + y_start_log
-
-        # Generate x-values and exponential y-values for the third section
-        x_values_exp2 = np.linspace(x_start_exp2, x_end_exp2, num_points_exp2)
-        raw_y_values_exp2 = exp_base2 ** x_values_exp2
-        y_values_exp2 = (raw_y_values_exp2 - raw_y_values_exp2.min()) / (raw_y_values_exp2.max() - raw_y_values_exp2.min())
-        y_values_exp2 = y_values_exp2 * (y_end_exp2 - y_start_exp2) + y_start_exp2
-
-        # Combine the y values
-        y_values = np.concatenate((y_values_log, y_values_exp2))
-
-        # Get the indices that would sort the raw_weights array
-        sorted_indices = np.argsort(self.scores)
-
-        # Create a new array for updated raw_weights using y_values in the sorted order
-        updated_weights = self.scores.copy()
-
-        # Replace the raw_weights in the original order with the corresponding y_value from the sorted order
-        for i, index in enumerate(sorted_indices):
-            if self.scores[index] > 0:  # Only update if the score is greater than 0
-                updated_weights[index] = y_values[i]
-        
-        return updated_weights
+        sm = torch.nn.Softmax() 
+        return sm(torch.Tensor(self.scores)*5)
 
     def resync_metagraph(self):
         """Resyncs the metagraph and updates the hotkeys and moving averages based on the new metagraph."""
