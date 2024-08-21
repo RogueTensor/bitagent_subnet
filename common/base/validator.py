@@ -253,7 +253,7 @@ class BaseValidatorNeuron(BaseNeuron):
                 f"Scores contain NaN values. This may be due to a lack of responses from miners, or a bug in your reward functions."
             )
          
-        fit_curve = False
+        fit_curve = True
 
         weighted_scores = self.scores.copy()
         fake_weighted_scores = self.get_weighted_scores()
