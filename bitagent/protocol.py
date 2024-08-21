@@ -54,6 +54,7 @@ class QnATask(bt.Synapse):
     message_history: Conversation = []
     files: List[dict] = []
 
+
     # Optional request output, filled by recieving axon.
     response: Optional[dict] = {}
 

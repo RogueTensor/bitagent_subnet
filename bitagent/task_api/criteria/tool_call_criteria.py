@@ -143,11 +143,11 @@ def correct_tool_use_and_response(task, validator: BaseValidatorNeuron, synapse:
         else:
             miner_assistant = find_last_assistant(miner_convo)['content']
         sim = validator.measure_relevance_of_texts(expected_assistant, miner_assistant)
-        if sim>0.90:
+        if sim>0.80:
             correct_assistant_percentage = 1
-        elif sim>0.85:
-            correct_assistant_percentage = 0.75
         elif sim>0.50:
+            correct_assistant_percentage = 0.75
+        elif sim>0.35:
             correct_assistant_percentage = 0.25
     except Exception as e:
         bt.logging.error(f"Failed to find assistant response in miner messages. {e}")

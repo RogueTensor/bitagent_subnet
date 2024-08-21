@@ -47,7 +47,7 @@ class Validator(BaseValidatorNeuron):
         bt.logging.info("initiate_validator()")
         initiate_validator(self)
         bt.logging.debug(f"spec_version: {self.spec_version}")
-
+    
     async def forward(self, synapse: bitagent.protocol.QnATask=None):
         """
         Validator forward pass. Consists of:
@@ -80,3 +80,6 @@ if __name__ == "__main__":
         while True:
             bt.logging.info("Validator running...", time.time())
             time.sleep(15)
+            if validator.should_exit:
+                bt.logging.warning("Ending validator...")
+                break

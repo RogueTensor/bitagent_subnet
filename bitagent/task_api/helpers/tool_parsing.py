@@ -5,6 +5,12 @@ from bitagent.schemas.tool import Tool, ToolCall
 
 # Mapping from type strings to Python types
 type_mapping = {
+    "str": str,
+    "int": int,
+    "dict": Dict,
+    "list": List,
+    "float": float,
+    "bool": bool,
     "string": str,
     "integer": int,
     "number": (int, float),  # Allow both int and float for 'number'

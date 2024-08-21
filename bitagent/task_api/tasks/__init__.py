@@ -8,3 +8,4 @@ from .generated_tool_selection_task import *
 from .tool_call_task import *
 from .tool_gen_task import *
 from .conversation_task import *
+from .generated_plot_qna_task import *

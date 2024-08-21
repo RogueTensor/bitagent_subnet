@@ -1,6 +1,5 @@
-import torch
 import random
-import bitagent
+import numpy as np
 import bittensor as bt
 from typing import List
 
@@ -34,13 +33,13 @@ def check_uid_availability(
 
 def get_random_uids(
     self, k: int, exclude: List[int] = None
-) -> torch.LongTensor:
+) -> np.ndarray:
     """Returns k available random uids from the metagraph.
     Args:
         k (int): Number of uids to return.
         exclude (List[int]): List of uids to exclude from the random sampling.
     Returns:
-        uids (torch.LongTensor): Randomly sampled available uids.
+        uids (np.ndarray): Randomly sampled available uids.
     Notes:
         If `k` is larger than the number of available `uids`, set `k` to the number of available `uids`.
     """
@@ -81,7 +80,7 @@ def get_random_uids(
                     [uid for uid in avail_uids if uid not in candidate_uids],
                     k - len(candidate_uids),
                 )
-            uids = torch.tensor(random.sample(available_uids, k))
+            uids = random.sample(available_uids, k)
             return uids
         except Exception as e:
             bt.logging.debug(f"Reduced sample size from {k} to {k-1} and trying again.")

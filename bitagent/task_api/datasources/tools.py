@@ -37,6 +37,20 @@ def clean_text(text):
     text = text.replace("  ", " ")
     return text.strip()
 
+def custom_json_schema_to_pydantic_tool(schema: dict) -> Tool:
+    tool_name = schema.get("name", "")
+    tool_description = schema.get("description", "")
+
+    schema_arguments = schema.get("arguments", {})
+    parameters = {}
+    for param_name, param_info in schema_arguments.items():
+        parameters[param_name] = {
+            "required": param_info.get("required", False),
+            "type": param_info.get("type", ""),
+            "description": param_info.get("description", ""),
+        }
+
+    return Tool(name=tool_name, description=tool_description, arguments=parameters)
 
 def json_schema_to_pydantic_tool(schema: dict) -> Tool:
     tool_name = schema.get("name", "")
@@ -44,7 +58,7 @@ def json_schema_to_pydantic_tool(schema: dict) -> Tool:
 
     schema_parameters = schema.get("parameters", {})
     if not schema_parameters:
-        schema_parameters = {}
+        schema_parameters = schema.get("arguments", {})
     properties = schema_parameters.get("properties", {})
     required_params = schema_parameters.get("required", [])
     if isinstance(required_params, bool):
@@ -122,7 +136,7 @@ class ToolDataset(Iterator):
             count += 1
             try:
                 random.seed(None)
-                dname, ds = random.choices(list(self.datasets.items()), [10, 100])[0]
+                dname, ds = random.choices(list(self.datasets.items()), [1, 10])[0]
                 data = next(ds)
                 if dname == "glaive":
                     system_prompt = data["system"].replace("SYSTEM: ", "")
@@ -192,7 +206,7 @@ class LocalToolDataset(SQLDataset):
         messages = messages_from_list(tool_data["conversation"])
         if isinstance(tool_data["tools"], str):
             tools = [
-                json_schema_to_pydantic_tool(tool)
+                custom_json_schema_to_pydantic_tool(tool)
                 for tool in json.loads(tool_data["tools"])
             ]
         elif isinstance(tool_data["tools"], list):
@@ -207,11 +221,11 @@ class LocalToolDataset(SQLDataset):
         messages = messages_from_list(tool_data["conversation"])
         if isinstance(tool_data["tools"], str):
             tools = [
-                json_schema_to_pydantic_tool(tool)
+                custom_json_schema_to_pydantic_tool(tool)
                 for tool in json.loads(tool_data["tools"])
             ]
         elif isinstance(tool_data["tools"], list):
-            tools = [json_schema_to_pydantic_tool(tool) for tool in tool_data["tools"]]
+            tools = [custom_json_schema_to_pydantic_tool(tool) for tool in tool_data["tools"]]
         else:
             raise ValueError(f"Invalid format for tools: {tool_data['tools']}")
         return ToolCallData(messages=messages, tools=tools)

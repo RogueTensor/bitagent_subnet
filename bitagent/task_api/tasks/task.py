@@ -15,6 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 import random
+import traceback
 import bittensor as bt
 from typing import List
 from pprint import pformat
@@ -43,6 +44,7 @@ class Task():
                  datas: List[dict] = [],
                  tools: List[Tool] = [],
                  messages: List[ChatMessage] = [],
+                 files: List[dict] = [],
                  notes: str = "No Notes",
                  urls: List[str] = [], 
                  criteria: List[Criterion] = default_criteria,
@@ -67,8 +69,9 @@ class Task():
         self.postprocess=postprocess
         self.citation_sources_should_contain=citation_sources_should_contain
         self.messages = messages
+        self.files = files
         self.response_should_contain=response_should_contain
-        self.synapse = QnATask(prompt=prompt, urls=urls, datas=datas, notes=notes, tools=tools, messages=messages)
+        self.synapse = QnATask(prompt=prompt, urls=urls, datas=datas, notes=notes, tools=tools, messages=messages, files=files)
         self.correct_answer = correct_answer
 
     def reward(self, validator: BaseValidatorNeuron, synapse: QnATask, response:dict) -> [float, float, List[str]]:
@@ -108,10 +111,11 @@ class Task():
             task_type=(serialized["task_type"] if "None" != serialized["task_type"] else None), 
             task_id=(serialized["task_id"] if "None" != serialized["task_id"] else None),
             correct_answer = serialized["correct_answer"],
-            messages = messages_from_list(serialized['messages'])
+            messages = messages_from_list(serialized['messages']),
+            files = serialized['files'],
             )
         return task
-    
+
     def serialize(self):
         return {
             "task_id": str(self.task_id),
@@ -130,7 +134,8 @@ class Task():
             "postprocess": [p.serialize() for p in self.postprocess],
             "citation_sources_should_contain": str(self.citation_sources_should_contain),
             "response_should_contain": str(self.response_should_contain),
-            "correct_answer": (str(self.correct_answer) if self.correct_answer else "N/A")
+            "correct_answer": (str(self.correct_answer) if self.correct_answer else "N/A"),
+            "files": self.synapse.files,
         }
     
     def toJSON(self):
@@ -147,6 +152,7 @@ class Task():
             "notes": self.synapse.notes,
             "urls": self.synapse.urls,
             "timeout": self.timeout,
+            "files": self.synapse.files,
         }
 
 # evaluate task
@@ -170,7 +176,7 @@ def evaluate_task(validator, task:Task, synapse:bt.Synapse, response:dict) -> [f
 # - Summarization
 # - Logic QnA (pet tricks)
 def get_random_task(validator, task_name=None, sub_task_id_to_get=None) -> Task:
-    from bitagent.task_api.tasks import SummaryTask, GeneratedQnATask, GeneratedLogicQnATask, ToolCallTask, ToolGenTask, ConversationTask
+    from bitagent.task_api.tasks import SummaryTask, GeneratedQnATask, GeneratedLogicQnATask, ToolCallTask, ToolGenTask, ConversationTask, GeneratedPlotQnATask
     random.seed(validator.random_seed())  
     task_names = list(TASK_FREQUENCY.keys())
     task_frequencies = list(TASK_FREQUENCY.values())
@@ -178,6 +184,7 @@ def get_random_task(validator, task_name=None, sub_task_id_to_get=None) -> Task:
     # (optional) override the task with provided task id
     if task_name and task_name in task_names:
         choice = task_name
+    
     for _ in range(100):
         try:
             match choice:
@@ -200,8 +207,12 @@ def get_random_task(validator, task_name=None, sub_task_id_to_get=None) -> Task:
                     return ToolGenTask(validator=validator, name="Responds with correct function generation") 
                 case "conversation":
                     return ConversationTask(validator=validator, name="Responds with correct assistant response") 
+                case "generated_plot_qna":
+                    return GeneratedPlotQnATask(validator=validator, name="Responds with correct answer to plot-based question") 
 
         except Exception as e:
             bt.logging.warning(f'Error getting task (name {choice}): ', e)
+            bt.logging.warning(traceback.format_exc())
+
             # time.sleep(15)
     raise Exception("Failed to get task after 100 attempts")
