@@ -129,9 +129,7 @@ async def process_rewards_update_scores_and_send_feedback(validator: BaseValidat
         temp_miner_uids = [miner_uids[i] for i, reward in enumerate(rewards) if len(reward[0]) == 4 and reward[0][0] is not None and reward[0][1] is not None]
         scores = [reward[0][0]/reward[0][1] for reward in rewards if len(reward[0]) == 4 and reward[0][0] is not None and reward[0][1] is not None]
         results = await asyncio.gather(*[return_results(validator, task, miner_uids[i], reward[0]) for i, reward in enumerate(rewards)])
-    except Exception as e:
-        bt.logging.warning(f"Error in process reward logging: {e}")
-    try:
+
         for i, result in enumerate(results):
             if result is not None:
                 response = responses[i]
