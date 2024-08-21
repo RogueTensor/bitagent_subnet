@@ -256,7 +256,6 @@ class BaseValidatorNeuron(BaseNeuron):
         fit_curve = True
 
         weighted_scores = self.scores.copy()
-        fake_weighted_scores = self.get_weighted_scores()
         if fit_curve:
             weighted_scores = self.get_weighted_scores()
 
@@ -269,13 +268,6 @@ class BaseValidatorNeuron(BaseNeuron):
 
         bt.logging.debug("raw_weights", raw_weights)
         bt.logging.debug("raw_weight_uids", self.metagraph.uids)
-
-
-        fake_norm = np.linalg.norm(fake_weighted_scores, ord=1, axis=0, keepdims=True)
-        if np.any(fake_norm == 0) or np.isnan(fake_norm).any():
-            fake_norm = np.ones_like(fake_norm)
-        fake_raw_weights = fake_weighted_scores/fake_norm
-        bt.logging.debug("fake_raw_weights", fake_raw_weights)
 
         # Process the raw weights to final_weights via subtensor limitations.
         (
