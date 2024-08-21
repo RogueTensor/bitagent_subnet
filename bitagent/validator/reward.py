@@ -16,9 +16,9 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 import json
-import torch
 import asyncio
 import requests
+import numpy as np
 import bittensor as bt
 from typing import List, Any
 from rich.console import Console
@@ -86,7 +86,7 @@ async def return_results(validator, task, miner_uid, reward):
 Stats with this validator:
 Your Average Score: {validator.scores[miner_uid]}
 Highest Score across all miners: {validator.scores.max()}
-Median Score across all miners: {validator.scores.median()}"""
+Median Score across all miners: {np.median(validator.scores)}"""
             # send results
             await send_results_to_miner(validator, result, validator.metagraph.axons[miner_uid])
 
@@ -112,8 +112,16 @@ async def process_rewards_update_scores_and_send_feedback(validator: BaseValidat
     - miner_uids (List[int]): A list of miner UIDs. The miner at a particular index has a response in responses at the same index.
     """
     # common wandb setup
-    prompt = task.synapse.prompt
-    messages = task.synapse.messages
+    try:
+        prompt = task.synapse.prompt
+        messages = task.synapse.messages
+        tools = task.synapse.tools
+        datas = task.synapse.datas
+        files = task.synapse.files
+        task_name = task.name
+    except Exception as e:
+        bt.logging.error("Could not setup common data - ", e)
+
     # run these in parallel but wait for the reuslts b/c we need them downstream
     rewards = await asyncio.gather(*[evaluate_task(validator, task, response) for response in responses])
     try:
@@ -142,39 +150,49 @@ async def process_rewards_update_scores_and_send_feedback(validator: BaseValidat
                     task_id = task.task_id
                     data = {
                         "task_id": task_id,
+                        "task_name": task_name,
+                        "prompt": prompt,
+                        "messages": "\n".join([m.content for m in messages]),
+                        "prompt_len": len(prompt),
+                        "tools": [{'name': t.name, 'description': t.description, 'arguments': t.arguments} for t in tools],
+                        "miners_count": len(miner_uids),
+                        "messages_count": len(messages),
+                        "tools_count": len(tools),
+                        "datas_count": len(datas),
+                        "files_count": len(files),
                         "response": resp,
-                        #"response": "\n".join([m.content for m in messages]),
                         "citations": citations,
-                        "miner_uid": miner_uids[i].item(),
+                        "miner_uid": miner_uids[i],
                         "score": score,
                         "normalized_score": normalized_score,
-                        "average_score_for_miner_with_this_validator": validator.scores[miner_uid].item(),
-                        "stake": validator.metagraph.S[miner_uid].item(),
-                        "trust": validator.metagraph.T[miner_uid].item(),
-                        "incentive": validator.metagraph.I[miner_uid].item(),
-                        "consensus": validator.metagraph.C[miner_uid].item(),
-                        "dividends": validator.metagraph.D[miner_uid].item(),
+                        "average_score_for_miner_with_this_validator": validator.scores[miner_uid],
+                        "stake": validator.metagraph.S[miner_uid],
+                        "trust": validator.metagraph.T[miner_uid],
+                        "incentive": validator.metagraph.I[miner_uid],
+                        "consensus": validator.metagraph.C[miner_uid],
+                        "dividends": validator.metagraph.D[miner_uid],
                         "results": "\n".join(result),
                         "dendrite_process_time": response.dendrite.process_time,
                         "dendrite_status_code": response.dendrite.status_code,
                         "axon_status_code": response.axon.status_code,
                         "validator_uid": validator.metagraph.hotkeys.index(validator.wallet.hotkey.ss58_address),
                         "val_spec_version": validator.spec_version,
-                        "highest_score_for_miners_with_this_validator": validator.scores.max().item(),
-                        "median_score_for_miners_with_this_validator": validator.scores.median().item(),
+                        "highest_score_for_miners_with_this_validator": validator.scores.max(),
+                        "median_score_for_miners_with_this_validator": np.median(validator.scores),
+                        #"correct_answer": correct_answer, # TODO best way to send this without lookup attack?
                     }
-                    if validator.config.netuid == 76:
-                        experiment_id = 2
-                    elif validator.config.netuid == 20:
-                        experiment_id = 3
-                    requests.post(f"https://tracker.roguetensor.com/experiments/{experiment_id}/tasks/{task_id}/runs", json=data, headers={"Content-Type": "application/json", "Accept": "application/json"})
+
+                    try:
+                        validator.log_event(data)
+                    except Exception as e:
+                        bt.logging.debug("WandB failed to log, moving on ... exception: ", e)
 
                 except Exception as e:
-                    pass
+                    bt.logging.warning("Exception in log_rewards: {}".format(e))
 
-                                
     except Exception as e:
         bt.logging.warning(f"Error logging reward data: {e}")
+
     # Update the scores based on the rewards. You may want to define your own update_scores function for custom behavior.
-    miner_uids = torch.tensor(temp_miner_uids)
-    validator.update_scores(torch.FloatTensor(scores).to(validator.device), miner_uids, alpha=task.weight)
+    miner_uids = temp_miner_uids
+    validator.update_scores(scores, miner_uids, alpha=task.weight)

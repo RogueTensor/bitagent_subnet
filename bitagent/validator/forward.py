@@ -16,7 +16,6 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import torch
 import asyncio
 import requests
 import bittensor as bt
@@ -43,6 +42,7 @@ async def forward(self, synapse: QnATask=None) -> QnATask:
         self (:obj:`bittensor.neuron.Neuron`): The neuron object which contains all the necessary state for the validator.
 
     """
+
     # Define how the validator selects a miner to query, how often, etc.
     # get_random_uids is an example method, but you can replace it with your own.
     try:
@@ -51,8 +51,9 @@ async def forward(self, synapse: QnATask=None) -> QnATask:
             miner_uids = get_random_uids(self, k=min(self.config.neuron.sample_size, self.metagraph.n.item()))
     except Exception as e:
         #bt.logging.warning(f"Trouble setting miner_uids: {e}")
-        bt.logging.warning("Defaulting to 1 uid, k=1 ... likely due to low # of miners available.")
+        #bt.logging.warning("Defaulting to 1 uid, k=1 ... likely due to low # of miners available.")
         miner_uids = get_random_uids(self, k=1)
+
     # Organic Validator Axon Request
     # if a request comes into the validator through the axon handle it 
     # in this case, timeout can be provided to work with your application's needs
@@ -66,7 +67,7 @@ async def forward(self, synapse: QnATask=None) -> QnATask:
         # only one miner response will be returned
         if len(synapse.miner_uids) > 0:
             #bt.logging.debug("setting miner uids: ", synapse.miner_uids)
-            miner_uids = torch.tensor(synapse.miner_uids)
+            miner_uids = synapse.miner_uids
         else:
             #bt.logging.debug("using randomly selected miner uids")
             pass
@@ -92,14 +93,14 @@ async def forward(self, synapse: QnATask=None) -> QnATask:
             organic_miner_uids, task = get_random_task(self)
         if task.task_type == "organic" and len(organic_miner_uids) > 0:
             #bt.logging.debug('Received organic task with miner uids: ', organic_miner_uids)
-            miner_uids = torch.tensor(organic_miner_uids)
+            miner_uids = organic_miner_uids
         elif task.task_type == "organic":
             #bt.logging.debug('Received organic task without miner uids')
             # use random miner uids
             pass
         elif len(organic_miner_uids) > 0:
             #bt.logging.debug('Received generated task with miner uids that will require evaluation: ', organic_miner_uids)
-            miner_uids = torch.tensor(organic_miner_uids)
+            miner_uids = organic_miner_uids
         else:
             # use random miner uids
             #bt.logging.debug('Received generated task that will require evaluation')
