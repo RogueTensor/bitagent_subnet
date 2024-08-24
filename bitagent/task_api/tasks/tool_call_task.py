@@ -27,7 +27,6 @@ from bitagent.task_api.postprocess import tool_call_postprocess
 from bitagent.task_api.helpers.tool_parsing import validate_tool_call
 from bitagent.task_api.helpers.convo_parsing import find_msgs_before_tool_call, find_first_tool_call
 from bitagent.task_api.criteria import default_criteria, tool_call_criteria, dataset_tool_call_criteria
-from bitagent.schemas.conversation import Conversation
 REWRITE_PROPMT = """Please rewrite the following text, ensuring to maintain the original meaning and nuances but altering the sentence structures, vocabulary, and overall presentation. 
 The goal is to produce a version of the text that conveys the same information and sentiments as the original, but in a fresh and distinct manner. 
 Avoid summarizing or omitting any details; instead, focus on presenting the same concepts and messages in a new light.
@@ -84,7 +83,7 @@ class ToolCallTask(Task):
                 pass
         self.messages = messages
         self.synapse = QnATask(
-            urls=[], datas=[], tools=tools, messages=messages, notes="Tool Calling", message_history=Conversation(messages=messages)
+            urls=[], datas=[], tools=tools, messages=messages
         )
 
     
@@ -106,6 +105,8 @@ class ToolCallTask(Task):
             data: ToolCallData = next(self.validator.local_tool_call_dataset)
         else:
             data: ToolCallData = next(self.validator.tool_dataset)
+            for _ in range(random.randint(2,6)):
+                data.tools = data.tools + next(self.validator.tool_dataset).tools
         
         # remove all the messages after the first tool call, keeping the assistant
         # this reduces the number of messages needing rewording
