@@ -1,5 +1,5 @@
 accelerate
-bittensor==7.1.1
+bittensor==7.1.2
 beautifulsoup4
 bs4
 chromadb==0.4.22
