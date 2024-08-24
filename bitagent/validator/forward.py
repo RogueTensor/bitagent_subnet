@@ -43,6 +43,9 @@ async def forward(self, synapse: QnATask=None) -> QnATask:
 
     """
 
+    # added for 173
+    asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
+
     # Define how the validator selects a miner to query, how often, etc.
     # get_random_uids is an example method, but you can replace it with your own.
     try:
@@ -111,6 +114,9 @@ async def forward(self, synapse: QnATask=None) -> QnATask:
 
     #bt.logging.debug(f"Task prompt: {task.synapse.prompt[:2000]}")
 
+    # added for 173
+    bt.logging.debug("DEBUG 173 - Calling to dendrite query")
+
     # The dendrite client queries the network.
     # this is used for all 3 cases:
     # - Organic task coming in through the axon
@@ -146,8 +152,17 @@ async def forward(self, synapse: QnATask=None) -> QnATask:
     # When the task is generated, we need to evaluate the responses.
     # Adjust the scores based on responses from miners.
     # also gets results for feedback to the miners
+
+    # added for 173
+    bt.logging.debug("DEBUG 173 - have responses, might process them")
+
     if not synapse and task and task.task_type != "organic":
+        # added for 173
+        bt.logging.debug("DEBUG 173 - have responses, going process them")
         await asyncio.create_task(process_rewards_update_scores_and_send_feedback(self, task=task, responses=responses, miner_uids=miner_uids))
+        # added for 173
+        bt.logging.debug("DEBUG 173 - done processing responses")
+
     # Organic Validator Axon Request
     # If the request came in through the axon, return the response to the validator
     if synapse:

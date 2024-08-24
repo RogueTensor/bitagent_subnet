@@ -31,6 +31,9 @@ rich_console = Console()
 async def send_results_to_miner(validator, result, miner_axon):
     # extra transparent details for miners
 
+    # added for 173
+    bt.logging.debug("DEBUG 173 - going to send results back to the miner ...") 
+
     # For generated/evaluated tasks, we send the results back to the miner so they know how they did and why
     # The dendrite client queries the network to send feedback to the miner
     _ = validator.dendrite.query(
@@ -43,8 +46,12 @@ async def send_results_to_miner(validator, result, miner_axon):
         deserialize=False,
         timeout=5.0 # quick b/c we are not awaiting a response
     )
+    # added for 173
+    bt.logging.debug("DEBUG 173 - done sending results back to the miner ...") 
 
 async def evaluate_task(validator, task, response):
+    # added for 173
+    bt.logging.debug("DEBUG 173 - evaluating task")
     rewards = []
     if validator.config.run_local:
         resp = {
@@ -66,6 +73,8 @@ async def evaluate_task(validator, task, response):
     else:
         rewards.append(task.reward(validator, response))
 
+    # added for 173
+    bt.logging.debug("DEBUG 173 - done evaluating task")
     return rewards
 
 async def return_results(validator, task, miner_uid, reward):
@@ -122,13 +131,21 @@ async def process_rewards_update_scores_and_send_feedback(validator: BaseValidat
     except Exception as e:
         bt.logging.error("Could not setup common data - ", e)
 
+    # added for 173
+    bt.logging.debug("DEBUG 173 - pre evaluating task")
     # run these in parallel but wait for the reuslts b/c we need them downstream
     rewards = await asyncio.gather(*[evaluate_task(validator, task, response) for response in responses])
+    # added for 173
+    bt.logging.debug("DEBUG 173 - final final done evaluating task")
     try:
         # track which miner uids are scored for updating the scores
         temp_miner_uids = [miner_uids[i] for i, reward in enumerate(rewards) if len(reward[0]) == 4 and reward[0][0] is not None and reward[0][1] is not None]
         scores = [reward[0][0]/reward[0][1] for reward in rewards if len(reward[0]) == 4 and reward[0][0] is not None and reward[0][1] is not None]
+        # added for 173
+        bt.logging.debug("DEBUG 173 - get results ....")
         results = await asyncio.gather(*[return_results(validator, task, miner_uids[i], reward[0]) for i, reward in enumerate(rewards)])
+        # added for 173
+        bt.logging.debug("DEBUG 173 - done getting results ....")
 
         for i, result in enumerate(results):
             if result is not None:
@@ -181,7 +198,11 @@ async def process_rewards_update_scores_and_send_feedback(validator: BaseValidat
                     }
 
                     try:
+                        # added for 173
+                        bt.logging.debug("DEBUG 173 - logging to wandb")
                         validator.log_event(data)
+                        # added for 173
+                        bt.logging.debug("DEBUG 173 - done logging to wandb")
                     except Exception as e:
                         bt.logging.debug("WandB failed to log, moving on ... exception: ", e)
 
@@ -193,4 +214,8 @@ async def process_rewards_update_scores_and_send_feedback(validator: BaseValidat
 
     # Update the scores based on the rewards. You may want to define your own update_scores function for custom behavior.
     miner_uids = temp_miner_uids
+    # added for 173
+    bt.logging.debug("DEBUG 173 - going to update scores")
     validator.update_scores(scores, miner_uids, alpha=task.weight)
+    # added for 173
+    bt.logging.debug("DEBUG 173 - updated scores")
