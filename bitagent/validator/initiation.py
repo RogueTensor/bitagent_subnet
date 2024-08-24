@@ -50,6 +50,7 @@ def initiate_validator(self):
             for key in ("neuron", "reward", "netuid", "wandb")
         }
         wandb_config["neuron"].pop("full_path", None)
+        wandb_config["validator_uid"] = uid
 
         project_name = "testnet" # for TN76
         if self.config.netuid == 20:
