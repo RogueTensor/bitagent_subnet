@@ -48,12 +48,7 @@ class GeneratedPlotQnATask(Task):
         self.synapse = QnATask(messages=self.messages, files=self.files, timeout=timeout)
         self.timeout = timeout
 
-    # only pet tricks is still used, the rest are mostly exploitable
     def generate_random_plot_question_and_answer(self, sub_task_id_to_get: int = None) -> [str, int, List[int]]:
-
-        # Define color sets for good contrast
-        #light_colors = ['#FFDDC1', '#FFABAB', '#FFC3A0', '#FF677D', '#D4A5A5', '#392F5A', '#31A2AC', '#61C0BF']
-        #dark_colors = ['#6A0572', '#AB83A1', '#D2C1D0', '#B36196', '#1B3C59', '#224870', '#303C6C', '#555B6E']
         
         #more contrasting colors - attempting to remove colors that are too similar
         light_colors = [
@@ -141,8 +136,6 @@ class GeneratedPlotQnATask(Task):
             return dates
 
         # Generate random data for the chart
-        # TODO can this be 25 to 35, was hardcoded to 30
-        # note from canti:  this can be whatever, it's the just the total number of data points, 25-35 seems good
         num_days = np.random.randint(25,35)
         start_year = np.random.randint(1970, 2031)
         start_month = np.random.randint(1, 13)
@@ -153,8 +146,8 @@ class GeneratedPlotQnATask(Task):
         num_y_terms = random.randint(1, 3)
         
         # Generate random data for each y-axis term
-        random_low = np.random.uniform(0, 90)  # Ensuring that low can be up to 90
-        random_high = np.random.uniform(random_low + 10, 100)  # Ensuring high is at least 10 more than low
+        random_low = np.random.uniform(0, 90)
+        random_high = np.random.uniform(random_low + 10, 100)
         if random_low > random_high:
             random_low, random_high = random_high, random_low
 
@@ -169,11 +162,10 @@ class GeneratedPlotQnATask(Task):
         
         # Randomly select the type of plot
         plot_types = ['line', 'scatter']
-        plot_types_with_bar = ['line', 'bar', 'scatter']
 
         #only do bar graphs if there is one y-term
         if num_y_terms == 1:
-            selected_plot_type = random.choice(plot_types_with_bar)
+            selected_plot_type = random.choice(plot_types + ['bar'])
         else:
             selected_plot_type = random.choice(plot_types)
         
@@ -189,7 +181,6 @@ class GeneratedPlotQnATask(Task):
         plt.gca().set_facecolor(bg_color)
         for j in range(num_y_terms):
             if selected_plot_type == 'line':
-                # TODO random choice of markers
                 plt.plot(df['Date'], df[f'Data{j+1}'], marker=markers[j], color=plot_colors[j], label=y_terms[j])
             elif selected_plot_type == 'bar':
                 plt.bar(df['Date'] + timedelta(days=j*2), df[f'Data{j+1}'], color=plot_colors[j], label=y_terms[j], width=2)
@@ -199,7 +190,7 @@ class GeneratedPlotQnATask(Task):
         plt.title(f'{", ".join(y_terms)} vs {time_term}', color=labels_color)
         plt.xlabel(time_term, color=labels_color)
         plt.ylabel('Value', color=labels_color)
-        plt.grid(True, color=plot_colors[0]) #I didnt make this one the label color to make sure it contrasts with the plot background
+        plt.grid(True, color=plot_colors[0]) 
 
         # Format the x-axis dates
         date_form = DateFormatter("%m/%d/%Y")
