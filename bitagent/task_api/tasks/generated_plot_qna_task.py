@@ -130,9 +130,9 @@ class GeneratedPlotQnATask(Task):
 
         # Function to generate evenly spread random dates
         def generate_evenly_spread_dates(start_date, num_days):
-            months = np.random.randint(1, 13)
-            days_in_months = months * 30
-            dates = [start_date + timedelta(days=int(days_in_months * i / num_days)) for i in range(num_days)]
+            # Calculate the total range to spread the dates
+            spread_days = num_days * 3  # spread dates over 3 times the number of days
+            dates = [start_date + timedelta(days=int(spread_days * i / (num_days - 1))) for i in range(num_days)]
             return dates
 
         # Generate random data for the chart
@@ -176,16 +176,18 @@ class GeneratedPlotQnATask(Task):
         # Get contrasting colors
         bg_color, plot_colors, markers, labels_color = get_contrasting_colors(num_y_terms)
         
+        dates = list(range(num_days))  # Generate a list of integers for uniform spacing
+
         # Plot the data based on the selected plot type
         plt.figure(figsize=(np.random.randint(8,12), np.random.randint(4,6)))
         plt.gca().set_facecolor(bg_color)
         for j in range(num_y_terms):
             if selected_plot_type == 'line':
-                plt.plot(df['Date'], df[f'Data{j+1}'], marker=markers[j], color=plot_colors[j], label=y_terms[j])
+                plt.plot(dates, df[f'Data{j+1}'], marker=markers[j], color=plot_colors[j], label=y_terms[j])
             elif selected_plot_type == 'bar':
-                plt.bar(df['Date'] + timedelta(days=j*2), df[f'Data{j+1}'], color=plot_colors[j], label=y_terms[j], width=2)
+                plt.bar(dates, df[f'Data{j+1}'], color=plot_colors[j], label=y_terms[j], width=0.8, edgecolor='black')
             elif selected_plot_type == 'scatter':
-                plt.scatter(df['Date'], df[f'Data{j+1}'], color=plot_colors[j], label=y_terms[j])
+                plt.scatter(dates, df[f'Data{j+1}'], color=plot_colors[j], label=y_terms[j])
         
         plt.title(f'{", ".join(y_terms)} vs {time_term}', color=labels_color)
         plt.xlabel(time_term, color=labels_color)
@@ -197,7 +199,9 @@ class GeneratedPlotQnATask(Task):
             date_form = DateFormatter("%m/%d/%Y")
             plt.gca().xaxis.set_major_formatter(date_form)
 
-        plt.xticks(rotation=45, color=labels_color)
+        #display x-labels in intervals of 2 days
+        plt.xticks(dates[::2], [df['Date'].dt.strftime('%m/%d/%Y')[i] for i in range(0, len(dates), 2)], rotation=45, color=labels_color)
+        
         plt.yticks(color=labels_color)
         plt.legend()
         
