@@ -192,9 +192,10 @@ class GeneratedPlotQnATask(Task):
         plt.ylabel('Value', color=labels_color)
         plt.grid(True, color=plot_colors[0]) 
 
-        # Format the x-axis dates
-        date_form = DateFormatter("%m/%d/%Y")
-        plt.gca().xaxis.set_major_formatter(date_form)
+        # Random format the x-axis dates
+        if random.choice([True, False]):
+            date_form = DateFormatter("%m/%d/%Y")
+            plt.gca().xaxis.set_major_formatter(date_form)
 
         plt.xticks(rotation=45, color=labels_color)
         plt.yticks(color=labels_color)
