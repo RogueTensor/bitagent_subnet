@@ -83,23 +83,17 @@ class ToolCallData(BaseModel):
     messages: List[ChatMessage]
     tools: list[Tool]
 
-type_mapping = {
-    "str": str,
-    "int": int,
-    "dict": Dict,
-    "list": List,
-    "float": float,
-    "bool": bool,
-    "string": str,
-    "integer": int,
-    "number": (int, float),  # Allow both int and float for 'number'
-    "boolean": bool,
-    "array": List,
-    "dictionary": Dict,
-    "object": Dict,  # Handle nested objects as dictionaries
-}
+TYPES = ["str", "int", "dict", "list", "float", "bool", "string", "integer", "number", "boolean", "dictionary", "object"]
 
 def detect_type(value: Any) -> str:
+    type_mapping = {
+        int: 'integer',
+        float: 'number',
+        str: 'string',
+        bool: 'boolean',
+        list: 'array',
+        dict: 'object'
+    }
     return type_mapping.get(type(value), 'string')
 
 def add_extra_arguments(tool_call: Dict[str, Any], tools: List[Tool]):
@@ -189,7 +183,7 @@ class ToolDataset(Iterator):
                         raise ValueError(f"Invalid format for tools: {data['tools']}")
                     for tool in tools:
                         for arg_name, arg_value in tool.arguments.items():
-                            if arg_value["type"] not in type_mapping.keys():
+                            if arg_value["type"] not in TYPES:
                                 raise ValueError(f"Inavlid type used type: {arg_value['type']}")
                     return ToolCallData(messages=messages, tools=tools)
                     
