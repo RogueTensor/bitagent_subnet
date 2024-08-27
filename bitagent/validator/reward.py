@@ -150,7 +150,7 @@ async def process_rewards_update_scores_and_send_feedback(validator: BaseValidat
                         "task_id": task_id,
                         "task_name": task_name,
                         "prompt": prompt,
-                        "messages": "\n".join([m.content for m in messages]),
+                        "messages": [{'role': m.role, 'content': m.content} for m in messages],
                         "prompt_len": len(prompt),
                         "tools": [{'name': t.name, 'description': t.description, 'arguments': t.arguments} for t in tools],
                         "miners_count": len(miner_uids),
