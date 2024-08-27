@@ -158,6 +158,8 @@ async def process_rewards_update_scores_and_send_feedback(validator: BaseValidat
                         "tools_count": len(tools),
                         "datas_count": len(datas),
                         "files_count": len(files),
+                        "datas": datas,
+                        "files": files,
                         "response": resp,
                         "citations": citations,
                         "miner_uid": miner_uids[i],
