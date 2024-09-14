@@ -137,11 +137,14 @@ def contains_correct_number_of_citation_sources(task, validator: BaseValidatorNe
     for source in sources:
         if source in selected_sources:
             identified_sources += 1
-            score += 1.5/len(selected_sources)
+            score += 1.5 / len(selected_sources)
+        else:
+            # 50% penalty for wrong source
+            score -= 0.75 / len(selected_sources)
 
-    reward = score
+    reward = max(-max_reward, score)
     if score > 0.0:
-        feedback = good_message(f"You correctly identified some or all of the correct citation sources ({identified_sources}/{len(selected_sources)} identified).")
+        feedback = good_message(f"You submitted {len(sources)} sources and correctly identified some or all of the correct citation sources ({identified_sources}/{len(selected_sources)} identified).")
     else:
         feedback = bad_message(f"You failed to correctly identify any of the correct citation sources.")
         feedback += f"\nYou provided the following sources: {sources}."
@@ -171,7 +174,7 @@ def correct_response_provided_simple(task, validator: BaseValidatorNeuron, synap
 def ensure_unique_response(task, validator: BaseValidatorNeuron, synapse: bt.Synapse, response: dict, selected_datas: List[dict], response_gen: str) -> [float, float, str]:
     max_reward = 1.0
     try:
-        prompt = task.synapse.prompt
+        prompt = task.synapse.messages[0].content
         completion = synapse.response['response']
     except KeyError:
         # no citations provided and no placeholder available or maybe something wrong with the data sources
@@ -269,7 +272,7 @@ def relevant_to_provided_content(task, validator: BaseValidatorNeuron, synapse: 
 def correct_response_provided(task, validator: BaseValidatorNeuron, synapse: bt.Synapse, response: dict, selected_datas: List[dict], response_gen: str) -> [float, float, str]:
     max_reward = 1.0
     try:
-        prompt = task.synapse.prompt
+        prompt = task.synapse.messages[0].content
         completion = synapse.response['response']
     except KeyError:
         # no citations provided and no placeholder available or maybe something wrong with the data sources

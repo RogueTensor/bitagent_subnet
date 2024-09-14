@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 class ChatRole(StrEnum):
     """One of ASSISTANT|USER to identify who the message is coming from."""
 
+    SYSTEM = "system"
     ASSISTANT = "assistant"
     USER = "user"
     TOOL_CALL = "tool call"
