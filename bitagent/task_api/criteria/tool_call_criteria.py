@@ -113,7 +113,7 @@ def correct_tool_use_and_response(task, validator: BaseValidatorNeuron, synapse:
         return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
     
     # Compare arguments
-    num_expected_keys = 2 * len(expected_tool_call['arguments'].keys()) + 1 # extra 1 is for the name
+    num_expected_keys = 2 * len(expected_tool_call['arguments'].keys())
     num_gotten_keys = 0
     num_gotten_values = 0
     for miner_key, miner_value in miner_tool_call['arguments'].items():
@@ -122,9 +122,12 @@ def correct_tool_use_and_response(task, validator: BaseValidatorNeuron, synapse:
             
             if difflib.SequenceMatcher(None, str(miner_value), str(expected_tool_call['arguments'][miner_key])).ratio() > 0.75:
                 num_gotten_values += 1
-    if difflib.SequenceMatcher(None, str(miner_tool_call['name']), str(expected_tool_call['name'])).ratio() > 0.75:
-        num_gotten_values += 1
-    correct_tool_percentage = (num_gotten_values+num_gotten_keys)/(num_expected_keys)
+    if str(miner_tool_call['name']) != str(expected_tool_call['name']):
+        correct_tool_percentage = 0
+    else:
+        correct_tool_percentage = (num_gotten_values+num_gotten_keys)/(num_expected_keys)
+    
+    
     try:
         if expect_tool_call:
             expected_assistant = find_assistant_after_tool_call(expected_convo)['content']
