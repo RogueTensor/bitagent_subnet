@@ -137,10 +137,10 @@ def contains_correct_number_of_citation_sources(task, validator: BaseValidatorNe
     for source in sources:
         if source in selected_sources:
             identified_sources += 1
-            score += 1.5 / len(selected_sources)
+            score += 2.0 / len(selected_sources)
         else:
             # 50% penalty for wrong source
-            score -= 0.75 / len(selected_sources)
+            score -= 0.5 / len(selected_sources)
 
     reward = max(-max_reward, score)
     if score > 0.0:
