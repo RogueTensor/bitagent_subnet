@@ -60,17 +60,17 @@ class ToolCallTask(Task):
         self.validator = validator
         self.timeout = 12.0
         self.name += " - Tool Call"
-        self.real_task = bool(random.random() < 0.99)
+        self.real_task = True
+        self.weight = TASK_WEIGHTS["tool_call"]
         if self.real_task:
             try:
                 messages, tools, data = self.generate_task_data()
-                self.weight = TASK_WEIGHTS["tool_call"]
                 self.criteria = default_criteria + tool_call_criteria(
                     expected_convo=messages_to_list(data.messages)
                 )
             except Exception as e:
                 bt.logging.error(f'Exception getting real task {e}')
-                pass
+                raise e
         else:
             try:
                 messages, tools, data = self.generate_dataset_task_data()
@@ -80,7 +80,8 @@ class ToolCallTask(Task):
                 self.weight = TASK_WEIGHTS["tool_call_dataset"]
             except Exception as e:
                 bt.logging.error(f'Exception getting dataset task {e}')
-                pass
+                raise e
+            
         self.messages = messages
         self.synapse = QnATask(
             urls=[], datas=[], tools=tools, messages=messages
