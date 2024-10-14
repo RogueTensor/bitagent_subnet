@@ -38,7 +38,7 @@ class Task():
     def __init__(self, 
                  name: str, 
                  prompt: str = "", 
-                 weight: int = 0.5,
+                 weight: int = 0.05,
                  desc: str = "", 
                  timeout: int = 12,
                  datas: List[dict] = [],
