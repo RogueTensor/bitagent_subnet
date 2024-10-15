@@ -57,19 +57,23 @@ def initiate_validator(self):
             project_name = "mainnet"
 
 
-        self.wandb = wandb.init(
-            anonymous="allow",
-            reinit=reinit,
-            entity='bitagentsn20',
-            project=project_name,
-            config=wandb_config,
-            dir=self.config.neuron.full_path,
-            tags=tags,
-            resume='allow',
-            name=f"{uid}-{spec_version}-{datetime.today().strftime('%Y-%m-%d')}",
-        )
-        bt.logging.success(f"Started a new wandb run <blue> {self.wandb.name} </blue>")
-
+        try:
+            self.wandb = wandb.init(
+                anonymous="allow",
+                reinit=reinit,
+                entity='bitagentsn20',
+                project=project_name,
+                config=wandb_config,
+                dir=self.config.neuron.full_path,
+                tags=tags,
+                resume='allow',
+                name=f"{uid}-{spec_version}-{datetime.today().strftime('%Y-%m-%d')}",
+            )
+            bt.logging.success(f"Started a new wandb run <blue> {self.wandb.name} </blue>")
+        except Exception as e:
+            self.wandb = "errored"
+            bt.logging.error("Could not connect to wandb ... continuing without it ...")
+            bt.logging.error(f"WANDB Error: {e}")
 
     def reinit_wandb(self):
         """Reinitializes wandb, rolling over the run."""
@@ -87,6 +91,9 @@ def initiate_validator(self):
 
         if not getattr(self, "wandb", None):
             init_wandb(self)
+
+        if self.wandb == "errored":
+            return
 
         # Log the event to wandb.
         self.wandb.log(event)
