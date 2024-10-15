@@ -60,17 +60,17 @@ class ToolCallTask(Task):
         self.validator = validator
         self.timeout = 12.0
         self.name += " - Tool Call"
-        self.real_task = bool(random.random() < 0.99)
+        self.real_task = True
+        self.weight = TASK_WEIGHTS["tool_call"]
         if self.real_task:
             try:
                 messages, tools, data = self.generate_task_data()
-                self.weight = TASK_WEIGHTS["tool_call"]
                 self.criteria = default_criteria + tool_call_criteria(
                     expected_convo=messages_to_list(data.messages)
                 )
             except Exception as e:
                 bt.logging.error(f'Exception getting real task {e}')
-                pass
+                raise e
         else:
             try:
                 messages, tools, data = self.generate_dataset_task_data()
@@ -80,7 +80,8 @@ class ToolCallTask(Task):
                 self.weight = TASK_WEIGHTS["tool_call_dataset"]
             except Exception as e:
                 bt.logging.error(f'Exception getting dataset task {e}')
-                pass
+                raise e
+            
         self.messages = messages
         self.synapse = QnATask(
             urls=[], datas=[], tools=tools, messages=messages
@@ -95,7 +96,9 @@ class ToolCallTask(Task):
         messages_before_call = find_msgs_before_tool_call(data.messages)
         if messages_before_call[-1].role == "assistant":
             messages_before_call = messages_before_call[:-1]
-        return messages_before_call, data.tools, data
+        all_tools = data.tools
+        random.shuffle(all_tools)
+        return messages_before_call, all_tools, data
     
     
     def generate_task_data(self) -> ToolCallData:
@@ -165,7 +168,6 @@ class ToolCallTask(Task):
                 if messages_before_call[-1].role == "assistant":
                     messages_before_call = messages_before_call[:-1]
                 
-                return messages_before_call, data.tools, data
             else:
                 new_user = self.validator.validator_llm(REWRITE_PROPMT.format(query=user))
                 if not self.check_rewrite_alignment(new_user, user):
@@ -180,7 +182,9 @@ class ToolCallTask(Task):
                 if messages_before_call[-1].role == "assistant":
                     messages_before_call = messages_before_call[:-1]
                 
-                return messages_before_call, data.tools, data
+            all_tools = data.tools
+            random.shuffle(all_tools)
+            return messages_before_call, all_tools, data
 
     def check_rewrite_alignment(self, original: str, rewrite: str) -> bool:
         score = self.validator.measure_relevance_of_texts(original, rewrite)

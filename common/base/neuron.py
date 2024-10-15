@@ -80,12 +80,17 @@ class BaseNeuron(ABC):
 
         # The subtensor is our connection to the Bittensor blockchain.
         try:
-            self.subtensor = bt.subtensor(config=self.config)
-            bt.logging.info(f"Subtensor: {self.subtensor}")
+            while True:
+                try:
+                    self.subtensor = bt.subtensor(config=self.config)
+                    bt.logging.info(f"Subtensor: {self.subtensor}")
 
-            # The metagraph holds the state of the network, letting us know about other validators and miners.
-            self.metagraph = self.subtensor.metagraph(self.config.netuid)
-            bt.logging.info(f"Metagraph: {self.metagraph}")
+                    # The metagraph holds the state of the network, letting us know about other validators and miners.
+                    self.metagraph = self.subtensor.metagraph(self.config.netuid)
+                    bt.logging.info(f"Metagraph: {self.metagraph}")
+                    break
+                except Exception as e:
+                    bt.logging.error(f"Error trying to connect to subtensor: {e}")
 
             # Check if the miner is registered on the Bittensor network before proceeding further.
             self.check_registered()
