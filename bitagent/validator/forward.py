@@ -34,7 +34,7 @@ async def forward(self, synapse: QnATask=None) -> QnATask:
     It is responsible for querying the network and scoring the responses.
 
     Handles 3 cases:
-     - Organic task coming in through the axon
+     - Organic task coming in through the axon (OBE)
      - Organic task coming in through the Task API
      - Generated task coming in through the Task API
 
@@ -59,7 +59,7 @@ async def forward(self, synapse: QnATask=None) -> QnATask:
     # in this case, timeout can be provided to work with your application's needs
     # and miner_uids can be provided (optional) to specify which miners to send the task to if you want to be specific
     # any tasks that come in through the validator axon are organic tasks and not evaluated
-    if synapse:
+    if False: #if synapse:
         task = None
         #bt.logging.debug(f"Received organic task over axon: {synapse.prompt[:200]} ...")
         task_synapse = synapse
