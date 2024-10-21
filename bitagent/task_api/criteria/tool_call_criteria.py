@@ -33,6 +33,40 @@ def json_quote_fix(s):
     s = p.sub('\"', s)
     return s
 
+def correct_irrelevant_tool_call(task, validator: BaseValidatorNeuron, synapse: bt.Synapse, response:dict, expected_convo: List[dict]) -> [float, float, str]:
+    max_reward = 3.0
+    reward = 3.0
+    expected_convo = messages_from_list(expected_convo)
+    
+    try:
+        resp = synapse.response['response']
+        try:
+            miner_convo = messages_from_list(json.loads(resp))
+        except Exception as e:
+            reward = -0.5
+            if any([msg.role == 'tool call' for msg in expected_convo]):
+                feedback = bad_message(f"You failed to provide the correct response formatting - looking for a list of messages. Like so [{{\"role\": \"tool call\", \"content\": \"message\"}}, {{\"role\": \"assistant\", \"content\": \"message\"}}]")
+            else:
+                feedback = bad_message(f"You failed to provide the correct response formatting - looking for a list of messages. Like so [{{\"role\": \"assistant\", \"content\": \"message\"}}]")
+            return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
+    except KeyError:
+        reward = -0.5
+        feedback = bad_message(f"You failed to provide the correct response formatting - looking for a dict w/ a response key")
+        return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
+    
+    tool_call = find_first_tool_call(miner_convo)
+    tool_call_content = tool_call.content
+    if isinstance(tool_call_content, str):
+        tool_call_content = json.loads(tool_call_content)
+    
+    if tool_call_content:
+        reward = -0.5
+        feedback = bad_message(f"You provided a tool call, but one was not expected.")
+        return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
+    feedback = good_message(f"You responded with the correct answer.")
+    
+    return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
+
 def correct_tool_use_and_response(task, validator: BaseValidatorNeuron, synapse: bt.Synapse, response:dict, expected_convo: List[dict]) -> [float, float, str]:
     max_reward = 3.0
     expected_convo = messages_from_list(expected_convo)

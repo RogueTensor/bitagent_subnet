@@ -113,6 +113,11 @@ def tool_call_criteria(expected_convo: List[dict]) -> List[Criterion]:
         Criterion(name="Return valid function call response", desc="", eval_fx=correct_tool_use_and_response, eval_args=[expected_convo]),
     ]
 
+def irrelevant_tool_call_criteria() -> List[Criterion]:
+    return [
+        Criterion(name="Return valid function call response", desc="", eval_fx=correct_irrelevant_tool_call, eval_args=[]),
+    ]
+
 def dataset_tool_call_criteria() -> List[Criterion]:
     return [
         Criterion(name="Return valid function call response", desc="", eval_fx=correct_dataset_tool_call_response, eval_args=[]),
