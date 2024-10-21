@@ -20,13 +20,13 @@ def check_uid_availability(
     # don't hit sn owner
     if uid == 0:
         return False
-    # any miner receiving incentive should be queried
-    if metagraph.I[uid] > 0:
-        return True
     # Filter validator permit > 1024 stake.
     if metagraph.validator_permit[uid]:
         if metagraph.S[uid] > vpermit_tao_limit:
             return False
+    # any miner receiving incentive should be queried
+    if metagraph.I[uid] > 0:
+        return True
     # Available otherwise.
     return True
 

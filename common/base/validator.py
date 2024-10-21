@@ -34,6 +34,7 @@ from traceback import print_exception
 
 from common.base.neuron import BaseNeuron
 from common.utils.config import add_args as util_add_args
+from common.utils.uids import check_uid_availability
 
 class BaseValidatorNeuron(BaseNeuron):
     """
@@ -331,10 +332,12 @@ class BaseValidatorNeuron(BaseNeuron):
             bt.logging.info(
                 "Metagraph updated, re-syncing hotkeys, dendrite pool and moving averages"
             )  
-            # Zero out all hotkeys that have been replaced.
+            # Normalize all hotkeys that have been replaced, and zero out all hotkeys that are no longer available
             for uid, hotkey in enumerate(self.hotkeys):
                 if hotkey != self.metagraph.hotkeys[uid]:
                     self.scores[uid] = np.median(self.scores)
+                if not check_uid_availability(self.metagraph, uid, self.config.validator.vpermit_tao_limit): # returns false if validator or uid 0 , will set validators scores to 0
+                    self.scores[uid] = 0 
             # Check to see if the metagraph has changed size.
             # If so, we need to add new hotkeys and moving averages.
             if len(self.hotkeys) < len(self.metagraph.hotkeys):
