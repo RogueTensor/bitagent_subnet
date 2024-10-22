@@ -30,7 +30,7 @@ def validate_tool_call(tool: Tool, tool_call: Dict[str, Any]) -> bool:
             bt.logging.warning(f"Tool name mismatch: {tool_call_validated.name} != {tool.name}")
             return False
         
-        if not len(tool_call_validated.arguments.keys()) >= len([argname for argname, argdict in tool.arguments.items() if argdict['required']]) and not len(tool_call_validated.arguments.keys()) <= len([argname for argname, argdict in tool.arguments.items()]):
+        if len(tool_call_validated.arguments.keys()) < len([argname for argname, argdict in tool.arguments.items() if argdict['required']]) or len(tool_call_validated.arguments.keys()) > len([argname for argname, argdict in tool.arguments.items()]):
             bt.logging.warning(f"Argument length mismatch")
             return False
         

@@ -69,7 +69,7 @@ class ToolCallTask(Task):
                 expected_convo=expected_messages
             ) 
             # 75% of the time do a tool call task with a relevant tool, other times do a tool call with no valid tool option
-            if bool(random.random() < 0.25):
+            if bool(random.random() < 0.25) and len(tools) > 1:
                 # irrelevant tool call
                 # remove the real tool
                 tools = [t for t in tools if t.name != json.loads(data.messages[1].content)['name']]
