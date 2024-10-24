@@ -21,7 +21,6 @@ import wandb
 import random
 import bittensor as bt
 from datetime import datetime
-from faker import Faker
 from bitagent.datasources import ToolDataset
 from langchain_openai import ChatOpenAI
 from sentence_transformers import util
@@ -91,7 +90,7 @@ def initiate_validator(self):
 
     initiate_validator_local(self)
 
-# provide some capabilities to the task API (LLM, cossim and faker)
+# provide some capabilities to the task API (LLM, cossim)
 def initiate_validator_local(self):
     #bt.logging.info("Initializing Validator - this may take a while (downloading data and models).")
     self.tool_dataset = ToolDataset()
@@ -129,7 +128,3 @@ def initiate_validator_local(self):
             return float(util.pytorch_cos_sim(embeddings[0], embeddings[1:])[0][0])
 
     self.measure_relevance_of_texts = measure_relevance_of_texts
-
-    # countering the effect of setting seed for task orchestration from validators
-    Faker.seed(random.randint(0,2000))
-    self.fake = Faker()
