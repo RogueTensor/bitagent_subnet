@@ -49,14 +49,32 @@ class Miner(BaseMinerNeuron):
         parser.add_argument(
             "--miner",
             type=str,
-            default="t5",
-            help="Miner to load. Default choices are 't5' and 'mock'.  Pass your custom miner name as appropriate."
+            default="default",
+            help="Miner to load. Default choices are 'default' and 'mock'.  Pass your custom miner name as appropriate."
         )
         parser.add_argument(
-            "--model_url",
+            "--hf-model-name",
             type=str,
-            default="localhost:5000",
-            help="the model_url if needed."
+            default="none",
+            help="the HF model name that you've uploaded to the HF hub to be evaluated."
+        )
+        parser.add_argument(
+            "--openai-api-key",
+            type=str,
+            default="EMPTY",
+            help="the OpenAI API key defaults to EMPTY"
+        )
+        parser.add_argument(
+            "--openai-api-base",
+            type=str,
+            default="http://localhost:8000/v1",
+            help="the OpenAI API base url - defaults to a local LLM server (like VLLM)",
+        )
+        parser.add_argument(
+            "--openai-model-name",
+            type=str,
+            default="none",
+            help="the OpenAI model name, defaults to none, meaning you'll use the top miner's HF model",
         )
 
     def __init__(self, config=None):
@@ -64,6 +82,7 @@ class Miner(BaseMinerNeuron):
             {'forward': self.forward_for_task, 'blacklist': self.blacklist_for_task, 'priority': self.priority_for_task},
             {'forward': self.forward_for_result, 'blacklist': self.blacklist_for_result, 'priority': self.priority_for_result},
             {'forward': self.forward_for_alive, 'blacklist': self.blacklist_for_alive, 'priority': self.priority_for_alive},
+            {'forward': self.forward_for_hf_model_name, 'blacklist': self.blacklist_for_hf_model_name, 'priority': self.priority_for_hf_model_name},
         ]
         if not config:
             config = util_config(self)
@@ -77,11 +96,11 @@ class Miner(BaseMinerNeuron):
         self.miner_init = miner_module.miner_init
         self.miner_process = miner_module.miner_process
 
-        self.miner_init(self)
+        self.miner_init(self, config)
 
     async def forward_for_task(
-        self, synapse: bitagent.protocol.QnATask
-    ) -> bitagent.protocol.QnATask:
+        self, synapse: bitagent.protocol.QueryTask
+    ) -> bitagent.protocol.QueryTask:
         """
         Processes the incoming BitAgent synapse and returns response.
 
@@ -98,8 +117,8 @@ class Miner(BaseMinerNeuron):
         return synapse
 
     async def forward_for_result(
-        self, synapse: bitagent.protocol.QnAResult
-    ) -> bitagent.protocol.QnAResult:
+        self, synapse: bitagent.protocol.QueryResult
+    ) -> bitagent.protocol.QueryResult:
         if self.config.logging.debug:
             rich_console.print(synapse.results)
         return synapse
@@ -110,6 +129,11 @@ class Miner(BaseMinerNeuron):
         synapse.response = True
         return synapse
 
+    async def forward_for_hf_model_name(
+        self, synapse: bitagent.protocol.GetHFModelName
+    ) -> bitagent.protocol.GetHFModelName:
+        synapse.hf_model_name = self.config.hf_model_name
+        return synapse
 
     async def __blacklist(self, synapse: bt.Synapse) -> Tuple[bool, str]:
         """
@@ -173,6 +197,9 @@ class Miner(BaseMinerNeuron):
     async def blacklist_for_alive(self, synapse: bitagent.protocol.IsAlive) -> Tuple[bool, str]:
         return await self.__blacklist(synapse)
 
+    async def blacklist_for_hf_model_name(self, synapse: bitagent.protocol.GetHFModelName) -> Tuple[bool, str]:
+        return False, "No blacklist for HF model name"
+
     async def __priority(self, synapse: bt.Synapse) -> float:
         """
         The priority function determines the order in which requests are handled. More valuable or higher-priority
@@ -212,6 +239,9 @@ class Miner(BaseMinerNeuron):
         return await self.__priority(synapse)
 
     async def priority_for_alive(self, synapse: bitagent.protocol.IsAlive) -> float:
+        return await self.__priority(synapse)
+
+    async def priority_for_hf_model_name(self, synapse: bitagent.protocol.GetHFModelName) -> float:
         return await self.__priority(synapse)
 
     async def forward(self, synapse: bt.Synapse) -> bt.Synapse:

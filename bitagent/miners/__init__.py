@@ -6,4 +6,4 @@ __spec_version__ = (
     + (1 * int(version_split[2]))
 )
 from . import mock_miner
-from . import t5_miner
+from . import default_miner
