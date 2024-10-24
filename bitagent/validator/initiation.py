@@ -18,22 +18,19 @@
 
 import copy
 import wandb
+import random
 import bittensor as bt
 from datetime import datetime
-from bitagent.task_api.initiation import initiate_validator as initiate_validator_local
+from faker import Faker
+from bitagent.datasources import ToolDataset
+from langchain_openai import ChatOpenAI
+from sentence_transformers import util
+from bitagent.helpers.sbert import CachedSentenceTransformer
 
 # setup validator with wandb
 # clear out the old wandb dirs if possible
 def initiate_validator(self):
     
-    def should_reinit_wandb(self):
-        # Check if wandb run needs to be rolled over.
-        return (
-            not self.config.wandb.off
-            and self.step
-            and self.step % self.config.wandb.run_step_length == 0
-        )
-
     def init_wandb(self, reinit=False):
         uid = self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)
         spec_version = self.spec_version
@@ -56,7 +53,6 @@ def initiate_validator(self):
         if self.config.netuid == 20:
             project_name = "mainnet"
 
-
         try:
             self.wandb = wandb.init(
                 anonymous="allow",
@@ -75,16 +71,8 @@ def initiate_validator(self):
             bt.logging.error("Could not connect to wandb ... continuing without it ...")
             bt.logging.error(f"WANDB Error: {e}")
 
-    def reinit_wandb(self):
-        """Reinitializes wandb, rolling over the run."""
-        self.wandb.finish()
-        init_wandb(self, reinit=True)
-
-
     def log_event(event):
         #bt.logging.debug("Writing to WandB ....")
-        #if self.config.netuid != 20 and self.config.netuid != 76:
-        #    return
 
         if not self.config.wandb.on:
             return
@@ -101,8 +89,47 @@ def initiate_validator(self):
 
     self.log_event = log_event
 
-    if self.config.run_local:
-        def random_seed():
-            None
-        self.random_seed = random_seed
-        initiate_validator_local(self)
+    initiate_validator_local(self)
+
+# provide some capabilities to the task API (LLM, cossim and faker)
+def initiate_validator_local(self):
+    #bt.logging.info("Initializing Validator - this may take a while (downloading data and models).")
+    self.tool_dataset = ToolDataset()
+    #bt.logging.debug("Initializing Validator - this may take a while (downloading data and models) - loading model ...")
+    self.sentence_transformer = CachedSentenceTransformer('BAAI/bge-small-en-v1.5')
+
+    def llm(messages, max_new_tokens = 160, temperature=0.7):
+        if isinstance(messages, str):
+            messages = [{"role":"user","content":messages}]
+        # TODO add key, base, name as config options
+        llm = ChatOpenAI(
+            openai_api_key="EMPTY",
+            openai_api_base="http://localhost:8000/v1",
+            model_name="thesven/Mistral-7B-Instruct-v0.3-GPTQ",
+            max_tokens = max_new_tokens,
+            temperature = temperature,
+        )
+        return llm.invoke(messages).content.strip()
+    
+    self.llm = llm
+    
+    #bt.logging.debug("Initializing Validator - this may take a while (downloading data and models) - finished loading model")
+
+    # code to measure the relevance of the response to the question
+    def measure_relevance_of_texts(text1, text2): 
+        # Encode the texts to get the embeddings
+        if type(text2) == list:
+            embeddings = self.sentence_transformer.encode([text1,*text2], convert_to_tensor=True, show_progress_bar=False)
+        else:
+            embeddings = self.sentence_transformer.encode([text1,text2], convert_to_tensor=True, show_progress_bar=False)
+        # Compute the cosine similarity between the embeddings
+        if type(text2) == list:
+            return util.pytorch_cos_sim(embeddings[0], embeddings[1:])[0]
+        else:
+            return float(util.pytorch_cos_sim(embeddings[0], embeddings[1:])[0][0])
+
+    self.measure_relevance_of_texts = measure_relevance_of_texts
+
+    # countering the effect of setting seed for task orchestration from validators
+    Faker.seed(random.randint(0,2000))
+    self.fake = Faker()

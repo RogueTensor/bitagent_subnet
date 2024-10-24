@@ -26,7 +26,7 @@ def miner_init(self, config=None):
 
     self.llm = llm
 
-def miner_process(self, synapse: bitagent.protocol.QnATask) -> bitagent.protocol.QnATask:
+def miner_process(self, synapse: bitagent.protocol.QueryTask) -> bitagent.protocol.QueryTask:
     llm_response = self.llm("test")
 
     synapse.response["response"] = llm_response

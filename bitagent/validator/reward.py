@@ -17,13 +17,12 @@
 # DEALINGS IN THE SOFTWARE.
 import json
 import asyncio
-import requests
 import numpy as np
 import bittensor as bt
 from typing import List, Any
 from rich.console import Console
-from bitagent.validator.tasks import Task
-from bitagent.protocol import QnAResult
+from bitagent.tasks.task import Task
+from bitagent.protocol import QueryResult
 from common.base.validator import BaseValidatorNeuron
 
 rich_console = Console()
@@ -37,7 +36,7 @@ async def send_results_to_miner(validator, result, miner_axon):
         # Send the query to selected miner axons in the network.
         axons=[miner_axon],
         # Construct a query. 
-        synapse=QnAResult(results=result),
+        synapse=QueryResult(results=result),
         # All responses have the deserialize function called on them before returning.
         # You are encouraged to define your own deserialization function.
         deserialize=False,
@@ -45,26 +44,20 @@ async def send_results_to_miner(validator, result, miner_axon):
     )
 
 async def evaluate_task(validator, task, response):
+    # TODO why is this a list .... of 1?
     rewards = []
-    if validator.config.run_local:
-        resp = {
-            "response": response.response,
-            #"prompt": response.prompt,
-            #"urls": response.urls,
-            #"datas": response.datas,
-            #"tools": response.tools,
-            #"notes": response.notes,
-            "axon_hotkey": response.axon.hotkey,
-            "dendrite_process_time": response.dendrite.process_time,
-            "dendrite_status_code": response.dendrite.status_code,
-            "axon_status_code": response.axon.status_code,
-        }
-        try:
-            rewards.append(task.reward(validator, response, resp))
-        except Exception as e:
-            bt.logging.warning(f"An exception calling task.reward: {e}")
-    else:
-        rewards.append(task.reward(validator, response))
+    # TODO fix this up - need to just send in the response, the reward method can handle the rest
+    resp = {
+        "response": response.response,
+        "axon_hotkey": response.axon.hotkey,
+        "dendrite_process_time": response.dendrite.process_time,
+        "dendrite_status_code": response.dendrite.status_code,
+        "axon_status_code": response.axon.status_code,
+    }
+    try:
+        rewards.append(task.reward(validator, response, resp))
+    except Exception as e:
+        bt.logging.warning(f"An exception calling task.reward: {e}")
 
     return rewards
 
@@ -85,7 +78,7 @@ async def return_results(validator, task, miner_uid, reward):
 ---
 Stats with this validator:
 Your Average Score: {validator.scores[miner_uid]}
-Highest Score across all miners: {validator.scores.max()}
+Highest Score across all miners: {validator.query_scores.max()}
 Median Score across all miners: {np.median(validator.scores)}"""
             # send results
             await send_results_to_miner(validator, result, validator.metagraph.axons[miner_uid])
@@ -113,11 +106,8 @@ async def process_rewards_update_scores_and_send_feedback(validator: BaseValidat
     """
     # common wandb setup
     try:
-        prompt = task.synapse.prompt
         messages = task.synapse.messages
         tools = task.synapse.tools
-        datas = task.synapse.datas
-        files = task.synapse.files
         task_name = task.name
     except Exception as e:
         bt.logging.error("Could not setup common data - ", e)
@@ -137,31 +127,21 @@ async def process_rewards_update_scores_and_send_feedback(validator: BaseValidat
                 score,max_possible_score,_,correct_answer = rewards[i][0]
                 normalized_score = score/max_possible_score
                 resp = "None"
-                citations = "None"
                 try:
                     resp = response.response["response"]
-                    citations = json.dumps(response.response["citations"])
                 except:
                     pass
 
                 try:
                     task_id = task.task_id
                     data = {
-                        "task_id": task_id,
                         "task_name": task_name,
-                        "prompt": prompt,
                         "messages": [{'role': m.role, 'content': m.content} for m in messages],
-                        "prompt_len": len(prompt),
                         "tools": [{'name': t.name, 'description': t.description, 'arguments': t.arguments} for t in tools],
                         "miners_count": len(miner_uids),
                         "messages_count": len(messages),
                         "tools_count": len(tools),
-                        "datas_count": len(datas),
-                        "files_count": len(files),
-                        "datas": datas,
-                        "files": files,
                         "response": resp,
-                        "citations": citations,
                         "miner_uid": miner_uids[i],
                         "score": score,
                         "normalized_score": normalized_score,
