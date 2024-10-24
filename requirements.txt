@@ -1,8 +1,7 @@
 accelerate
-bittensor==7.1.2
+bittensor==8.2.0
 beautifulsoup4
 bs4
-chromadb==0.4.22
 datasets
 Faker
 gunicorn
@@ -23,4 +22,3 @@ openai
 StrEnum
 langchain-openai
 langchain_text_splitters
-matplotlib
