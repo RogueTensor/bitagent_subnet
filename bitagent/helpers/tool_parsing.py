@@ -25,14 +25,14 @@ def validate_tool_call(tool: Tool, tool_call: Dict[str, Any]) -> bool:
     try:
         # Validate the tool call structure
         tool_call_validated = ToolCall(**tool_call)
-        
+
         # Check if the tool call name matches the tool name
         if tool_call_validated.name != tool.name:
-            bt.logging.warning(f"Tool name mismatch: {tool_call_validated.name} != {tool.name}")
+            #bt.logging.warning(f"Tool name mismatch: {tool_call_validated.name} != {tool.name}")
             return False
         
         if len(tool_call_validated.arguments.keys()) < len([argname for argname, argdict in tool.arguments.items() if argdict['required']]) or len(tool_call_validated.arguments.keys()) > len([argname for argname, argdict in tool.arguments.items()]):
-            bt.logging.warning(f"Argument length mismatch")
+            #bt.logging.warning(f"Argument length mismatch")
             return False
         
         # Check arguments
@@ -43,23 +43,36 @@ def validate_tool_call(tool: Tool, tool_call: Dict[str, Any]) -> bool:
             if arg_name in tool_call_validated.arguments:
                 expected_type = type_mapping.get(arg_schema['type'])
                 if expected_type is None:
-                    #bt.logging.warning(f"Unknown type for argument {arg_name}: {arg_schema['type']}")
+                    bt.logging.warning(f"Unknown type for argument {arg_name}: {arg_schema['type']}")
                     return False
                 
                 # Handle nested objects
-                if expected_type == dict:
-                    if not isinstance(tool_call_validated.arguments[arg_name], dict):
-                        #bt.logging.warning(f"Argument {arg_name} has incorrect type. Expected {expected_type}, got {type(tool_call_validated.arguments[arg_name])}")
-                        return False
+                # TODO if the type conversion is easy, convert from str to int or int to float as needed for example
+                if 'is_ground_truth' in list(tool_call.keys()) and tool_call['is_ground_truth']:
+                    if expected_type == dict:
+                        if not isinstance(tool_call_validated.arguments[arg_name][-1], dict):
+                            #bt.logging.warning(f"""GT Argument {arg_name} has incorrect type. 
+                            #                   Expected {expected_type}, got {type(tool_call_validated.arguments[arg_name][-1])}""")
+                            return False
+                    else:
+                        if not isinstance(tool_call_validated.arguments[arg_name][-1], expected_type):
+                            #bt.logging.warning(f"""GT Argument {arg_name} has incorrect type. 
+                            #                   Expected {expected_type}, got {type(tool_call_validated.arguments[arg_name][-1])}""")
+                            return False
                 else:
-                    if not isinstance(tool_call_validated.arguments[arg_name], expected_type):
-                        #bt.logging.warning(f"Argument {arg_name} has incorrect type. Expected {expected_type}, got {type(tool_call_validated.arguments[arg_name])}")
-                        return False
+                    if expected_type == dict:
+                        if not isinstance(tool_call_validated.arguments[arg_name], dict):
+                            #bt.logging.warning(f"Argument {arg_name} has incorrect type. Expected {expected_type}, got {type(tool_call_validated.arguments[arg_name])}")
+                            return False
+                    else:
+                        if not isinstance(tool_call_validated.arguments[arg_name], expected_type):
+                            #bt.logging.warning(f"Argument {arg_name} has incorrect type. Expected {expected_type}, got {type(tool_call_validated.arguments[arg_name])}")
+                            return False
         
         # All checks passed
         return True
     except ValidationError as e:
-        bt.logging.warning(f"Validation error: {e}")
+        #bt.logging.warning(f"Validation error: {e}")
         return False
 
 def find_first_tool_call(messages: List[ChatMessage]):
