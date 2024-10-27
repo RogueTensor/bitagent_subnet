@@ -23,9 +23,13 @@ import bittensor as bt
 from typing import List
 from common.base.validator import BaseValidatorNeuron
 
-from bitagent.helpers.tool_parsing import validate_tool_call
+from bitagent.helpers.tool_parsing import (
+    validate_tool_call,
+    find_assistant_after_tool_call,
+    find_first_tool_call,
+    find_last_assistant
+)
 from bitagent.criteria.utils import good_message, bad_message, received_reward_template
-from bitagent.helpers.convo_parsing import find_assistant_after_tool_call, find_first_tool_call, find_last_assistant
 from bitagent.schemas.chat import messages_from_list
 
 def json_quote_fix(s):
