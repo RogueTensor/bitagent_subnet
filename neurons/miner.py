@@ -105,10 +105,10 @@ class Miner(BaseMinerNeuron):
         Processes the incoming BitAgent synapse and returns response.
 
         Args:
-            synapse (bitagent.protocol.QnATask): The synapse object containing the urls and prompt.
+            synapse (bitagent.protocol.QueryTask): The synapse object containing the messages and tools.
 
         Returns:
-            bitagent.protocol.QnATask: The synapse object with the 'response' field set to the generated response and citations
+            bitagent.protocol.QueryTask: The synapse object with the 'response' field set to the generated response.
 
         """
 
@@ -145,7 +145,7 @@ class Miner(BaseMinerNeuron):
         requests before they are deserialized to avoid wasting resources on requests that will be ignored.
 
         Args:
-            synapse (bitagent.protocol.QnATask): A synapse object constructed from the headers of the incoming request.
+            synapse (bitagent.protocol.QueryTask): A synapse object constructed from the headers of the incoming request.
 
         Returns:
             Tuple[bool, str]: A tuple containing a boolean indicating whether the synapse's hotkey is blacklisted,
@@ -188,17 +188,23 @@ class Miner(BaseMinerNeuron):
         )
         return False, "Hotkey recognized!"
 
-    async def blacklist_for_task(self, synapse: bitagent.protocol.QnATask) -> Tuple[bool, str]:
+    async def blacklist_for_task(self, synapse: bitagent.protocol.QueryTask) -> Tuple[bool, str]:
         return await self.__blacklist(synapse)
 
-    async def blacklist_for_result(self, synapse: bitagent.protocol.QnAResult) -> Tuple[bool, str]:
+    async def blacklist_for_result(self, synapse: bitagent.protocol.QueryResult) -> Tuple[bool, str]:
         return await self.__blacklist(synapse)
 
     async def blacklist_for_alive(self, synapse: bitagent.protocol.IsAlive) -> Tuple[bool, str]:
         return await self.__blacklist(synapse)
 
     async def blacklist_for_hf_model_name(self, synapse: bitagent.protocol.GetHFModelName) -> Tuple[bool, str]:
-        return False, "No blacklist for HF model name"
+        if synapse.dendrite.hotkey not in self.metagraph.hotkeys:
+            # Ignore requests from unrecognized entities.
+            bt.logging.trace(
+                f"Blacklisting unrecognized hotkey {synapse.dendrite.hotkey}"
+            )
+            return True, "Unrecognized hotkey"
+        return False, "HF model name request"
 
     async def __priority(self, synapse: bt.Synapse) -> float:
         """
@@ -208,7 +214,7 @@ class Miner(BaseMinerNeuron):
         This implementation assigns priority to incoming requests based on the calling entity's stake in the metagraph.
 
         Args:
-            synapse (bitagent.protocol.QnATask): The synapse object that contains metadata about the incoming request.
+            synapse (bitagent.protocol.QueryTask): The synapse object that contains metadata about the incoming request.
 
         Returns:
             float: A priority score derived from the stake of the calling entity.
@@ -232,10 +238,10 @@ class Miner(BaseMinerNeuron):
         )
         return prirority
 
-    async def priority_for_task(self, synapse: bitagent.protocol.QnATask) -> float:
+    async def priority_for_task(self, synapse: bitagent.protocol.QueryTask) -> float:
         return await self.__priority(synapse)
 
-    async def priority_for_result(self, synapse: bitagent.protocol.QnAResult) -> float:
+    async def priority_for_result(self, synapse: bitagent.protocol.QueryResult) -> float:
         return await self.__priority(synapse)
 
     async def priority_for_alive(self, synapse: bitagent.protocol.IsAlive) -> float:
