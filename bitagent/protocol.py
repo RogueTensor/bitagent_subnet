@@ -27,12 +27,11 @@ class QueryTask(bt.Synapse):
     This protocol helps in handling validator request and miner response communication
 
     Attributes:
-    - tools: list of tools {name, description, arguments } in a List of dicts
     - messages: a list of ChatMessage (see bitagent/schemas) - will be used for every task except Tool Gen
-    - repsonse: a dict containing the response along with citations from the provided data context (urls or datas)
-        - {response: str, citations: List[dict]}
-        - the citations are a list of dicts {source & content: relevant content chunk from the source}
-        - there are multiple citations, multiple returned dicts can contains the same source of reference
+    - tools: list of tools {name, description, arguments } in a List of dicts
+    - repsonse: the tool calling response messages
+    # TODO can we reduce to just response now?
+        - {response: <messages>}
     - timeout: time in seconds to wait for the response (ONLY used for tasks coming in through validator axon)
     - miner_uids: list of miner uids to send the task to (ONLY used for tasks coming in through validator axon)
     """
@@ -60,5 +59,10 @@ class QueryResult(bt.Synapse):
 class IsAlive(bt.Synapse):
     response: bool
 
+# Validator calls this to get the HF model name that this miner hosts on HF
 class GetHFModelName(bt.Synapse):
+    hf_model_name: str
+
+# Validator calls this to have the miner set the TOP HF model for this miner to run
+class SetHFModelName(bt.Synapse):
     hf_model_name: str
