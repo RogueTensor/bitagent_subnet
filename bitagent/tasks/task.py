@@ -100,7 +100,8 @@ def get_random_task(validator) -> Task:
                     return ToolCallTask(validator=validator, name="Responds with correct function call")
 
         except Exception as e:
-            bt.logging.warning(f'Error getting task (name {choice}): ', e)
-            bt.logging.warning(traceback.format_exc())
+            #bt.logging.warning(f'Error getting task (name {choice}): ', e)
+            #bt.logging.warning(traceback.format_exc())
+            pass
 
     raise Exception("Failed to get task after 100 attempts")
