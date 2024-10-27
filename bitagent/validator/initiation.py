@@ -48,9 +48,13 @@ def initiate_validator(self):
         wandb_config["neuron"].pop("full_path", None)
         wandb_config["validator_uid"] = uid
 
-        project_name = "testnet" # for TN76
         if self.config.netuid == 20:
             project_name = "mainnet"
+        elif self.config.netuid == 76:
+            project_name = "testnet" # for TN76
+        else:
+            self.wandb = "errored"
+            return # must be using a local netuid, no need to log to wandb
 
         try:
             self.wandb = wandb.init(
