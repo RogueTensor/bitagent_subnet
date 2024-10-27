@@ -28,10 +28,10 @@ from bitagent.criteria import Criterion, default_criteria
 from bitagent.schemas.chat import ChatMessage, messages_from_list, messages_to_list
 
 # Task()
-# combines criterion/criteria with the QnATask (prompt,data) for eval to form a task for the miner
+# combines criterion/criteria with the QueryTask (messages,tools) for eval to form a task for the miner
 class Task():
     criteria: List[Criterion]
-    synapse: QnATask
+    synapse: QueryTask
 
     def __init__(self, 
                  name: str, 
@@ -41,17 +41,15 @@ class Task():
                  tools: List[Tool] = [],
                  messages: List[ChatMessage] = [],
                  criteria: List[Criterion] = default_criteria,
-                 response_should_contain: str = None, 
                  correct_answer: str=None
                         ) -> None:
-        random.seed(None)
+
         self.name=name
         self.weight = weight
         self.desc=desc
         self.timeout=timeout
         self.criteria=criteria
         self.messages = messages
-        self.response_should_contain=response_should_contain
         self.synapse = QueryTask(messages=messages, tools=tools)
         self.correct_answer = correct_answer
 
@@ -89,15 +87,11 @@ def evaluate_task(validator, task:Task, synapse:bt.Synapse, response:dict) -> [f
     return task.reward(validator, synapse, response)
 
 # get random task
-def get_random_task(validator, task_name=None, sub_task_id_to_get=None) -> Task:
+def get_random_task(validator) -> Task:
     from bitagent.tasks import ToolCallTask
-    random.seed(validator.random_seed())  
     task_names = list(TASK_FREQUENCY.keys())
     task_frequencies = list(TASK_FREQUENCY.values())
     choice = random.choices(task_names, weights=task_frequencies)[0]
-    # (optional) override the task with provided task id
-    if task_name and task_name in task_names:
-        choice = task_name
     
     for _ in range(100):
         try:
