@@ -45,8 +45,6 @@ def get_random_uids(
     """
     candidate_uids = []
     avail_uids = []
-    # countering the effect of setting seed for task orchestration from validators
-    random.seed(None)
 
     for uid in range(self.metagraph.n.item()):
         uid_is_available = check_uid_availability(
