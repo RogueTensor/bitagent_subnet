@@ -56,51 +56,38 @@ class ToolCallTask(Task):
         self.timeout = 12.0
         self.name += " - Tool Call"
         self.weight = TASK_WEIGHTS["tool_call"]
-        try:
-            messages, tools, data = self.generate_task_data()
-            # use data.messages by default
-            expected_messages = messages_to_list(data.messages)
-            self.criteria = default_criteria + tool_call_criteria(
-                expected_convo=expected_messages
-            ) 
-            # 75% of the time do a tool call task with a relevant tool, other times do a tool call with no valid tool option
-            if bool(random.random() < 0.25) and len(tools) > 1:
-                # irrelevant tool call
-                # remove the real tool
-                tools = [t for t in tools if t.name != json.loads(data.messages[1].content)['name']]
-                # create an irrelevance response that does not hae a tool
-                expected_messages = [data.messages[0].to_dict(),{"role":"tool call", "content": {}},{"role":"assistant", "content": "There is no valid tool for this user request."}]
-                self.criteria = default_criteria + irrelevant_tool_call_criteria(expected_convo=expected_messages)
-            
-        except Exception as e:
-            bt.logging.error(f'Exception getting real task {e}')
-            raise e
+
+        while True:
+            try:
+                messages, tools, data = self.generate_task_data()
+                expected_messages = messages_to_list(data.messages)
+
+                self.criteria = default_criteria + tool_call_criteria(
+                    expected_convo=expected_messages
+                ) 
+
+                # 75% of the time do a tool call task with a relevant tool, other times do a tool call with no valid tool option
+                if bool(random.random() < 0.25) and len(tools) > 1:
+                    # irrelevant tool call
+                    # remove the real tool
+                    tools = [t for t in tools if t.name != json.loads(data.messages[1].content)['name']]
+                    # create an irrelevance response that does not hae a tool
+                    expected_messages = [data.messages[0].to_dict(),{"role":"tool call", "content": {}},{"role":"assistant", "content": "There is no valid tool for this user request."}]
+                    self.criteria = default_criteria + irrelevant_tool_call_criteria(expected_convo=expected_messages)
+                
+                break
+                
+            except Exception as e:
+                bt.logging.error(f'Exception getting real task {e}')
+                #raise e
             
         self.messages = messages
         self.synapse = QueryTask(messages=messages, tools=tools)
     
-    def generate_dataset_task_data(self):
-        try:
-            data: ToolCallData = next(self.validator.local_tool_gen_dataset)
-        except Exception as e:
-            bt.logging.warning(f"Issue getting fake data {e}")
-        messages_before_call = find_msgs_before_tool_call(data.messages)
-        if messages_before_call[-1].role == "assistant":
-            messages_before_call = messages_before_call[:-1]
-        all_tools = data.tools
-        random.shuffle(all_tools)
-        return messages_before_call, all_tools, data
-    
-    
     def generate_task_data(self) -> ToolCallData:
-        # use_synth = bool(random.random() < 0.01)
-        use_synth = False
-        if use_synth:
-            data: ToolCallData = next(self.validator.local_tool_call_dataset)
-        else:
-            data: ToolCallData = next(self.validator.tool_dataset)
-            for _ in range(random.randint(2,6)):
-                data.tools = data.tools + next(self.validator.tool_dataset).tools
+        data: ToolCallData = next(self.validator.tool_dataset)
+        for _ in range(random.randint(3,8)):
+            data.tools = data.tools + next(self.validator.tool_dataset).tools
         
         # remove all the messages after the first tool call, keeping the assistant
         # this reduces the number of messages needing rewording
