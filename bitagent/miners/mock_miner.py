@@ -17,19 +17,16 @@
 # DEALINGS IN THE SOFTWARE.
 
 import bitagent
-from common.base.miner import BaseMinerNeuron
 
 def miner_init(self, config=None):
 
-    def llm(input_text):
-        return "I'm the LLM response, b/c I'm mock miner - rahhh!"
+    def llm():
+        return {"role": "assistant", "content": "I'm the LLM response, b/c I'm mock miner - rahhh!"}
 
     self.llm = llm
 
 def miner_process(self, synapse: bitagent.protocol.QueryTask) -> bitagent.protocol.QueryTask:
-    llm_response = self.llm("test")
-
-    synapse.response["response"] = llm_response
-    synapse.response["citations"] = []
+    llm_response = self.llm()
+    synapse.response = llm_response
 
     return synapse
