@@ -1,6 +1,5 @@
 import re
 import json
-import ast
 import random
 import bittensor as bt
 from pydantic import BaseModel
@@ -75,9 +74,6 @@ def json_schema_to_pydantic_tool(schema: dict) -> Tool:
         }
     return Tool(name=tool_name, description=tool_description, arguments=parameters)
 
-
-
-
 class ToolCallData(BaseModel):
     messages: List[ChatMessage]
     tools: list[Tool]
@@ -117,8 +113,6 @@ def add_extra_arguments(tool_call: Dict[str, Any], tools: List[Tool]):
 class ToolDataset(Iterator):
     def __init__(self):
         super().__init__()
-        # countering the effect of setting seed for task orchestration from validators
-        random.seed(None)
         seed = random.randint(0, 1000)
         glaive_ds = huggingface_loader("glaiveai/glaive-function-calling-v2")
         bitagent_ds = huggingface_loader("BitAgent/tool_calling")
@@ -130,12 +124,10 @@ class ToolDataset(Iterator):
 
     def __next__(self) -> ToolCallData:
         bt.logging.debug("Retrieving function call data from dataset...")
-        # countering the effect of setting seed for task orchestration from validators
         count = 0
         while count < 25:
             count += 1
             try:
-                random.seed(None)
                 dname, ds = random.choices(list(self.datasets.items()), [1, 10])[0]
                 data = next(ds)
                 if dname == "glaive":
@@ -166,7 +158,7 @@ class ToolDataset(Iterator):
 
                     
                     return ToolCallData(messages=messages, tools=tools)
-                else:
+                else: # bitagent
                     for key, value in data.items():
                         if isinstance(value, str):
                             data[key] = json.loads(value)
@@ -187,4 +179,5 @@ class ToolDataset(Iterator):
                     return ToolCallData(messages=messages, tools=tools)
                     
             except Exception as e:
-                bt.logging.debug(f"Issue getting tool call from dataset ... {e}")
+                #bt.logging.debug(f"Issue getting tool call from dataset ... {e}")
+                pass
