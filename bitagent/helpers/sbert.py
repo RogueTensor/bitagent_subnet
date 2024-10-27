@@ -18,7 +18,7 @@ class CachedSentenceTransformer(SentenceTransformer):
         cache_key_suffix = "_tensor" if convert_to_tensor else "_array"
 
         for i, sentence in enumerate(sentences):
-            cache_key = sentence + cache_key_suffix
+            cache_key = f"{sentence}" + cache_key_suffix
             if cache_key in self.cache:
                 results.append(self.cache[cache_key])
             else:
