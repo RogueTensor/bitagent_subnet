@@ -1,7 +1,7 @@
 bittensor==8.2.0
 datasets
-sentence_transformers
-transformers
-wandb
-StrEnum
+docker
 langchain-openai
+sentence_transformers
+StrEnum
+wandb
