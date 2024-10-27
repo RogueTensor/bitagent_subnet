@@ -192,7 +192,7 @@ if [ $skip_faucet -eq 1 ]; then
     for i in {1} #{1..4}
     do
         expect -c "
-          spawn btcli wallet faucet --wallet.name ${owner_coldkey}_0 --subtensor.chain_endpoint ws://127.0.0.1:9946 --faucet.num_processes 8
+          spawn btcli wallet faucet --wallet.path ~/.bittensor/wallets/ --wallet.name ${owner_coldkey}_0 --subtensor.chain_endpoint ws://127.0.0.1:9946 --processors 8
           expect -re \"network:\" {send \"y\r\"; interact}
         "
     done
@@ -201,7 +201,7 @@ if [ $skip_faucet -eq 1 ]; then
     for i in $(seq $num_validators)
     do
         expect -c "
-          spawn btcli wallet faucet --wallet.name ${validator_coldkey_prefix}_$((i-1)) --subtensor.chain_endpoint ws://127.0.0.1:9946 --faucet.num_processes 8
+          spawn btcli wallet faucet --wallet.path ~/.bittensor/wallets/ --wallet.name ${validator_coldkey_prefix}_$((i-1)) --subtensor.chain_endpoint ws://127.0.0.1:9946 --processors 8
           expect -re \"network:\" {send \"y\r\"; interact}
         "
     done
@@ -210,7 +210,7 @@ if [ $skip_faucet -eq 1 ]; then
     for i in $(seq $num_miners)
     do
         expect -c "
-          spawn btcli wallet faucet --wallet.name ${miner_coldkey_prefix}_$((i-1)) --subtensor.chain_endpoint ws://127.0.0.1:9946 --faucet.num_processes 8
+          spawn btcli wallet faucet --wallet.path ~/.bittensor/wallets/ --wallet.name ${miner_coldkey_prefix}_$((i-1)) --subtensor.chain_endpoint ws://127.0.0.1:9946 --processors 8
           expect -re \"network:\" {send \"y\r\"; interact}
         "
     done
@@ -220,7 +220,7 @@ fi
 if [ $skip_subnet -eq 1 ]; then
     # create the subnet with the owner wallet
     expect -c "
-        spawn btcli subnet create --wallet.name ${owner_coldkey}_0 --subtensor.chain_endpoint ws://127.0.0.1:9946
+        spawn btcli subnet create --wallet.path ~/.bittensor/wallets/ --wallet.hotkey ${subnet_prefix}_hotkey_owner_0 --wallet.name ${owner_coldkey}_0 --subtensor.chain_endpoint ws://127.0.0.1:9946
         expect -re \"register a subnet for\" {send \"y\r\";}
         expect -re \"set your identify\" {send \"n\r\"; interact}
     "
@@ -232,8 +232,7 @@ if [ $skip_reg -eq 1 ]; then
         for i in $(seq $num_validators)
         do
             expect -c "
-                spawn btcli subnet register --wallet.name ${validator_coldkey_prefix}_$((i-1)) --wallet.hotkey ${validator_hotkey_prefix}_$((i-1)) $subnet_network
-                expect -re \"Enter netuid\" {send \"$netuid\r\";}
+                spawn btcli subnet register --netuid $netuid --wallet.path ~/.bittensor/wallets/ --wallet.name ${validator_coldkey_prefix}_$((i-1)) --wallet.hotkey ${validator_hotkey_prefix}_$((i-1)) $subnet_network
                 expect -re \"want to continue?\" {send \"y\r\";}
                 expect -re \"register on subnet:1\" {send \"y\r\"; interact} 
             "
@@ -245,7 +244,7 @@ if [ $skip_reg -eq 1 ]; then
         for i in $(seq $num_miners)
         do
             expect -c "
-                spawn btcli subnet register --wallet.name ${miner_coldkey_prefix}_$((i-1)) --wallet.hotkey ${miner_hotkey_prefix}_$((i-1)) $subnet_network
+                spawn btcli subnet register --netuid $netuid --wallet.path ~/.bittensor/wallets/ --wallet.name ${miner_coldkey_prefix}_$((i-1)) --wallet.hotkey ${miner_hotkey_prefix}_$((i-1)) $subnet_network
                 expect -re \"Enter netuid\" {send \"$netuid\r\";}
                 expect -re \"want to continue?\" {send \"y\r\";}
                 expect -re \"register on subnet:1\" {send \"y\r\"; interact} 
@@ -272,7 +271,7 @@ if [ $skip_launch -eq 1 ]; then
 
         for i in $(seq $num_validators)
         do
-            python3 neurons/validator.py --netuid $netuid $subnet_network --wallet.name ${validator_coldkey_prefix}_$((i-1)) --wallet.hotkey ${validator_hotkey_prefix}_$((i-1)) --run_local --logging.debug --axon.port $((8090+i+num_miners)) &
+            python3 neurons/validator.py --netuid $netuid $subnet_network --wallet.name ${validator_coldkey_prefix}_$((i-1)) --wallet.hotkey ${validator_hotkey_prefix}_$((i-1)) --log_level trace --logging.debug --axon.port $((8090+i+num_miners)) &
         done
     fi
 fi
