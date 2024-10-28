@@ -50,14 +50,17 @@ class Criterion():
         return pformat(vars(self), indent=4, width=1)
 
 # Function Call
-def tool_call_criteria(expected_convo: List[dict]) -> List[Criterion]:
+def tool_call_criteria(expected_response: dict) -> List[Criterion]:
     return [
-        Criterion(name="Return valid function call response", desc="", eval_fx=correct_tool_use_and_response, eval_args=[expected_convo]),
+        Criterion(name="Return correct function format", desc="", eval_fx=correct_tool_call_function_format),
+        Criterion(name="Return correct function name", desc="", eval_fx=correct_tool_call_function_name, eval_args=[expected_response]),
+        Criterion(name="Return function with correct argument names", desc="", eval_fx=correct_tool_argument_names, eval_args=[expected_response]),
+        Criterion(name="Return function with correct argument values", desc="", eval_fx=correct_tool_argument_values, eval_args=[expected_response]),
     ]
 
-def irrelevant_tool_call_criteria(expected_convo: List[dict]) -> List[Criterion]:
+def irrelevant_tool_call_criteria() -> List[Criterion]:
     return [
-        Criterion(name="Return valid function call response", desc="", eval_fx=correct_irrelevant_tool_call, eval_args=[expected_convo]),
+        Criterion(name="Return valid function call for irrelevant tool", desc="", eval_fx=correct_irrelevant_tool_call),
     ]
 
 # simple, defaults
