@@ -7,7 +7,7 @@ from typing import List, Dict, Any
 from collections.abc import Iterator
 from bitagent.schemas.tool import Tool
 from bitagent.schemas.chat import ChatMessage, messages_from_list
-from bitagent.datasources.loaders import huggingface_loader
+from bitagent.datasources.loaders import huggingface_loader, load_bfcl_dataset
 from bitagent.helpers.string_parse import parse_multiple_space_sep_json
 
 
@@ -113,22 +113,24 @@ def add_extra_arguments(tool_call: Dict[str, Any], tools: List[Tool]):
 class ToolDataset(Iterator):
     def __init__(self):
         super().__init__()
-        seed = random.randint(0, 1000)
+        seed = random.randint(0, 10000)
         glaive_ds = huggingface_loader("glaiveai/glaive-function-calling-v2")
         bitagent_ds = huggingface_loader("BitAgent/tool_calling")
+        bfcl_ds = load_bfcl_dataset("gorilla-llm/Berkeley-Function-Calling-Leaderboard")
 
         self.datasets = {
             "glaive": iter(glaive_ds.shuffle(seed=seed)),
             "bitagent": iter(bitagent_ds.shuffle(seed=seed)),
+            "bfcl": iter(bfcl_ds),
         }
 
     def __next__(self) -> ToolCallData:
-        bt.logging.debug("Retrieving function call data from dataset...")
+        #bt.logging.debug("Retrieving function call data from dataset...")
         count = 0
         while count < 25:
             count += 1
             try:
-                dname, ds = random.choices(list(self.datasets.items()), [1, 10])[0]
+                dname, ds = random.choices(list(self.datasets.items()), [5, 5, 10])[0]
                 data = next(ds)
                 if dname == "glaive":
                     system_prompt = data["system"].replace("SYSTEM: ", "")
@@ -158,7 +160,7 @@ class ToolDataset(Iterator):
 
                     
                     return ToolCallData(messages=messages, tools=tools)
-                else: # bitagent
+                elif dname == "bitagent":
                     for key, value in data.items():
                         if isinstance(value, str):
                             data[key] = json.loads(value)
@@ -176,6 +178,15 @@ class ToolDataset(Iterator):
                         for arg_name, arg_value in tool.arguments.items():
                             if arg_value["type"] not in TYPES:
                                 raise ValueError(f"Inavlid type used type: {arg_value['type']}")
+                    return ToolCallData(messages=messages, tools=tools)
+                elif dname == "bfcl":
+                    messages = messages_from_list(data["question"][0])
+                    ground_truth = data['ground_truth'][0]
+                    messages.append(ChatMessage(role="tool call", 
+                                                content={"is_ground_truth": True, 
+                                                         "name": list(ground_truth.keys())[0], 
+                                                         "arguments": list(ground_truth.values())[0]}))
+                    tools = [json_schema_to_pydantic_tool(tool) for tool in data["function"]]
                     return ToolCallData(messages=messages, tools=tools)
                     
             except Exception as e:
