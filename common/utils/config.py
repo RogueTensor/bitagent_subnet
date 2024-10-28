@@ -125,26 +125,12 @@ def add_args(cls, parser):
     if neuron_type == "validator":
 
         parser.add_argument(
-            "--task_api_host",
-            type=str,
-            default="https://roguetensor.com/api",
-            help="the Task API host if you need to point to your own"
-        )
-        
-        parser.add_argument(
             "--log_dir",
             type=str,
             default="./",
             help="the location of the cometML logs"
         )
         
-        parser.add_argument(
-            "--run_local",
-            action="store_true",
-            help="Set this flag to run locally",
-            default=False,
-        )
-
         parser.add_argument(
             "--neuron.num_concurrent_forwards",
             type=int,
@@ -157,6 +143,13 @@ def add_args(cls, parser):
             type=int,
             help="The number of miners to query in a single step.",
             default=10
+        )
+
+        parser.add_argument(
+            "--neuron.block_number_check_interval_for_offline_hf_model_check",
+            type=int,
+            help="The interval at which to run in offline mode to check HF models for ALL miners.",
+            default=9*24*3600/12 # 12 seconds per block, run every 9 days, that's 9*24*3600/12 => 64800
         )
 
         parser.add_argument(
