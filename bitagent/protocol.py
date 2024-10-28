@@ -41,7 +41,7 @@ class QueryTask(bt.Synapse):
     messages: List[ChatMessage] = []
 
     # Optional request output, filled by recieving axon.
-    response: Optional[dict] = {}
+    response: str = ""
 
     # used only for requests coming in through validator axon
     timeout: Optional[float] = None
