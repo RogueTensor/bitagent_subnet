@@ -43,16 +43,6 @@ class BaseValidatorNeuron(BaseNeuron):
 
     neuron_type: str = "ValidatorNeuron"
 
-    # @classmethod
-    # def add_args(cls, parser: argparse.ArgumentParser):
-    #     util_add_args(cls, parser)
-    #     parser.add_argument(
-    #         "--task_api_host",
-    #         type=str,
-    #         default="https://roguetensor.com/api",
-    #         help="the Task API host if you need to point to your own"
-    #     )
-
     def __init__(self, config=None):
         super().__init__(config=config)
 
@@ -267,8 +257,10 @@ class BaseValidatorNeuron(BaseNeuron):
             norm = np.ones_like(norm)
         raw_weights = weighted_scores/norm
 
-        bt.logging.debug("raw_weights", raw_weights)
-        bt.logging.debug("raw_weight_uids", self.metagraph.uids)
+        bt.logging.debug("raw_weights: ")
+        bt.logging.debug(raw_weights)
+        bt.logging.debug("raw_weight_uids: ")
+        bt.logging.debug(self.metagraph.uids)
 
         # Process the raw weights to final_weights via subtensor limitations.
         (
@@ -281,8 +273,10 @@ class BaseValidatorNeuron(BaseNeuron):
             subtensor=self.subtensor,
             metagraph=self.metagraph,
         )
-        bt.logging.debug("processed_weights", processed_weights)
-        bt.logging.debug("processed_weight_uids", processed_weight_uids)
+        bt.logging.debug("processed_weights: ")
+        bt.logging.debug(processed_weights)
+        bt.logging.debug("processed_weight_uids: ")
+        bt.logging.debug(processed_weight_uids)
 
         # Convert to uint16 weights and uids.
         (
