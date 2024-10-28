@@ -15,197 +15,136 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-import re
 import ast
-import json
-import difflib
 import bittensor as bt
-from typing import List
 from common.base.validator import BaseValidatorNeuron
-
-from bitagent.helpers.tool_parsing import (
-    validate_tool_call,
-    find_assistant_after_tool_call,
-    find_first_tool_call,
-    find_last_assistant
-)
 from bitagent.criteria.utils import good_message, bad_message, received_reward_template
-from bitagent.schemas.chat import messages_from_list
 
-def json_quote_fix(s):
-    p = re.compile('(?<!\\\\)\'')
-    s = p.sub('\"', s)
-    return s
+# just checking if the function can be parsed by ast
+def correct_tool_call_function_format(task, validator: BaseValidatorNeuron, synapse: bt.Synapse, response: dict) -> [float, float, str]:
+    max_reward = 1.0
+    reward = 1.0
 
-def correct_irrelevant_tool_call(task, validator: BaseValidatorNeuron, synapse: bt.Synapse, response:dict, expected_convo: List[dict]) -> [float, float, str]:
-    max_reward = 3.0
-    reward = 3.0
-    expected_convo = messages_from_list(expected_convo)
-    
     try:
-        resp = synapse.response['response']
-        try:
-            miner_convo = messages_from_list(json.loads(resp))
-        except Exception as e:
-            reward = -0.5
-            if any([msg.role == 'tool call' for msg in expected_convo]):
-                feedback = bad_message(f"You failed to provide the correct response formatting - looking for a list of messages. Like so [{{\"role\": \"tool call\", \"content\": \"message\"}}, {{\"role\": \"assistant\", \"content\": \"message\"}}]")
-            else:
-                feedback = bad_message(f"You failed to provide the correct response formatting - looking for a list of messages. Like so [{{\"role\": \"assistant\", \"content\": \"message\"}}]")
-            return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
-    except KeyError:
-        reward = -0.5
-        feedback = bad_message(f"You failed to provide the correct response formatting - looking for a dict w/ a response key")
+        ast.parse(synapse.response)
+    except Exception as e:
+        reward = -1.0
+        feedback = bad_message(f"Your response was not in the correct format - {e}")
         return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
     
-    tool_call = find_first_tool_call(miner_convo)
-    tool_call_content = tool_call.content
-    if isinstance(tool_call_content, str):
-        tool_call_content = json.loads(tool_call_content)
-    
-    if tool_call_content:
-        reward = -0.5
-        feedback = bad_message(f"You provided a tool call, but one was not expected.")
-        return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
-    feedback = good_message(f"You responded with the correct answer.")
-    
+    feedback = good_message(f"Your response was in the correct format.")
     return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
 
-def correct_tool_use_and_response(task, validator: BaseValidatorNeuron, synapse: bt.Synapse, response:dict, expected_convo: List[dict]) -> [float, float, str]:
+# just checking if the function name is correct
+def correct_tool_call_function_name(task, validator: BaseValidatorNeuron, synapse: bt.Synapse, response: dict, expected_response: dict) -> [float, float, str]:
     max_reward = 3.0
-    expected_convo = messages_from_list(expected_convo)
-    
-    if not synapse.response['response']:
+    reward = 3.0    
+
+    miner_function = ast.parse(synapse.response)
+    expected_function_name = expected_response['name']
+
+    # in the case the function is a string without a "." dot in it like requests.get
+    if expected_function_name.find(".") == -1:
+        function_name = miner_function.body[0].value.func.id
+    else:
+        # we're looking for a function with a dot in it
+        function_name = miner_function.body[0].value.func.value.id
+        function_name += "." + miner_function.body[0].value.func.attr
+
+    if function_name.strip() == expected_function_name.strip():
+        feedback = good_message(f"Your function name matches the expected function name.")
+        return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
+    else:
         reward = -0.5
-        feedback = bad_message(f"Your response was empty, please return something.")
-        return reward, max_reward, feedback + received_reward_template.format(reward, max_reward)
-    
-    try:
-        resp = synapse.response['response']
-        try:
-            miner_convo = messages_from_list(json.loads(resp))
-        except Exception as e:
-            reward = -0.5
-            if any([msg.role == 'tool call' for msg in expected_convo]):
-                feedback = bad_message(f"You failed to provide the correct response formatting - looking for a list of messages. Like so [{{\"role\": \"tool call\", \"content\": \"message\"}}, {{\"role\": \"assistant\", \"content\": \"message\"}}]")
+        feedback = bad_message(f"Your function name does not match the expected function name.")
+        return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
+
+# comparing just the argument names
+# looking for required arguments and that they are present
+def correct_tool_argument_names(task, validator: BaseValidatorNeuron, synapse: bt.Synapse, response: dict, expected_response: dict) -> [float, float, str]:
+    max_reward = 3.0
+    reward = 0.0        
+
+    miner_function = ast.parse(synapse.response)
+    function_args = [k.arg for k in miner_function.body[0].value.keywords]
+    expected_args = expected_response['arguments'].keys()
+
+    if len(expected_args) == 0 and len(function_args) == 0:
+        reward = max_reward
+        feedback = good_message("Function has no arguments")
+        return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
+
+    if "is_ground_truth" in expected_response.keys():
+        required_args = [arg for arg in expected_args if expected_response['arguments'][arg] != [""]]
+    else:
+        expected_tool = [tool for tool in synapse.tools if tool.name == expected_response['name']][0]
+        required_args = [k for k in expected_tool.arguments.keys() if 'required' in expected_tool.arguments[k].keys() and expected_tool.arguments[k]['required']]
+
+    feedback = "" 
+
+    for arg in required_args:
+        if arg in function_args:
+            # excessive args will be penalized
+            reward += max_reward/max(len(function_args),len(expected_args))
+            feedback += good_message(f"Your function has the required argument: {arg}") + "\n"
+        else:
+            reward -= max_reward/len(required_args)
+            feedback += bad_message(f"Your function is missing the required argument: {arg}") + "\n"
+
+    return reward, max_reward, feedback[:-1]+received_reward_template.format(reward, max_reward)
+
+def correct_tool_argument_values(task, validator: BaseValidatorNeuron, synapse: bt.Synapse, response: dict, expected_response: dict) -> [float, float, str]:
+    max_reward = 3.0
+    reward = 0.0        
+
+    feedback = "" 
+
+    # MINER response
+    miner_function = ast.parse(synapse.response)
+    function_args = [k.arg for k in miner_function.body[0].value.keywords]
+    expected_args = expected_response['arguments'].keys()
+
+    # no args
+    if len(expected_args) == 0 and len(function_args) == 0:
+        reward = max_reward
+        feedback = good_message("Function has no arguments")
+        return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
+
+    function_values = {k.arg: k.value.value for k in miner_function.body[0].value.keywords}
+
+    if "is_ground_truth" in expected_response.keys():
+        required_args = [arg for arg in expected_args if expected_response['arguments'][arg] != [""]]
+    else:
+        expected_tool = [tool for tool in synapse.tools if tool.name == expected_response['name']][0]
+        required_args = [k for k in expected_tool.arguments.keys() if 'required' in expected_tool.arguments[k].keys() and expected_tool.arguments[k]['required']]
+
+    for arg in required_args:
+        if arg in function_args:
+            correct_values = expected_response['arguments'][arg]
+            if "is_ground_truth" in expected_response.keys() and function_values[arg] in correct_values:
+                reward += max_reward/max(len(function_args),len(expected_args))
+                feedback += good_message(f"Your function has the required value for argument: {arg}") + "\n"
+            elif function_values[arg] == correct_values:
+                # TODO need to compare dict with dict and list with list - need some json dumps of non primitive values
+                reward += max_reward/max(len(function_args),len(expected_args))
+                feedback += good_message(f"Your function has the required value for argument: {arg}") + "\n"
             else:
-                feedback = bad_message(f"You failed to provide the correct response formatting - looking for a list of messages. Like so [{{\"role\": \"assistant\", \"content\": \"message\"}}]")
-            return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
-    except KeyError:
-        reward = -0.5
-        feedback = bad_message(f"You failed to provide the correct response formatting - looking for a dict w/ a response key")
-        return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
-    expect_tool_call = True
+                reward -= max_reward/len(required_args)
+                feedback += bad_message(f"Your function has the incorrect value for argument: {arg}") + "\n"
+        else:
+            reward -= max_reward/len(required_args)
+            feedback += bad_message(f"Your function is missing the required argument: {arg}") + "\n"
 
-    if not any([msg.role == 'tool call' for msg in expected_convo]):
-        expect_tool_call = False
-        if any([msg.role == 'tool call' for msg in miner_convo]):
-            reward   = -0.5
-            feedback = bad_message(f"You failed to provide the correct response formatting. Was not looking for any tool calls")
-            return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
-    
-    # Check to ensure that it goes `tool call` then `assistant`
-    if any([msg.role == 'tool call' for msg in expected_convo]):
-        if len(miner_convo) != 2:
-            reward = -0.5
-            feedback = bad_message(f"You failed to provide the correct response formatting - looking for ONLY an assistant response and a tool call")
-            return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
-        if miner_convo[0].role != 'tool call' or miner_convo[1].role != 'assistant':
-            reward = -0.5
-            feedback = bad_message(f"You failed to provide the correct response formatting - looking for an assistant response before a tool call")
-            return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
-    else:
-        if len(miner_convo) != 1:
-            reward = -0.5
-            feedback = bad_message(f"You failed to provide the correct response formatting - looking for ONLY an assistant response")
-            return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
-    
+    return reward, max_reward, feedback[:-1]+received_reward_template.format(reward, max_reward)
 
-    try:
-        if isinstance(find_first_tool_call(expected_convo).content, str):
-            expected_tool_call = ast.literal_eval(find_first_tool_call(expected_convo).content)
-        else:
-            expected_tool_call = find_first_tool_call(expected_convo).content
-    except Exception as e:
-        feedback = good_message(f"We failed to load the expected tool, so you get full points!")
-        reward = max_reward
-        return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
+def correct_irrelevant_tool_call(task, validator: BaseValidatorNeuron, synapse: bt.Synapse, response: dict) -> [float, float, str]:
+    max_reward = 3.0
+    reward = 3.0
     
-    try: 
-        miner_tool_call = [msg for msg in miner_convo if msg.role == 'tool call'][0].content
-        if isinstance(miner_tool_call, str):
-            # miner_tool_call = ast.literal_eval(miner_tool_call)
-            miner_tool_call = json.loads(miner_tool_call)
-    except:
+    if synapse.response != "":
         reward = -0.5
-        feedback = bad_message(f"You failed to provide the correct response formatting - looking for a tool call that can be converted into a dictionary") 
+        feedback = bad_message(f"Your response was not empty, expected an empty response to be returned.")
         return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
-    try:
-        for tool in task.synapse.tools:
-            if tool.name == miner_tool_call['name']:
-                if not validate_tool_call(tool, miner_tool_call):
-                    raise Exception("Miner failed to return a valid tool call.")    
-    except:
-        reward = -0.5
-        feedback = bad_message(f"You failed to provide a valid tool call.")
-        return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
-    
-    # Compare arguments
-    num_expected_keys = 2 * len(expected_tool_call['arguments'].keys())
-    num_gotten_keys = 0
-    num_gotten_values = 0
-    for miner_key, miner_value in miner_tool_call['arguments'].items():
-        if miner_key in expected_tool_call['arguments']:
-            num_gotten_keys += 1
-            
-            if difflib.SequenceMatcher(None, str(miner_value), str(expected_tool_call['arguments'][miner_key])).ratio() > 0.75:
-                num_gotten_values += 1
-    if str(miner_tool_call['name']) != str(expected_tool_call['name']):
-        correct_tool_percentage = 0
-    else:
-        correct_tool_percentage = (num_gotten_values+num_gotten_keys)/(num_expected_keys)
-    
-    
-    try:
-        if expect_tool_call:
-            expected_assistant = find_assistant_after_tool_call(expected_convo)['content']
-        else:
-            expected_assistant = find_last_assistant(expected_convo)['content']
-    except Exception as e:
-        bt.logging.error(f"Failed to find assistant response in expected response.")
-        reward = max_reward
-        feedback = good_message(f"We experienced an error and do not want to punish you.") 
-        return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
-    correct_assistant_percentage = 0
-    
-    try:
-        if expect_tool_call:
-            miner_assistant = find_assistant_after_tool_call(miner_convo)['content']
-        else:
-            miner_assistant = find_last_assistant(miner_convo)['content']
-        sim = validator.measure_relevance_of_texts(expected_assistant, miner_assistant)
-        if sim>0.80:
-            correct_assistant_percentage = 1
-        elif sim>0.50:
-            correct_assistant_percentage = 0.75
-        elif sim>0.35:
-            correct_assistant_percentage = 0.25
-    except Exception as e:
-        bt.logging.error(f"Failed to find assistant response in miner messages. {e}")
-        feedback = bad_message(f"Your response errored out the tool call criteria: {e}\n This is likely due to an incorrect assistant response given.")
-        reward = -0.5
-        return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
-    
-    reward = 0.5 * max_reward * correct_tool_percentage + 0.5 * max_reward * correct_assistant_percentage
-    if reward == max_reward:
-        feedback = good_message(f"You responded with the correct answer.")
-    elif reward > max_reward*0.75:
-        feedback = good_message(f"You responded with the correct answer but with a few errors.", color="yellow")
-    elif reward > max_reward*0.5:
-        feedback = bad_message(f"You responded with the correct answer but with some errors.", color="yellow")
-    elif reward > max_reward*0.25:
-        feedback = bad_message(f"You responded with the correct answer but with many errors.")
-    else:
-        feedback = bad_message(f"You failed to respond with the correct answer.")
-            
+
+    feedback = good_message(f"You responded with the expected response.")
     return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
