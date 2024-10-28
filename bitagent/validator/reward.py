@@ -61,7 +61,8 @@ async def evaluate_task(validator, task, response):
 
     return rewards
 
-async def return_results(validator, task, miner_uid, reward):
+# TODO need to add in query scores and HF scores and BFCL scores
+async def return_results(validator, task, miner_uid, reward, response):
     # means we got all of the information we need to score the miner and update wandb
     if len(reward) == 4:
         score, max_possible_score, task_results, correct_answer = reward
@@ -70,7 +71,11 @@ async def return_results(validator, task, miner_uid, reward):
             normalized_score = score/max_possible_score
 
             result = f"""
-[bold]Task: {task.name}[/bold]\n[bold]Results:[/bold]
+[bold]Task: {task.name}[/bold]
+[bold]Messages:[/bold] {task.synapse.messages}
+[bold]Tools:[/bold] {[t.name for t in task.synapse.tools]}
+[bold]Response:[/bold] {response.response}
+\n[bold]Results:[/bold]\n
 =====================\n"""+"\n".join(task_results) + f"""
 [bold]Total reward:[/bold] {score}
 [bold]Total possible reward:[/bold] {max_possible_score}
@@ -78,7 +83,7 @@ async def return_results(validator, task, miner_uid, reward):
 ---
 Stats with this validator:
 Your Average Score: {validator.scores[miner_uid]}
-Highest Score across all miners: {validator.query_scores.max()}
+Highest Score across all miners: {validator.scores.max()}
 Median Score across all miners: {np.median(validator.scores)}"""
             # send results
             await send_results_to_miner(validator, result, validator.metagraph.axons[miner_uid])
@@ -109,6 +114,7 @@ async def process_rewards_update_scores_and_send_feedback(validator: BaseValidat
         messages = task.synapse.messages
         tools = task.synapse.tools
         task_name = task.name
+        task_mode = task.mode
     except Exception as e:
         bt.logging.error("Could not setup common data - ", e)
 
@@ -118,7 +124,7 @@ async def process_rewards_update_scores_and_send_feedback(validator: BaseValidat
         # track which miner uids are scored for updating the scores
         temp_miner_uids = [miner_uids[i] for i, reward in enumerate(rewards) if len(reward[0]) == 4 and reward[0][0] is not None and reward[0][1] is not None]
         scores = [reward[0][0]/reward[0][1] for reward in rewards if len(reward[0]) == 4 and reward[0][0] is not None and reward[0][1] is not None]
-        results = await asyncio.gather(*[return_results(validator, task, miner_uids[i], reward[0]) for i, reward in enumerate(rewards)])
+        results = await asyncio.gather(*[return_results(validator, task, miner_uids[i], reward[0], responses[i]) for i, reward in enumerate(rewards)])
 
         for i, result in enumerate(results):
             if result is not None:
@@ -128,14 +134,14 @@ async def process_rewards_update_scores_and_send_feedback(validator: BaseValidat
                 normalized_score = score/max_possible_score
                 resp = "None"
                 try:
-                    resp = response.response["response"]
+                    resp = response.response
                 except:
                     pass
 
                 try:
-                    task_id = task.task_id
                     data = {
                         "task_name": task_name,
+                        "task_mode": task_mode,
                         "messages": [{'role': m.role, 'content': m.content} for m in messages],
                         "tools": [{'name': t.name, 'description': t.description, 'arguments': t.arguments} for t in tools],
                         "miners_count": len(miner_uids),
