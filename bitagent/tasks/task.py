@@ -45,6 +45,7 @@ class Task():
                         ) -> None:
 
         self.name=name
+        self.mode = "online"
         self.weight = weight
         self.desc=desc
         self.timeout=timeout
@@ -75,6 +76,7 @@ class Task():
         return {
             "weight": self.weight,
             "name": self.name,
+            "mode": self.mode,
             "desc": self.desc,
             "messages": messages_to_list(self.messages) if isinstance(self.messages, list) else [], 
             "tools": [tool.to_dict() for tool in self.synapse.tools],
