@@ -43,7 +43,7 @@ def validate_tool_call(tool: Tool, tool_call: Dict[str, Any]) -> bool:
             if arg_name in tool_call_validated.arguments:
                 expected_type = type_mapping.get(arg_schema['type'])
                 if expected_type is None:
-                    bt.logging.warning(f"Unknown type for argument {arg_name}: {arg_schema['type']}")
+                    #bt.logging.warning(f"Unknown type for argument {arg_name}: {arg_schema['type']}")
                     return False
                 
                 # Handle nested objects
