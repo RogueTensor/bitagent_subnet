@@ -145,7 +145,7 @@ def correct_irrelevant_tool_call(task, validator: BaseValidatorNeuron, synapse: 
     max_reward = 3.0
     reward = 3.0
     
-    if synapse.response != "":
+    if synapse.response.strip() != "":
         reward = -0.5
         feedback = bad_message(f"Your response was not empty, expected an empty response to be returned.")
         return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
