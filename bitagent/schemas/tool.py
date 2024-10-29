@@ -19,4 +19,3 @@ class Tool(BaseModel):
 class ToolCall(BaseModel):
     name: str
     arguments: Dict[str, Any]
-    
