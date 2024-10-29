@@ -44,12 +44,16 @@ def correct_tool_call_function_name(task, validator: BaseValidatorNeuron, synaps
     expected_function_name = expected_response['name']
 
     # in the case the function is a string without a "." dot in it like requests.get
-    if expected_function_name.find(".") == -1:
+    if expected_function_name.find(".") == -1 and len(miner_function.body) > 0:
         function_name = miner_function.body[0].value.func.id
-    else:
+    elif len(miner_function.body) > 0:
         # we're looking for a function with a dot in it
         function_name = miner_function.body[0].value.func.value.id
         function_name += "." + miner_function.body[0].value.func.attr
+    else:
+        reward = -0.5
+        feedback = bad_message(f"Your function name does not match the expected function name.")
+        return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
 
     if function_name.strip() == expected_function_name.strip():
         feedback = good_message(f"Your function name matches the expected function name.")
