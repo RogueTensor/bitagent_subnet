@@ -38,12 +38,6 @@ REWRITE_TOOL_PROMPT = "Modify the function call to have different arguments. You
 
 REWRITE_TOOL_USER_PROMPT = "You rewrite questions to make sense when paired with a function call. The rewritten question will need to be changed to match the arguments of the function call. You should change the phrasing of the question up. Your response should be the rewritten question.\nFunction call:\n{tool_call} \n Question: {user}\n Question:"
 
-REWRITE_TOOL_ASSISTANT_PROMPT = """Input:
-User Question: {user}
-Tool Call: {tool_call}
-Incorrect Answer: {assistant}
-Task: Rewrite the incorrect answer to accurately reflect the result of the given Tool call. Also, modify the wording to ensure it is different from the original, it should be concise. Output only the revised answer."""
-
 class ToolCallTask(Task):
     def __init__(
         self,
@@ -61,33 +55,55 @@ class ToolCallTask(Task):
             try:
                 messages, tools, data = self.generate_task_data()
                 expected_messages = messages_to_list(data.messages)
-
-                self.criteria = default_criteria + tool_call_criteria(
-                    expected_convo=expected_messages
-                ) 
+                expected_tool_call_messages = [em for em in expected_messages if em['role'] == 'tool call']
+                if len(expected_tool_call_messages) > 0:
+                    expected_tool_call_message = expected_tool_call_messages[0]['content']
+                else:
+                    #bt.logging.debug(f"Skipping - no tool call message found in: {expected_messages}")
+                    continue
+                expected_tool_call = json.loads(expected_tool_call_message)
+                if type(expected_tool_call) == str:
+                    expected_tool_call = json.loads(expected_tool_call)
+                self.criteria = default_criteria + tool_call_criteria(expected_response=expected_tool_call)
 
                 # 75% of the time do a tool call task with a relevant tool, other times do a tool call with no valid tool option
-                if bool(random.random() < 0.25) and len(tools) > 1:
-                    # irrelevant tool call
+                # irrelevant tool call
+                if "is_ground_truth" not in expected_tool_call_message and bool(random.random() < 0.25) and len(tools) > 1:
                     # remove the real tool
-                    tools = [t for t in tools if t.name != json.loads(data.messages[1].content)['name']]
-                    # create an irrelevance response that does not hae a tool
-                    expected_messages = [data.messages[0].to_dict(),{"role":"tool call", "content": {}},{"role":"assistant", "content": "There is no valid tool for this user request."}]
-                    self.criteria = default_criteria + irrelevant_tool_call_criteria(expected_convo=expected_messages)
-                
+                    expected_tool_call_message_json = json.loads(expected_tool_call_message)
+                    if isinstance(expected_tool_call_message_json, str):
+                        expected_tool_call_message_json = json.loads(expected_tool_call_message_json)
+                    tools = [t for t in tools if t.name != expected_tool_call_message_json['name']]
+                    self.criteria = default_criteria + irrelevant_tool_call_criteria()
                 break
-                
+
             except Exception as e:
-                bt.logging.error(f'Exception getting real task {e}')
-                #raise e
-            
+                #if str(e) != "Skipping":
+                #    bt.logging.debug(f'Exception getting new task - {e}')
+                #else:
+                #    bt.logging.debug(f'Exception getting new task - {e}')
+                pass
+
         self.messages = messages
         self.synapse = QueryTask(messages=messages, tools=tools)
     
     def generate_task_data(self) -> ToolCallData:
         data: ToolCallData = next(self.validator.tool_dataset)
-        for _ in range(random.randint(3,8)):
-            data.tools = data.tools + next(self.validator.tool_dataset).tools
+
+        tool_call = find_first_tool_call(data.messages)
+        if not tool_call:
+            # no tool call in the messages, so skip
+            raise Exception("Skipping")
+
+        # TODO could check earlier if the schema (required args) and tool ground truth match
+        #tool_call_schema = [t for t in data.tools if t.name == tool_call.name][0]
+        #required_args = [argname for argname, argdict in tool_call_schema.arguments.items() if argdict['required']]
+
+        # increase number of tools
+        for _ in range(random.randint(2,6)):
+            # filter out the tools by name that are already in the data.tools
+            new_tools = [t for t in next(self.validator.tool_dataset).tools if t.name not in [dt.name for dt in data.tools]]
+            data.tools = data.tools + new_tools
         
         # remove all the messages after the first tool call, keeping the assistant
         # this reduces the number of messages needing rewording
@@ -101,11 +117,11 @@ class ToolCallTask(Task):
             if msg.role == 'tool call':
                 seen_tool_call = True
         data.messages = filtered_msgs
-        
+
         user = data.messages[0].content
-        assistant = data.messages[-1].content
         
         count = 0
+        # TODO why 10 times?
         while count < 10:
             count += 1
             if find_first_tool_call(data.messages):
@@ -115,15 +131,24 @@ class ToolCallTask(Task):
                     try:
                         new_tool_call = json.dumps(json.loads(rewritten_tool_call))
                         tool_call_dict = json.loads(rewritten_tool_call)
-                    except:
+                        # should load as a dict, but if not, try to convert it
+                        if not isinstance(tool_call_dict, dict):
+                            tool_call_dict = json.loads(tool_call_dict)
+                    except Exception as e:
+                        # this usually happens when the json is not valid (single vs double quotes)
                         new_tool_call = json.dumps(ast.literal_eval(rewritten_tool_call))
                         tool_call_dict = ast.literal_eval(rewritten_tool_call)
+                    # check through all the tools that will be passed to the miner
+                    # find the tool that is THE tool that is expected to be returned
+                    # since it has been rewritten, validate that the tool call is valid/comparable still
                     for tool in data.tools:
                         if tool.name == tool_call_dict['name']:
                             if not validate_tool_call(tool, tool_call_dict):
-                                raise Exception('The tool call is not valid')
+                                raise Exception('The rewritten tool call is not valid')
                 except Exception as e:
-                    bt.logging.warning(f'An error occured while rewriting the tool call {e}')
+                    #bt.logging.error(f'An error occured while rewriting the tool call {e}')
+                    # TODO why do we jump to 11 and end the while loop?
+                    # TODO compare to current bitagent code for this section
                     count = 11
                     continue
                 
@@ -131,38 +156,27 @@ class ToolCallTask(Task):
                 if not self.check_rewrite_alignment(new_user, user):
                     raise Exception(f"User rewrite is not in alignment\nOriginal: {user}\n Rewrite: {new_user}")
                 
-                new_assistant = self.validator.llm([{"role": "user", "content": REWRITE_TOOL_ASSISTANT_PROMPT.format(tool_call=new_tool_call, user=new_user, assistant=assistant)}], max_new_tokens=1000, temperature=1).split("(")[0] # sometimes it adds an explanation in paranthesis
-                if not self.check_rewrite_alignment(new_assistant, assistant):
-                    raise Exception(f"Assistant rewrite is not in alignment\nOriginal: {assistant}\n Rewrite: {new_assistant}")
-                
                 data.messages[0].content = new_user
-                data.messages[-1].content = new_assistant
                 for i, msg in enumerate(data.messages):
                     if msg.role == 'tool call':
                         data.messages[i].content = new_tool_call
 
                 data = ToolCallData(messages=data.messages, tools=data.tools)
                 messages_before_call = find_msgs_before_tool_call(data.messages)
-                if messages_before_call[-1].role == "assistant":
-                    messages_before_call = messages_before_call[:-1]
                 
             else:
-                new_user = self.validator.llm(REWRITE_PROPMT.format(query=user))
+                new_user = user #self.validator.llm(REWRITE_PROPMT.format(query=user))
                 if not self.check_rewrite_alignment(new_user, user):
                     raise Exception(f"User rewrite is not in alignment\nOriginal: {user}\n Rewrite: {new_user}")
                 
-                new_assistant = self.validator.llm(REWRITE_PROPMT.format(query=assistant))
-                if not self.check_rewrite_alignment(new_assistant, assistant):
-                    raise Exception(f"Assistant rewrite is not in alignment\nOriginal: {assistant}\n Rewrite: {new_assistant}")
-                
                 data.messages[0].content = new_user
-                data.messages[-1].content = new_assistant
-                if messages_before_call[-1].role == "assistant":
-                    messages_before_call = messages_before_call[:-1]
+                messages_before_call = find_msgs_before_tool_call(data.messages)
                 
             all_tools = data.tools
             random.shuffle(all_tools)
             return messages_before_call, all_tools, data
+        
+        raise Exception("Skipping")
 
     def check_rewrite_alignment(self, original: str, rewrite: str) -> bool:
         score = self.validator.measure_relevance_of_texts(original, rewrite)
