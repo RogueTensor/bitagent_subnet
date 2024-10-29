@@ -98,7 +98,7 @@ class Miner(BaseMinerNeuron):
     async def forward_for_hf_model_name(
         self, synapse: bitagent.protocol.GetHFModelName
     ) -> bitagent.protocol.GetHFModelName:
-        synapse.hf_model_name = self.config.hf_model_name
+        synapse.hf_model_name = self.config.miner_hf_model_name_to_submit
         return synapse
 
     async def __blacklist(self, synapse: bt.Synapse) -> Tuple[bool, str]:
@@ -164,13 +164,7 @@ class Miner(BaseMinerNeuron):
         return await self.__blacklist(synapse)
 
     async def blacklist_for_hf_model_name(self, synapse: bitagent.protocol.GetHFModelName) -> Tuple[bool, str]:
-        if synapse.dendrite.hotkey not in self.metagraph.hotkeys:
-            # Ignore requests from unrecognized entities.
-            bt.logging.trace(
-                f"Blacklisting unrecognized hotkey {synapse.dendrite.hotkey}"
-            )
-            return True, "Unrecognized hotkey"
-        return False, "HF model name request"
+        return await self.__blacklist(synapse)
 
     async def __priority(self, synapse: bt.Synapse) -> float:
         """
