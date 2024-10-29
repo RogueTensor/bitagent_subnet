@@ -92,13 +92,6 @@ def add_args(cls, parser):
         help="the OpenAI API base url - defaults to a local LLM server (like VLLM)",
     )
     parser.add_argument(
-        "--openai-model-name",
-        type=str,
-        default="thesven/Mistral-7B-Instruct-v0.3-GPTQ",
-        help="the OpenAI model name defaults to thesven/Mistral-7B-Instruct-v0.3-GPTQ",
-    )
-
-    parser.add_argument(
         "--neuron.name",
         type=str,
         help="Trials for this neuron go in neuron.root / (wallet_cold - wallet_hot) / neuron.name. ",
@@ -142,6 +135,13 @@ def add_args(cls, parser):
     )
      
     if neuron_type == "validator":
+
+        parser.add_argument(
+            "--validator-model-name",
+            type=str,
+            default="thesven/Mistral-7B-Instruct-v0.3-GPTQ",
+            help="the OpenAI model name defaults to thesven/Mistral-7B-Instruct-v0.3-GPTQ",
+        )
 
         parser.add_argument(
             "--log_dir",
@@ -191,6 +191,7 @@ def add_args(cls, parser):
             default=True,
             help="Enable wandb logging.",
         )
+
         parser.add_argument(
             "--neuron.axon_off",
             "--axon_off",
@@ -229,6 +230,27 @@ def add_args(cls, parser):
             default=False,
         )
 
+        parser.add_argument(
+            "--hf-model-name-to-run",
+            type=str,
+            default="none",
+            help="the OpenAI model name defaults to none, meaning you'll use the top miner's HF model",
+        )
+
+        parser.add_argument(
+            "--miner",
+            type=str,
+            default="default",
+            help="Miner to load. Default choices are 'default' and 'mock'.  Pass your custom miner name as appropriate."
+        )
+
+        parser.add_argument(
+            "--miner-hf-model-name-to-submit",
+            type=str,
+            default="none",
+            help="the HF model name that YOU'VE uploaded to the HF hub to be evaluated, will be returned when validator asks for the model."
+        )
+
 
 def config(cls):
     """
@@ -248,5 +270,5 @@ def config(cls):
         bt.trace()
     elif logging_level == "debug":
         bt.debug()
-    
+
     return bt.config(parser)

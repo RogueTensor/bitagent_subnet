@@ -43,28 +43,6 @@ class Miner(BaseMinerNeuron):
     This class provides reasonable default behavior for a miner such as blacklisting unrecognized hotkeys, prioritizing requests based on stake, and forwarding requests to the forward function. Modify, if you need to define custom capability.
     """
 
-    @classmethod
-    def add_args(cls, parser: argparse.ArgumentParser):
-        util_add_args(cls, parser)
-        parser.add_argument(
-            "--miner",
-            type=str,
-            default="default",
-            help="Miner to load. Default choices are 'default' and 'mock'.  Pass your custom miner name as appropriate."
-        )
-        parser.add_argument(
-            "--hf-model-name",
-            type=str,
-            default="none",
-            help="the HF model name that you've uploaded to the HF hub to be evaluated."
-        )
-        parser.add_argument(
-            "--openai-model-name",
-            type=str,
-            default="none",
-            help="the OpenAI model name, defaults to none, meaning you'll use the top miner's HF model",
-        )
-
     def __init__(self, config=None):
         self.forward_capabilities = [
             {'forward': self.forward_for_task, 'blacklist': self.blacklist_for_task, 'priority': self.priority_for_task},
