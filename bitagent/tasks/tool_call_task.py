@@ -26,17 +26,13 @@ from bitagent.datasources.tools import ToolCallData
 from bitagent.helpers.tool_parsing import validate_tool_call, find_msgs_before_tool_call, find_first_tool_call
 from bitagent.criteria import default_criteria, tool_call_criteria, irrelevant_tool_call_criteria
 
-REWRITE_PROPMT = """Please rewrite the following text, ensuring to maintain the original meaning and nuances but altering the sentence structures, vocabulary, and overall presentation. 
-The goal is to produce a version of the text that conveys the same information and sentiments as the original, but in a fresh and distinct manner. 
-Avoid summarizing or omitting any details; instead, focus on presenting the same concepts and messages in a new light.
-            
-Rewrite this text: {query}
-            
-Rewritten text: """
-
-REWRITE_TOOL_PROMPT = "Modify the function call to have different arguments. Your response should only be the modified function. You should not use the same argument values. The arguments should be valid in reference to the other argument values\n Given the function call:\n{tool_call}. Modified function call: "
-
-REWRITE_TOOL_USER_PROMPT = "You rewrite questions to make sense when paired with a function call. The rewritten question will need to be changed to match the arguments of the function call. You should change the phrasing of the question up. Your response should be the rewritten question.\nFunction call:\n{tool_call} \n Question: {user}\n Question:"
+REWRITE_TOOL_USER_PROMPT = """You rewrite questions to make sense when paired with a function call. 
+The rewritten question will need to be changed to match the argument parameters and values relative to the function name.
+You should change the phrasing of the question to be different and keeping aligned with the function name and arguments. 
+Your response should be the rewritten question only.\n
+Function call:\n`{tool_call}`\n 
+Question: {user}\n 
+Modified Question: """
 
 class ToolCallTask(Task):
     def __init__(
@@ -119,25 +115,24 @@ class ToolCallTask(Task):
         data.messages = filtered_msgs
 
         user = data.messages[0].content
-        
+
         count = 0
         # TODO why 10 times?
         while count < 10:
             count += 1
             if find_first_tool_call(data.messages):
                 tool_call = find_first_tool_call(data.messages).content
-                rewritten_tool_call = self.validator.llm([{"role": "user", "content": REWRITE_TOOL_PROMPT.format(tool_call=tool_call)}], max_new_tokens=1000, temperature=1.2)
                 try: # check that the tool call can be loaded, and that it's valid
                     try:
-                        new_tool_call = json.dumps(json.loads(rewritten_tool_call))
-                        tool_call_dict = json.loads(rewritten_tool_call)
+                        new_tool_call = json.dumps(json.loads(tool_call))
+                        tool_call_dict = json.loads(tool_call)
                         # should load as a dict, but if not, try to convert it
                         if not isinstance(tool_call_dict, dict):
                             tool_call_dict = json.loads(tool_call_dict)
                     except Exception as e:
                         # this usually happens when the json is not valid (single vs double quotes)
-                        new_tool_call = json.dumps(ast.literal_eval(rewritten_tool_call))
-                        tool_call_dict = ast.literal_eval(rewritten_tool_call)
+                        new_tool_call = json.dumps(ast.literal_eval(tool_call))
+                        tool_call_dict = ast.literal_eval(tool_call)
                     # check through all the tools that will be passed to the miner
                     # find the tool that is THE tool that is expected to be returned
                     # since it has been rewritten, validate that the tool call is valid/comparable still
@@ -151,26 +146,20 @@ class ToolCallTask(Task):
                     # TODO compare to current bitagent code for this section
                     count = 11
                     continue
-                
-                new_user = self.validator.llm([{"role": "user", "content": REWRITE_TOOL_USER_PROMPT.format(tool_call=new_tool_call, user=user)}], max_new_tokens=1000, temperature=1)
+
+                rw_prompt = REWRITE_TOOL_USER_PROMPT.format(tool_call=new_tool_call, user=user)
+                new_user = self.validator.llm([{"role": "user", "content": rw_prompt}], max_new_tokens=1000, temperature=1)
                 if not self.check_rewrite_alignment(new_user, user):
                     raise Exception(f"User rewrite is not in alignment\nOriginal: {user}\n Rewrite: {new_user}")
                 
                 data.messages[0].content = new_user
-                for i, msg in enumerate(data.messages):
-                    if msg.role == 'tool call':
-                        data.messages[i].content = new_tool_call
 
                 data = ToolCallData(messages=data.messages, tools=data.tools)
                 messages_before_call = find_msgs_before_tool_call(data.messages)
                 
             else:
-                new_user = user #self.validator.llm(REWRITE_PROPMT.format(query=user))
-                if not self.check_rewrite_alignment(new_user, user):
-                    raise Exception(f"User rewrite is not in alignment\nOriginal: {user}\n Rewrite: {new_user}")
-                
-                data.messages[0].content = new_user
-                messages_before_call = find_msgs_before_tool_call(data.messages)
+                # no tool call in the messages, so skip
+                raise Exception("Skipping")
                 
             all_tools = data.tools
             random.shuffle(all_tools)
