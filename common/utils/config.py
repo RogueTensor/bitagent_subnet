@@ -91,6 +91,12 @@ def add_args(cls, parser):
         default="http://localhost:8000/v1",
         help="the OpenAI API base url - defaults to a local LLM server (like VLLM)",
     )
+    parser.add_argument(
+        "--openai-model-name",
+        type=str,
+        default="thesven/Mistral-7B-Instruct-v0.3-GPTQ",
+        help="the OpenAI model name defaults to thesven/Mistral-7B-Instruct-v0.3-GPTQ",
+    )
 
     parser.add_argument(
         "--neuron.name",

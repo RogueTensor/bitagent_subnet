@@ -18,7 +18,6 @@
 
 import copy
 import wandb
-import random
 import bittensor as bt
 from datetime import datetime
 from bitagent.datasources import ToolDataset
@@ -106,9 +105,9 @@ def initiate_validator_local(self):
             messages = [{"role":"user","content":messages}]
         # TODO add key, base, name as config options
         llm = ChatOpenAI(
-            openai_api_key="EMPTY",
-            openai_api_base="http://localhost:8000/v1",
-            model_name="thesven/Mistral-7B-Instruct-v0.3-GPTQ",
+            openai_api_key=self.config.openai_api_key,
+            openai_api_base=self.config.openai_api_base,
+            model_name=self.config.openai_model_name,
             max_tokens = max_new_tokens,
             temperature = temperature,
         )
