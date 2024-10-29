@@ -107,7 +107,7 @@ def initiate_validator_local(self):
         llm = ChatOpenAI(
             openai_api_key=self.config.openai_api_key,
             openai_api_base=self.config.openai_api_base,
-            model_name=self.config.openai_model_name,
+            model_name=self.config.validator_model_name,
             max_tokens = max_new_tokens,
             temperature = temperature,
         )
