@@ -15,6 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import ast
 import bittensor as bt
 from pprint import pformat
 from typing import Callable, List
@@ -37,9 +38,24 @@ class Criterion():
 
     def evaluate(self, task, validator: BaseValidatorNeuron, synapse: bt.Synapse, response: dict={}) -> [float, float, str]:
         try:
-            reward, max_reward, feedback = self.eval_fx(task, validator, synapse, response, *self.eval_args)
+            # make sure the tool response converts nicely to an ast
+            try:
+                ast.parse(synapse.response)
+            except:
+                reward = -0.5
+                max_reward = 1.0
+                feedback = bad_message(f"Your response: {synapse.response} was not parsable")
+                return reward, max_reward, feedback
+            # make sure the response is not empty
+            if synapse.response.strip() is not None and synapse.response.strip() != "":
+                # actually do the evaluation 
+                reward, max_reward, feedback = self.eval_fx(task, validator, synapse, response, *self.eval_args)
+            else:
+                reward = -0.5
+                max_reward = 1.0
+                feedback = bad_message("Your response was empty, please check format per protocol")
         except Exception as e:
-            bt.logging.debug(f"Exception was raised during criteria evaluation: {e}")
+            #bt.logging.error(f"Exception was raised during criteria evaluation: {e}")
             reward = -0.5
             max_reward = 1.0
             feedback = bad_message("Exception while processing your response, please check format per protocol")
