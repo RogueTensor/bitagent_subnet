@@ -34,9 +34,10 @@ def validate_tool_call(tool: Tool, tool_call: Dict[str, Any]) -> bool:
         if len(tool_call_validated.arguments.keys()) < len([argname for argname, argdict in tool.arguments.items() if argdict['required']]) or len(tool_call_validated.arguments.keys()) > len([argname for argname, argdict in tool.arguments.items()]):
             #bt.logging.warning(f"Argument length mismatch")
             return False
-        
+
         # Check arguments
         for arg_name, arg_schema in tool.arguments.items():
+            # TODO handle for BFCL required args too
             if arg_schema['required'] and arg_name not in tool_call_validated.arguments:
                 #bt.logging.warning(f"Missing required argument: {arg_name}")
                 return False
@@ -47,27 +48,30 @@ def validate_tool_call(tool: Tool, tool_call: Dict[str, Any]) -> bool:
                     return False
                 
                 # Handle nested objects
-                # TODO if the type conversion is easy, convert from str to int or int to float as needed for example
                 if 'is_ground_truth' in list(tool_call.keys()) and tool_call['is_ground_truth']:
-                    if expected_type == dict:
-                        if not isinstance(tool_call_validated.arguments[arg_name][-1], dict):
-                            #bt.logging.warning(f"""GT Argument {arg_name} has incorrect type. 
-                            #                   Expected {expected_type}, got {type(tool_call_validated.arguments[arg_name][-1])}""")
-                            return False
-                    else:
-                        if not isinstance(tool_call_validated.arguments[arg_name][-1], expected_type):
-                            #bt.logging.warning(f"""GT Argument {arg_name} has incorrect type. 
-                            #                   Expected {expected_type}, got {type(tool_call_validated.arguments[arg_name][-1])}""")
-                            return False
+                    arg_value = tool_call_validated.arguments[arg_name][-1]
                 else:
-                    if expected_type == dict:
-                        if not isinstance(tool_call_validated.arguments[arg_name], dict):
-                            #bt.logging.warning(f"Argument {arg_name} has incorrect type. Expected {expected_type}, got {type(tool_call_validated.arguments[arg_name])}")
-                            return False
-                    else:
-                        if not isinstance(tool_call_validated.arguments[arg_name], expected_type):
-                            #bt.logging.warning(f"Argument {arg_name} has incorrect type. Expected {expected_type}, got {type(tool_call_validated.arguments[arg_name])}")
-                            return False
+                    arg_value = tool_call_validated.arguments[arg_name]
+                # convert int to float if expected type is float
+                if expected_type == float and type(arg_value) == int:
+                    arg_value = float(arg_value)
+                # convert str to float if expected type is float
+                if expected_type == float and type(arg_value) == str:
+                    arg_value = float(arg_value)
+                # convert str to int if expected type is int
+                if expected_type == int and type(arg_value) == str:
+                    arg_value = int(arg_value)
+
+                if expected_type == dict:
+                    if not isinstance(arg_value, dict):
+                        #bt.logging.warning(f"""Argument {arg_name} has incorrect type. 
+                        #                    Expected {expected_type}, got {type(arg_value)}""")
+                        return False
+                else:
+                    if not isinstance(arg_value, expected_type):
+                        #bt.logging.warning(f"""Argument {arg_name} has incorrect type. 
+                        #                    Expected {expected_type}, got {type(arg_value)}""")
+                        return False
         
         # All checks passed
         return True
@@ -87,21 +91,3 @@ def find_msgs_before_tool_call(messages: List[ChatMessage]):
             break
         result.append(msg)
     return result
-
-
-# TODO this converts from type to dict, keep it typed
-def find_assistant_after_tool_call(messages: List[ChatMessage]):
-    found_tool_call = False
-    for d in messages_to_list(messages):
-        if not found_tool_call:
-            if d.get('role') == 'tool call':
-                found_tool_call = True
-        elif d.get('role') == 'assistant':
-            return d
-    return None  # If no matching dictionary is found after the 'tool call'
-
-
-def find_last_assistant(messages: List[ChatMessage]):
-    for d in reversed(messages_to_list(messages)):
-        if d.get('role') == 'assistant':
-            return d
