@@ -234,7 +234,7 @@ def add_args(cls, parser):
             "--hf-model-name-to-run",
             type=str,
             default="none",
-            help="the OpenAI model name defaults to none, meaning you'll use the top miner's HF model",
+            help="the OpenAI model name defaults to none, meaning the miner will use the top miner's HF model",
         )
 
         parser.add_argument(
@@ -247,10 +247,9 @@ def add_args(cls, parser):
         parser.add_argument(
             "--miner-hf-model-name-to-submit",
             type=str,
-            default="none",
+            default="Salesforce/xLAM-7b-r",
             help="the HF model name that YOU'VE uploaded to the HF hub to be evaluated, will be returned when validator asks for the model."
         )
-
 
 def config(cls):
     """
