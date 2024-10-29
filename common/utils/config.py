@@ -80,6 +80,19 @@ def add_args(cls, parser):
     )
 
     parser.add_argument(
+        "--openai-api-key",
+        type=str,
+        default="EMPTY",
+        help="the OpenAI API key defaults to EMPTY"
+    )
+    parser.add_argument(
+        "--openai-api-base",
+        type=str,
+        default="http://localhost:8000/v1",
+        help="the OpenAI API base url - defaults to a local LLM server (like VLLM)",
+    )
+
+    parser.add_argument(
         "--neuron.name",
         type=str,
         help="Trials for this neuron go in neuron.root / (wallet_cold - wallet_hot) / neuron.name. ",

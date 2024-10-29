@@ -59,18 +59,6 @@ class Miner(BaseMinerNeuron):
             help="the HF model name that you've uploaded to the HF hub to be evaluated."
         )
         parser.add_argument(
-            "--openai-api-key",
-            type=str,
-            default="EMPTY",
-            help="the OpenAI API key defaults to EMPTY"
-        )
-        parser.add_argument(
-            "--openai-api-base",
-            type=str,
-            default="http://localhost:8000/v1",
-            help="the OpenAI API base url - defaults to a local LLM server (like VLLM)",
-        )
-        parser.add_argument(
             "--openai-model-name",
             type=str,
             default="none",
