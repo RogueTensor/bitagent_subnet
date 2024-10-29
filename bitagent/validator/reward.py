@@ -15,7 +15,6 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-import json
 import asyncio
 import numpy as np
 import bittensor as bt
@@ -86,7 +85,8 @@ Your Average Score: {validator.scores[miner_uid]}
 Highest Score across all miners: {validator.scores.max()}
 Median Score across all miners: {np.median(validator.scores)}"""
             # send results
-            await send_results_to_miner(validator, result, validator.metagraph.axons[miner_uid])
+            if task.mode == "online":
+                await send_results_to_miner(validator, result, validator.metagraph.axons[miner_uid])
 
             return task_results
         return None
