@@ -56,6 +56,7 @@ class BaseValidatorNeuron(BaseNeuron):
         # Set up initial scoring weights for validation
         bt.logging.info("Building validation weights.")
         self.scores = np.zeros(self.metagraph.n, dtype=np.float32)
+        self.offline_scores = np.zeros(self.metagraph.n, dtype=np.float32)
         # Init sync with the network. Updates the metagraph.
         
         if os.path.exists(self.config.neuron.full_path + "/state.npz"):
@@ -303,7 +304,7 @@ class BaseValidatorNeuron(BaseNeuron):
             bt.logging.error(f"set_weights failed: {msg}")
 
     def get_weighted_scores(self):
-        scaled_scores = self.scores * 5
+        scaled_scores = (self.scores+self.offline_scores) * 5
         exp_scores = np.exp(scaled_scores)
         return exp_scores / np.sum(exp_scores)
 
@@ -330,8 +331,10 @@ class BaseValidatorNeuron(BaseNeuron):
             for uid, hotkey in enumerate(self.hotkeys):
                 if hotkey != self.metagraph.hotkeys[uid]:
                     self.scores[uid] = np.median(self.scores)
-                if not check_uid_availability(self.metagraph, uid, self.config.validator.vpermit_tao_limit): # returns false if validator or uid 0 , will set validators scores to 0
+                # returns false if validator or uid 0 , will set validators scores to 0
+                if not check_uid_availability(self.metagraph, uid, self.config.validator.vpermit_tao_limit): 
                     self.scores[uid] = 0 
+                    self.offline_scores[uid] = 0
             # Check to see if the metagraph has changed size.
             # If so, we need to add new hotkeys and moving averages.
             if len(self.hotkeys) < len(self.metagraph.hotkeys):
@@ -340,6 +343,9 @@ class BaseValidatorNeuron(BaseNeuron):
                 min_len = min(len(self.hotkeys), len(self.scores))
                 new_moving_average[:min_len] = self.scores[:min_len]
                 self.scores = new_moving_average
+
+                new_moving_average[:min_len] = self.offline_scores[:min_len]
+                self.offline_scores = new_moving_average
 
             # Update the hotkeys.
             self.hotkeys = copy.deepcopy(self.metagraph.hotkeys)
@@ -379,6 +385,7 @@ class BaseValidatorNeuron(BaseNeuron):
             self.config.neuron.full_path + "/state.npz",
             step=self.step,
             scores=self.scores,
+            offline_scores=self.offline_scores,
         )
         
     def load_state(self):
@@ -386,5 +393,9 @@ class BaseValidatorNeuron(BaseNeuron):
         bt.logging.info("Loading validator state.")
         state = np.load(self.config.neuron.full_path + "/state.npz")
         self.step = state["step"]
-        loaded_scores = state["scores"]
-        self.scores[:len(loaded_scores)] = loaded_scores
+        if 'scores' in state:
+            loaded_scores = state["scores"]
+            self.scores[:len(loaded_scores)] = loaded_scores
+        if 'offline_scores' in state:
+            loaded_offline_scores = state["offline_scores"]
+            self.offline_scores[:len(loaded_offline_scores)] = loaded_offline_scores
