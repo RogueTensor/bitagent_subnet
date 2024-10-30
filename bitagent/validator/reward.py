@@ -98,7 +98,7 @@ Median Score across all miners: {np.median(validator.scores)}"""
         #bt.logging.debug(f"Skipping results for this task b/c not enough information")
         #time.sleep(25)
         return None
-                        
+
 async def process_rewards_update_scores_and_send_feedback(validator: BaseValidatorNeuron, task: Task, responses: List[Any], 
                 miner_uids: List[int]) -> None:
     """
@@ -175,6 +175,7 @@ async def process_rewards_update_scores_and_send_feedback(validator: BaseValidat
 
                 except Exception as e:
                     bt.logging.warning("Exception in log_rewards: {}".format(e))
+        return scores
 
     except Exception as e:
         bt.logging.warning(f"Error logging reward data: {e}")
