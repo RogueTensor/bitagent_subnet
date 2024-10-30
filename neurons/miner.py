@@ -48,6 +48,7 @@ class Miner(BaseMinerNeuron):
             {'forward': self.forward_for_result, 'blacklist': self.blacklist_for_result, 'priority': self.priority_for_result},
             {'forward': self.forward_for_alive, 'blacklist': self.blacklist_for_alive, 'priority': self.priority_for_alive},
             {'forward': self.forward_for_get_hf_model_name, 'blacklist': self.blacklist_for_get_hf_model_name, 'priority': self.priority_for_get_hf_model_name},
+            {'forward': self.forward_for_get_hf_run_model_name, 'blacklist': self.blacklist_for_get_hf_run_model_name, 'priority': self.priority_for_get_hf_run_model_name},
             {'forward': self.forward_for_set_hf_model_name, 'blacklist': self.blacklist_for_set_hf_model_name, 'priority': self.priority_for_set_hf_model_name},
         ]
         if not config:
@@ -99,6 +100,12 @@ class Miner(BaseMinerNeuron):
         self, synapse: bitagent.protocol.GetHFModelName
     ) -> bitagent.protocol.GetHFModelName:
         synapse.hf_model_name = self.config.miner_hf_model_name_to_submit
+        return synapse
+    
+    async def forward_for_get_hf_run_model_name(
+        self, synapse: bitagent.protocol.GetHFRunModelName
+    ) -> bitagent.protocol.GetHFRunModelName:
+        synapse.hf_run_model_name = self.get_top_miner_HF_model_name()
         return synapse
 
     async def forward_for_set_hf_model_name(
@@ -171,6 +178,9 @@ class Miner(BaseMinerNeuron):
 
     async def blacklist_for_get_hf_model_name(self, synapse: bitagent.protocol.GetHFModelName) -> Tuple[bool, str]:
         return await self.__blacklist(synapse)
+
+    async def blacklist_for_get_hf_run_model_name(self, synapse: bitagent.protocol.GetHFRunModelName) -> Tuple[bool, str]:
+        return await self.__blacklist(synapse)
     
     async def blacklist_for_set_hf_model_name(self, synapse: bitagent.protocol.SetHFModelName) -> Tuple[bool, str]:
         return await self.__blacklist(synapse)
@@ -219,6 +229,9 @@ class Miner(BaseMinerNeuron):
     async def priority_for_get_hf_model_name(self, synapse: bitagent.protocol.GetHFModelName) -> float:
         return await self.__priority(synapse)
     
+    async def priority_for_get_hf_run_model_name(self, synapse: bitagent.protocol.GetHFRunModelName) -> float:
+        return await self.__priority(synapse)
+
     async def priority_for_set_hf_model_name(self, synapse: bitagent.protocol.SetHFModelName) -> float:
         return await self.__priority(synapse)
 
