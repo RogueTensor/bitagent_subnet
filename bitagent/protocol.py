@@ -66,3 +66,6 @@ class GetHFModelName(bt.Synapse):
 # Validator calls this to have the miner set the TOP HF model for this miner to run
 class SetHFModelName(bt.Synapse):
     hf_model_name: str
+
+class GetHFRunModelName(bt.Synapse):
+    hf_run_model_name: str
