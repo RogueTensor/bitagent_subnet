@@ -103,7 +103,6 @@ def initiate_validator_local(self):
     def llm(messages, max_new_tokens = 160, temperature=0.7):
         if isinstance(messages, str):
             messages = [{"role":"user","content":messages}]
-        # TODO add key, base, name as config options
         llm = ChatOpenAI(
             openai_api_key=self.config.openai_api_key,
             openai_api_base=self.config.openai_api_base,
