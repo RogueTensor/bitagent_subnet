@@ -61,7 +61,7 @@ class IsAlive(bt.Synapse):
 
 # Validator calls this to get the HF model name that this miner hosts on HF
 class GetHFModelName(bt.Synapse):
-    hf_model_name: str
+    hf_model_name: Optional[str] = None
 
 # Validator calls this to have the miner set the TOP HF model for this miner to run
 class SetHFModelName(bt.Synapse):
