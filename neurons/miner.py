@@ -17,9 +17,8 @@
 # DEALINGS IN THE SOFTWARE.
 
 import time
-import argparse
 import importlib
-from typing import List, Tuple
+from typing import Tuple
 import bittensor as bt
 from rich.console import Console
 
@@ -48,7 +47,8 @@ class Miner(BaseMinerNeuron):
             {'forward': self.forward_for_task, 'blacklist': self.blacklist_for_task, 'priority': self.priority_for_task},
             {'forward': self.forward_for_result, 'blacklist': self.blacklist_for_result, 'priority': self.priority_for_result},
             {'forward': self.forward_for_alive, 'blacklist': self.blacklist_for_alive, 'priority': self.priority_for_alive},
-            {'forward': self.forward_for_hf_model_name, 'blacklist': self.blacklist_for_hf_model_name, 'priority': self.priority_for_hf_model_name},
+            {'forward': self.forward_for_get_hf_model_name, 'blacklist': self.blacklist_for_get_hf_model_name, 'priority': self.priority_for_get_hf_model_name},
+            {'forward': self.forward_for_set_hf_model_name, 'blacklist': self.blacklist_for_set_hf_model_name, 'priority': self.priority_for_set_hf_model_name},
         ]
         if not config:
             config = util_config(self)
@@ -95,12 +95,18 @@ class Miner(BaseMinerNeuron):
         synapse.response = True
         return synapse
 
-    async def forward_for_hf_model_name(
+    async def forward_for_get_hf_model_name(
         self, synapse: bitagent.protocol.GetHFModelName
     ) -> bitagent.protocol.GetHFModelName:
         synapse.hf_model_name = self.config.miner_hf_model_name_to_submit
         return synapse
 
+    async def forward_for_set_hf_model_name(
+        self, synapse: bitagent.protocol.SetHFModelName
+    ) -> bitagent.protocol.SetHFModelName:
+        self.save_top_model_from_validator(synapse.hf_model_name, synapse.validator_uid)
+        return synapse
+    
     async def __blacklist(self, synapse: bt.Synapse) -> Tuple[bool, str]:
         """
         Determines whether an incoming request should be blacklisted and thus ignored. Your implementation should
@@ -163,7 +169,10 @@ class Miner(BaseMinerNeuron):
     async def blacklist_for_alive(self, synapse: bitagent.protocol.IsAlive) -> Tuple[bool, str]:
         return await self.__blacklist(synapse)
 
-    async def blacklist_for_hf_model_name(self, synapse: bitagent.protocol.GetHFModelName) -> Tuple[bool, str]:
+    async def blacklist_for_get_hf_model_name(self, synapse: bitagent.protocol.GetHFModelName) -> Tuple[bool, str]:
+        return await self.__blacklist(synapse)
+    
+    async def blacklist_for_set_hf_model_name(self, synapse: bitagent.protocol.SetHFModelName) -> Tuple[bool, str]:
         return await self.__blacklist(synapse)
 
     async def __priority(self, synapse: bt.Synapse) -> float:
@@ -207,7 +216,10 @@ class Miner(BaseMinerNeuron):
     async def priority_for_alive(self, synapse: bitagent.protocol.IsAlive) -> float:
         return await self.__priority(synapse)
 
-    async def priority_for_hf_model_name(self, synapse: bitagent.protocol.GetHFModelName) -> float:
+    async def priority_for_get_hf_model_name(self, synapse: bitagent.protocol.GetHFModelName) -> float:
+        return await self.__priority(synapse)
+    
+    async def priority_for_set_hf_model_name(self, synapse: bitagent.protocol.SetHFModelName) -> float:
         return await self.__priority(synapse)
 
     async def forward(self, synapse: bt.Synapse) -> bt.Synapse:
