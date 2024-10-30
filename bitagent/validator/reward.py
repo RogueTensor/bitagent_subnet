@@ -100,7 +100,7 @@ Median Score across all miners: {np.median(validator.scores)}"""
         return None
 
 async def process_rewards_update_scores_and_send_feedback(validator: BaseValidatorNeuron, task: Task, responses: List[Any], 
-                miner_uids: List[int]) -> None:
+                miner_uids: List[int], run_models: List[str]) -> None:
     """
     Returns a tensor of rewards for the given query and responses.
 
@@ -142,6 +142,7 @@ async def process_rewards_update_scores_and_send_feedback(validator: BaseValidat
                     data = {
                         "task_name": task_name,
                         "task_mode": task_mode,
+                        "hf_run_model": run_models[i],
                         "messages": [{'role': m.role, 'content': m.content} for m in messages],
                         "tools": [{'name': t.name, 'description': t.description, 'arguments': t.arguments} for t in tools],
                         "miners_count": len(miner_uids),
