@@ -42,7 +42,7 @@ async def forward(self, synapse: QueryTask=None) -> QueryTask:
     """
 
     # if we're close to the block check point for offline HF model check, then check all miners
-    if self.block % self.config.neuron.block_number_check_interval_for_offline_hf_model_check <= 30:
+    if False: #self.block % self.config.neuron.block_number_check_interval_for_offline_hf_model_check <= 30:
         try:
             # get all miner UIDs to compare against the TOP HF model
             miner_uids = range(self.metagraph.n.item())
@@ -88,7 +88,7 @@ async def forward(self, synapse: QueryTask=None) -> QueryTask:
                     response.axon.hotkey = self.metagraph.axons[miner_uid].hotkey
 
                     # evaluate, track score and add to wandb
-                    scores = await asyncio.create_task(process_rewards_update_scores_and_send_feedback(self, task=task, responses=[response], miner_uids=[miner_uid]))
+                    scores = await asyncio.create_task(process_rewards_update_scores_and_send_feedback(self, task=task, responses=[response], miner_uids=[miner_uid], run_models=[top_hf_model_name]))
                     all_scores.append(scores[0])
 
                 # After we're dong with that miner's runs, we can update the validator's state
