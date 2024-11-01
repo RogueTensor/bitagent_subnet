@@ -15,6 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import bittensor as bt
 from openai import OpenAI
 
 # specifically for the validator
@@ -42,21 +43,25 @@ def llm(self, messages, tools, top_model_name, max_new_tokens = 160, temperature
 
     system_prompt = system_prompt.format(functions=tools)
     try:
-        new_messages = [{"role":"system", "content":system_prompt}] + messages
-        response = get_openai_llm(self).chat.completions.create(
-            messages=new_messages,
-            max_tokens=max_new_tokens,
-            model=top_model_name,
-            temperature=temperature
-        )
+        try:
+            new_messages = [{"role":"system", "content":system_prompt}] + messages
+            response = get_openai_llm(self).chat.completions.create(
+                messages=new_messages,
+                max_tokens=max_new_tokens,
+                model=top_model_name,
+                temperature=temperature
+            )
+        except Exception as e:
+            # errored b/c the model does not allow system prompts
+            messages[0].content = system_prompt + "\n\n" + messages[0].content
+            response = get_openai_llm(self).chat.completions.create(
+                messages=messages,
+                max_tokens=max_new_tokens,
+                model=top_model_name,
+                temperature=temperature
+            )
     except Exception as e:
-        # errored b/c the model does not allow system prompts
-        messages[0].content = system_prompt + "\n\n" + messages[0].content
-        response = get_openai_llm(self).chat.completions.create(
-            messages=messages,
-            max_tokens=max_new_tokens,
-            model=top_model_name,
-            temperature=temperature
-        )
+        bt.logging.error(f"Error calling to LLM: {e}")
+        return ""
 
     return response.choices[0].message.content.strip()
