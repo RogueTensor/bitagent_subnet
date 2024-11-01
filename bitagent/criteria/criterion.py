@@ -36,9 +36,28 @@ class Criterion():
         self.eval_fx = eval_fx
         self.eval_args = eval_args
 
+    def clean_response(self,response):
+        # TODO check multiple functions for parallel, when the response is a list [fx1(), fx2()]
+        response = response.strip()
+        if response == "":
+            return response
+        if "\n" in response:
+            response = response.split("\n")[-1]
+        if "[" in response[0] and "]" in response[-1]:
+            response = response[1:-1]
+
+        try:
+            ast.parse(response.strip())
+        except:
+            # if it not a parsable function, then it's potentially an irrelevance call
+            response = ""
+
+        return response.strip()
+
     def evaluate(self, task, validator: BaseValidatorNeuron, synapse: bt.Synapse, response: dict={}) -> [float, float, str]:
         try:
             # make sure the tool response converts nicely to an ast
+            synapse.response = self.clean_response(synapse.response)
             try:
                 ast.parse(synapse.response)
             except:
@@ -46,19 +65,14 @@ class Criterion():
                 max_reward = 1.0
                 feedback = bad_message(f"Your response: {synapse.response} was not parsable")
                 return reward, max_reward, feedback
-            # make sure the response is not empty
-            if synapse.response.strip() is not None and synapse.response.strip() != "":
-                # actually do the evaluation 
-                reward, max_reward, feedback = self.eval_fx(task, validator, synapse, response, *self.eval_args)
-            else:
-                reward = -0.5
-                max_reward = 1.0
-                feedback = bad_message("Your response was empty, please check format per protocol")
+
+            # actually do the evaluation 
+            reward, max_reward, feedback = self.eval_fx(task, validator, synapse, response, *self.eval_args)
         except Exception as e:
             #bt.logging.error(f"Exception was raised during criteria evaluation: {e}")
             reward = -0.5
             max_reward = 1.0
-            feedback = bad_message("Exception while processing your response, please check format per protocol")
+            feedback = bad_message(f"Exception while processing your response, please check format per protocol")
         feedback = f"[bold blue]{self.name}[/bold blue]\n" + feedback
         return reward, max_reward, feedback
 
