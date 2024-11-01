@@ -68,4 +68,4 @@ class SetHFModelName(bt.Synapse):
     hf_model_name: str
 
 class GetHFRunModelName(bt.Synapse):
-    hf_run_model_name: str
+    hf_run_model_name: Optional[str] = None
