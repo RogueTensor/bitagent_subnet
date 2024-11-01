@@ -73,7 +73,7 @@ async def return_results(validator, task, miner_uid, reward, response):
 [bold]Task: {task.name}[/bold]
 [bold]Messages:[/bold] {task.synapse.messages}
 [bold]Tools:[/bold] {[t.name for t in task.synapse.tools]}
-[bold]Response:[/bold] {response.response}
+[bold]Response:[/bold] `{response.response}`
 \n[bold]Results:[/bold]\n
 =====================\n"""+"\n".join(task_results) + f"""
 [bold]Total reward:[/bold] {score}
@@ -176,7 +176,6 @@ async def process_rewards_update_scores_and_send_feedback(validator: BaseValidat
 
                 except Exception as e:
                     bt.logging.warning("Exception in log_rewards: {}".format(e))
-        return scores
 
     except Exception as e:
         bt.logging.warning(f"Error logging reward data: {e}")
@@ -184,3 +183,5 @@ async def process_rewards_update_scores_and_send_feedback(validator: BaseValidat
     # Update the scores based on the rewards. You may want to define your own update_scores function for custom behavior.
     miner_uids = temp_miner_uids
     validator.update_scores(scores, miner_uids, alpha=task.weight)
+
+    return scores
