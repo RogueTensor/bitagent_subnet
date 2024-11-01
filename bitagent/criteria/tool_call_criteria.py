@@ -17,11 +17,12 @@
 # DEALINGS IN THE SOFTWARE.
 import ast
 import bittensor as bt
+from typing import Tuple
 from common.base.validator import BaseValidatorNeuron
 from bitagent.criteria.utils import good_message, bad_message, received_reward_template
 
 # just checking if the function can be parsed by ast
-def correct_tool_call_function_format(task, validator: BaseValidatorNeuron, synapse: bt.Synapse, response: dict) -> [float, float, str]:
+def correct_tool_call_function_format(task, validator: BaseValidatorNeuron, synapse: bt.Synapse, response: dict) -> Tuple[float, float, str]:
     max_reward = 1.0
     reward = 1.0
 
@@ -60,7 +61,7 @@ def extract_function_name_and_params(response: str):
     return function_name, param_names, param_values_dict
 
 # just checking if the function name is correct
-def correct_tool_call_function_name(task, validator: BaseValidatorNeuron, synapse: bt.Synapse, response: dict, expected_response: dict) -> [float, float, str]:
+def correct_tool_call_function_name(task, validator: BaseValidatorNeuron, synapse: bt.Synapse, response: dict, expected_response: dict) -> Tuple[float, float, str]:
     max_reward = 3.0
     reward = 3.0    
 
@@ -77,7 +78,7 @@ def correct_tool_call_function_name(task, validator: BaseValidatorNeuron, synaps
 
 # comparing just the argument names
 # looking for required arguments and that they are present
-def correct_tool_argument_names(task, validator: BaseValidatorNeuron, synapse: bt.Synapse, response: dict, expected_response: dict) -> [float, float, str]:
+def correct_tool_argument_names(task, validator: BaseValidatorNeuron, synapse: bt.Synapse, response: dict, expected_response: dict) -> Tuple[float, float, str]:
     max_reward = 3.0
     reward = 0.0        
 
@@ -108,7 +109,7 @@ def correct_tool_argument_names(task, validator: BaseValidatorNeuron, synapse: b
 
     return reward, max_reward, feedback[:-1]+received_reward_template.format(reward, max_reward)
 
-def correct_tool_argument_values(task, validator: BaseValidatorNeuron, synapse: bt.Synapse, response: dict, expected_response: dict) -> [float, float, str]:
+def correct_tool_argument_values(task, validator: BaseValidatorNeuron, synapse: bt.Synapse, response: dict, expected_response: dict) -> Tuple[float, float, str]:
     max_reward = 3.0
     reward = 0.0        
 
@@ -149,7 +150,7 @@ def correct_tool_argument_values(task, validator: BaseValidatorNeuron, synapse: 
 
     return reward, max_reward, feedback[:-1]+received_reward_template.format(reward, max_reward)
 
-def correct_irrelevant_tool_call(task, validator: BaseValidatorNeuron, synapse: bt.Synapse, response: dict) -> [float, float, str]:
+def correct_irrelevant_tool_call(task, validator: BaseValidatorNeuron, synapse: bt.Synapse, response: dict) -> Tuple[float, float, str]:
     max_reward = 3.0
     reward = 3.0
     
