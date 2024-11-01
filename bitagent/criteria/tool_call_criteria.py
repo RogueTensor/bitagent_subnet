@@ -35,25 +35,37 @@ def correct_tool_call_function_format(task, validator: BaseValidatorNeuron, syna
     feedback = good_message(f"Your response was in the correct format.")
     return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
 
+def extract_function_name_and_params(response: str):
+    if response == "":
+        return "", [], {}
+
+    node = ast.parse(response , mode="eval")
+    # handle situation where the function name has a dot in it
+    try:    
+        # handle a dot in the function name
+        function_name = node.body.func.value.id + "." + node.body.func.attr
+    except:
+        # no dot in teh function name
+        function_name = node.body.func.id   
+    param_names = [kw.arg for kw in node.body.keywords]
+    if param_names: 
+        param_values = [ast.literal_eval(kw.value) for kw in node.body.keywords]
+    else:
+        param_values = []
+
+    param_values_dict = {}
+    for i,param_name in enumerate(param_names):
+        param_values_dict[param_name] = param_values[i]
+
+    return function_name, param_names, param_values_dict
+
 # just checking if the function name is correct
 def correct_tool_call_function_name(task, validator: BaseValidatorNeuron, synapse: bt.Synapse, response: dict, expected_response: dict) -> [float, float, str]:
     max_reward = 3.0
     reward = 3.0    
 
-    miner_function = ast.parse(synapse.response)
+    function_name, _, _ = extract_function_name_and_params(synapse.response)
     expected_function_name = expected_response['name']
-
-    # in the case the function is a string without a "." dot in it like requests.get
-    if expected_function_name.find(".") == -1 and len(miner_function.body) > 0:
-        function_name = miner_function.body[0].value.func.id
-    elif len(miner_function.body) > 0:
-        # we're looking for a function with a dot in it
-        function_name = miner_function.body[0].value.func.value.id
-        function_name += "." + miner_function.body[0].value.func.attr
-    else:
-        reward = -0.5
-        feedback = bad_message(f"Your function name does not match the expected function name.")
-        return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
 
     if function_name.strip() == expected_function_name.strip():
         feedback = good_message(f"Your function name matches the expected function name.")
@@ -69,13 +81,12 @@ def correct_tool_argument_names(task, validator: BaseValidatorNeuron, synapse: b
     max_reward = 3.0
     reward = 0.0        
 
-    miner_function = ast.parse(synapse.response)
-    function_args = [k.arg for k in miner_function.body[0].value.keywords]
+    _, function_args, _ = extract_function_name_and_params(synapse.response)
     expected_args = expected_response['arguments'].keys()
 
     if len(expected_args) == 0 and len(function_args) == 0:
         reward = max_reward
-        feedback = good_message("Function has no arguments")
+        feedback = good_message("Function has no arguments, good job")
         return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
 
     if "is_ground_truth" in expected_response.keys():
@@ -104,17 +115,14 @@ def correct_tool_argument_values(task, validator: BaseValidatorNeuron, synapse: 
     feedback = "" 
 
     # MINER response
-    miner_function = ast.parse(synapse.response)
-    function_args = [k.arg for k in miner_function.body[0].value.keywords]
+    _, function_args, function_values = extract_function_name_and_params(synapse.response)
     expected_args = expected_response['arguments'].keys()
 
     # no args
     if len(expected_args) == 0 and len(function_args) == 0:
         reward = max_reward
-        feedback = good_message("Function has no arguments")
+        feedback = good_message("Function has no arguments, good job")
         return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
-
-    function_values = {k.arg: k.value.value for k in miner_function.body[0].value.keywords}
 
     if "is_ground_truth" in expected_response.keys():
         required_args = [arg for arg in expected_args if expected_response['arguments'][arg] != [""]]
@@ -147,7 +155,7 @@ def correct_irrelevant_tool_call(task, validator: BaseValidatorNeuron, synapse: 
     
     if synapse.response.strip() != "":
         reward = -0.5
-        feedback = bad_message(f"Your response was not empty, expected an empty response to be returned.")
+        feedback = bad_message(f"Your response (`{synapse.response}`) was not empty, expected an empty response to be returned.")
         return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
 
     feedback = good_message(f"You responded with the expected response.")
