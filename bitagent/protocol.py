@@ -51,7 +51,7 @@ class QueryResult(bt.Synapse):
     results: str
 
 class IsAlive(bt.Synapse):
-    response: bool
+    response: bool = False
 
 # Validator calls this to get the HF model name that this miner hosts on HF
 class GetHFModelName(bt.Synapse):
