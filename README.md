@@ -166,7 +166,7 @@ For your consideration:
 2) Use pm2 to launch your miner for easy management and reconfiguration as needed.
 
 
-#### Example Task:
+#### Example Task
 Here's an example task you can expect your model to see in OFFLINE mode as well as your miner to see in ONLINE mode:
 
 You'll receive messages like this:
