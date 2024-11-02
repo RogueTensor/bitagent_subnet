@@ -181,7 +181,7 @@ and Tools like this:
 "description":"A function to restart a given pod, useful for deployment and testing.","name":"restart_pod"},...]
 ```
 
-In response your model should return the function call like this:
+In response your model should return the function call like this:\
 `calculate_discount(discount_percentation=..., original_price=...)`
 
 The model is responsible for returning a function call like above with the right function name, the correct function argument names and values, being sure to set any required arguments appropriately.
