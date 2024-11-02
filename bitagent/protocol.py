@@ -38,6 +38,7 @@ class QueryTask(bt.Synapse):
 
     # Optional request output, filled by recieving axon.
     response: str = ""
+    hf_run_model_name: str = "N/A"
 
 class QueryResult(bt.Synapse):
     """
