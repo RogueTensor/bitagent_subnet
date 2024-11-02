@@ -111,7 +111,7 @@ class Miner(BaseMinerNeuron):
     async def forward_for_set_hf_model_name(
         self, synapse: bitagent.protocol.SetHFModelName
     ) -> bitagent.protocol.SetHFModelName:
-        self.save_top_model_from_validator(synapse.hf_model_name, synapse.validator_uid)
+        #self.save_top_model_from_validator(synapse.hf_model_name, synapse.validator_uid)
         return synapse
     
     async def __blacklist(self, synapse: bt.Synapse) -> Tuple[bool, str]:
