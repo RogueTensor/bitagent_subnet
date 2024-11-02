@@ -30,6 +30,7 @@ class QueryTask(bt.Synapse):
     - messages: a list of ChatMessage (see bitagent/schemas) - will be used for every task except Tool Gen
     - tools: list of tools {name, description, arguments } in a List of dicts
     - repsonse: string (e.g., tool_name(arg1=value1, arg2=value2))
+    - hf_run_model_name: string representing the HF model the miner is running
     """
 
     # Required request input, filled by sending dendrite caller.
