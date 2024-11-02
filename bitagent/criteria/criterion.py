@@ -18,7 +18,7 @@
 import ast
 import bittensor as bt
 from pprint import pformat
-from typing import Callable, List
+from typing import Callable, List, Tuple
 from common.base.validator import BaseValidatorNeuron
 from bitagent.criteria.utils import bad_message
 from bitagent.criteria.default_criteria import *
@@ -54,7 +54,7 @@ class Criterion():
 
         return response.strip()
 
-    def evaluate(self, task, validator: BaseValidatorNeuron, synapse: bt.Synapse, response: dict={}) -> [float, float, str]:
+    def evaluate(self, task, validator: BaseValidatorNeuron, synapse: bt.Synapse, response: dict={}) -> Tuple[float, float, str]:
         try:
             # make sure the tool response converts nicely to an ast
             synapse.response = self.clean_response(synapse.response)
