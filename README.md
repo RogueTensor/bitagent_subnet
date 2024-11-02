@@ -37,11 +37,11 @@
 **GoGoAgent - Our Application** - https://gogoagent.ai
 
 **Key Features**
-- OFFLINE evaluation of tool calling language model fine tunes
-- ONLINE evaluation of miners running tool calling language models allowing applications to scale on top of SN20
 - Working our way up the [Berkeley Fucntion Calling Leaderboard](https://gorilla.cs.berkeley.edu/leaderboard.html#leaderboard) (BFCL)
 - No API / subscription requirements
 - Run light models (8B parameter) for huge impact
+- OFFLINE evaluation of tool calling language model fine tunes
+- ONLINE evaluation of miners running tool calling language models allowing applications to scale on top of SN20
 - Miner's receive [transparent feedback](#miner-feedback)
 - And a BONUS for getting this far - are you tired of waiting for registration slots?  Check out [register.sh](./scripts/register.sh)
 
