@@ -1,6 +1,5 @@
 # The MIT License (MIT)
-# Copyright © 2023 Yuma Rao
-# Copyright © 2023 RogueTensor
+# Copyright © 2024 RogueTensor
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -20,12 +19,12 @@ import bitagent
 from bitagent.helpers.llms import llm
 
 def miner_init(self, config=None):
-    #load_state(self)
-    self.top_model_name = self.get_top_miner_HF_model_name()
+    self.model_name = self.config.hf_model_name_to_run
     self.llm = llm
 
 def miner_process(self, synapse: bitagent.protocol.QueryTask) -> bitagent.protocol.QueryTask:
-    llm_response = self.llm(self, synapse.messages, synapse.tools, self.top_model_name)
+    llm_response = self.llm(self, synapse.messages, synapse.tools, self.model_name)
     synapse.response = llm_response
+    synapse.hf_run_model_name = self.model_name
 
     return synapse
