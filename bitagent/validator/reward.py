@@ -132,6 +132,11 @@ async def process_rewards_update_scores_and_send_feedback(validator: BaseValidat
                 miner_uid = miner_uids[i]
                 score,max_possible_score,_,correct_answer = rewards[i][0]
                 normalized_score = score/max_possible_score
+                if run_models and len(run_models) > i:
+                    run_model = run_models[i]
+                else:
+                    run_model = "N/A"
+
                 resp = "None"
                 try:
                     resp = response.response
@@ -142,7 +147,7 @@ async def process_rewards_update_scores_and_send_feedback(validator: BaseValidat
                     data = {
                         "task_name": task_name,
                         "task_mode": task_mode,
-                        "hf_run_model": run_models[i],
+                        "hf_run_model": run_model,
                         "messages": [{'role': m.role, 'content': m.content} for m in messages],
                         "tools": [{'name': t.name, 'description': t.description, 'arguments': t.arguments} for t in tools],
                         "miners_count": len(miner_uids),
