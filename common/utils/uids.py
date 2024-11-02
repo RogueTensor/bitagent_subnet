@@ -2,6 +2,8 @@ import random
 import numpy as np
 import bittensor as bt
 from typing import List
+from bitagent.protocol import IsAlive
+from cachetools import cached, TTLCache
 
 def check_uid_availability(
     metagraph: "bt.metagraph.Metagraph", uid: int, vpermit_tao_limit: int
@@ -30,6 +32,26 @@ def check_uid_availability(
     # Available otherwise.
     return True
 
+# Create a cache with a maximum size of 256 items and a TTL of 1 hour (3600 seconds)
+cache = TTLCache(maxsize=256, ttl=3600)
+
+@cached(cache)
+def get_alive_uids(self):
+    start = 0
+    finish = start + 10
+    results = []
+    while start < len(self.metagraph.axons):
+        result = self.dendrite.query(
+            axons=self.metagraph.axons[start:finish], synapse=IsAlive(), deserialize=False, timeout=5.0
+        )
+        results.extend(result)
+        start = finish
+        finish = start + 10
+        if finish > len(self.metagraph.axons):
+            finish = len(self.metagraph.axons)  
+    alive_uids = [uid for uid, response in zip(range(self.metagraph.n.item()), results) if response.response and response.dendrite.status_code == 200]
+    #bt.logging.debug(f"Found {len(alive_uids)} alive UIDs, caching for 1 hour")
+    return alive_uids
 
 def get_random_uids(
     self, k: int, exclude: List[int] = None
@@ -46,23 +68,11 @@ def get_random_uids(
     candidate_uids = []
     avail_uids = []
 
-    for uid in range(self.metagraph.n.item()):
+    for uid in get_alive_uids(self):
         uid_is_available = check_uid_availability(
             self.metagraph, uid, self.config.neuron.vpermit_tao_limit
         )
         uid_is_not_excluded = exclude is None or uid not in exclude
-
-        ## actually check that the axon is there and alive
-        #result = self.dendrite.query(
-        #    # Send the query to selected miner axons in the network.
-        #    axons=[self.metagraph.axons[uid]],
-        #    # Construct a query. 
-        #    synapse=bitagent.protocol.IsAlive(response=False),
-        #    # All responses have the deserialize function called on them before returning.
-        #    # You are encouraged to define your own deserialization function.
-        #    deserialize=False,
-        #)
-        #uid_is_available = result[0].response
 
         if uid_is_available:
             avail_uids.append(uid)

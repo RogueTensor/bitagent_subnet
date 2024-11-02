@@ -1,4 +1,5 @@
 bittensor==8.2.0
+cachetools
 datasets
 docker
 langchain-openai
