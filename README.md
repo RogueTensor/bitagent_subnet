@@ -156,7 +156,7 @@ Both ONLINE and OFFLINE tasks are evaluated against these alterations of these d
 - Glaive Function Calling tasks
 - BitAgent Function calling tasks
 
-The Bi-weekly challenge is to finetune an 8B model (or less) to perform well on the tool call tasks and perform well on the [BFCL Leaderboard](https://gorilla.cs.berkeley.edu/leaderboard.html). Miners must publish their model to HuggingFace and update their `--miner-hf-model-name-to-subnet` parameter when starting/restarting their miner - see [Default Miner](#default-miner)
+The Bi-weekly challenge is to finetune an 8B model (or less) to perform well on the tool calling tasks and perform well on the [BFCL Leaderboard](https://gorilla.cs.berkeley.edu/leaderboard.html). Miners must publish their model to HuggingFace and update their `--miner-hf-model-name-to-subnet` parameter when starting/restarting their miner - see [Default Miner](#default-miner)
 
 #### Miner Considerations
 The default miner is all you need, just make sure you update the parameters described in [Default Miner](#default-miner).  
