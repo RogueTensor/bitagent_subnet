@@ -223,3 +223,38 @@ class BaseMinerNeuron(BaseNeuron):
         #    # get the most common model name
         #    most_common_model_name = Counter(self.hf_top_model_names).most_common(1)[0][0]
         #    return most_common_model_name
+
+
+    # we might do this in the future, not doing for now
+    ## validator sends the miner the top model name to run from HF
+    ## store it
+    #def save_top_model_from_validator(self, top_hf_model_name, validator_uid):
+    #    # save off the top model from this validator
+    #    bt.logging.debug(f"Saving top HF model name from validator {validator_uid} state - {self.config.neuron.full_path}/miner_state.npz.")
+    #
+    #    self.hf_top_model_names[validator_uid] = top_hf_model_name
+    #
+    #    # Save the state of the miner to file.
+    #    np.savez(
+    #        self.config.neuron.full_path + "/miner_state.npz",
+    #        hf_top_model_names=self.hf_top_model_names,
+    #    )
+    #    
+    ## load that top model and run with it
+    #def load_state(self):
+    #    """Loads the state of the miner from a file."""
+    #    bt.logging.info("Loading miner state.")
+    #    if os.path.exists(self.config.neuron.full_path + "/miner_state.npz"):
+    #        state = np.load(self.config.neuron.full_path + "/miner_state.npz", allow_pickle=True)
+    #    else:
+    #        np.savez(
+    #            self.config.neuron.full_path + "/miner_state.npz",
+    #            hf_top_model_names={},
+    #        )
+    #        state = np.load(self.config.neuron.full_path + "/miner_state.npz", allow_pickle=True)
+    #        
+    #    if 'hf_top_model_names' in state:
+    #        loaded_hf_top_model_names = state["hf_top_model_names"]
+    #        self.hf_top_model_names = loaded_hf_top_model_names
+    #    else:
+    #        self.hf_top_model_names = {}
