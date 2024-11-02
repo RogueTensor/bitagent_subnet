@@ -90,6 +90,12 @@ def correct_tool_argument_names(task, validator: BaseValidatorNeuron, synapse: b
         feedback = good_message("Function has no arguments, good job")
         return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
 
+    # they returned arguments but the function expects none
+    if len(expected_args) == 0:
+        reward = 0
+        feedback = bad_message(f"Function expects no arguments, but you returned arguments: {function_args}")
+        return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
+
     if "is_ground_truth" in expected_response.keys():
         required_args = [arg for arg in expected_args if expected_response['arguments'][arg] != [""]]
     else:
@@ -138,7 +144,6 @@ def correct_tool_argument_values(task, validator: BaseValidatorNeuron, synapse: 
                 reward += max_reward/max(len(function_args),len(expected_args))
                 feedback += good_message(f"Your function has the required value for argument: {arg}") + "\n"
             elif function_values[arg] == correct_values:
-                # TODO need to compare dict with dict and list with list - need some json dumps of non primitive values
                 reward += max_reward/max(len(function_args),len(expected_args))
                 feedback += good_message(f"Your function has the required value for argument: {arg}") + "\n"
             else:
