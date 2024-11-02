@@ -235,6 +235,9 @@ A: No - no subs, no external companies, in fact we'd rather the community build 
 Q: What LLM should I use?\
 A: This is where the miner needs to experiment some and test and fine-tune different LLM models to find what accomplishes the tasks most successfully.  Have a look at models in the Salesforce xLAM family as good starting points.
 
+Q: Validators are running miner HF models, will validators require `trust_remote_code`?\
+A: No, we require that no setup scripts or any code be required for running the models.
+
 ---
 
 ## License
