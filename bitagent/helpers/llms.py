@@ -30,7 +30,7 @@ def get_openai_llm(self):
         base_url=base_url
     )
 
-def llm(self, messages, tools, top_model_name, max_new_tokens = 160, temperature=0.7):
+def llm(self, messages, tools, model_name, max_new_tokens = 160, temperature=0.7):
     system_prompt = """You are an expert in composing functions. You are given a question and a set of possible functions. Based on the question, you will need to make one or more function/tool calls to achieve the purpose.
     If none of the function can be used, point it out. If the given question lacks the parameters required by the function, also point it out.
     You should only return the function call in tools call sections.
@@ -48,7 +48,7 @@ def llm(self, messages, tools, top_model_name, max_new_tokens = 160, temperature
             response = get_openai_llm(self).chat.completions.create(
                 messages=new_messages,
                 max_tokens=max_new_tokens,
-                model=top_model_name,
+                model=model_name,
                 temperature=temperature
             )
         except Exception as e:
@@ -57,7 +57,7 @@ def llm(self, messages, tools, top_model_name, max_new_tokens = 160, temperature
             response = get_openai_llm(self).chat.completions.create(
                 messages=messages,
                 max_tokens=max_new_tokens,
-                model=top_model_name,
+                model=model_name,
                 temperature=temperature
             )
     except Exception as e:
