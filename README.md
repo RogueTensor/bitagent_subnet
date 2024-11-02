@@ -109,7 +109,7 @@ This will run the LLM on port 8000. To change the port, change the host port for
 
 Validators have hardware requirements. Two LLMS are needed to be run simultaneously:
   - 1st LLM `thesven/Mistral-7B-Instruct-v0.3-GPTQ` can run off of 10GB to 20GB of VRAM - this model is used to alter tasks before going out to miners.
-  - 2nd LLM is each miner's tool calling model fetched from Hugging Face, 1 at a time to be evaluated OFFLINE and takes up 20GB to 30GB of VRAM.
+  - 2nd LLM is each miner's tool calling model fetched from Hugging Face, one at a time to be evaluated OFFLINE and takes up 20GB to 30GB of VRAM.
 
 Miners will need to run a top tool calling LLM or a fine-tune of their own, needing a GPU with 20GB to 30GB of VRAM. 
 
