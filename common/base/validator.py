@@ -26,14 +26,12 @@ import bittensor as bt
 from common.utils.weight_utils import (
     process_weights_for_netuid,
     convert_weights_and_uids_for_emit,
-)  # TODO: Replace when bittensor switches to numpy
+)
 
-from typing import List, Any
-from datetime import datetime
+from typing import List
 from traceback import print_exception
 
 from common.base.neuron import BaseNeuron
-from common.utils.config import add_args as util_add_args
 from common.utils.uids import check_uid_availability
 
 class BaseValidatorNeuron(BaseNeuron):
