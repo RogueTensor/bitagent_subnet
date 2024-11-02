@@ -54,6 +54,7 @@ class BaseValidatorNeuron(BaseNeuron):
         # Set up initial scoring weights for validation
         bt.logging.info("Building validation weights.")
         self.scores = np.zeros(self.metagraph.n, dtype=np.float32)
+        self.all_scores = [[]]*len(self.metagraph.uids)
         self.offline_scores = np.zeros(self.metagraph.n, dtype=np.float32)
         self.offline_model_names = [""]*len(self.metagraph.uids)
         # Init sync with the network. Updates the metagraph.
@@ -385,6 +386,7 @@ class BaseValidatorNeuron(BaseNeuron):
             self.config.neuron.full_path + "/state.npz",
             step=self.step,
             scores=self.scores,
+            all_scores=self.all_scores,
             offline_scores=self.offline_scores,
             offline_model_names=self.offline_model_names,
         )
@@ -403,3 +405,6 @@ class BaseValidatorNeuron(BaseNeuron):
         if 'offline_model_names' in state:
             loaded_offline_model_names = state["offline_model_names"]
             self.offline_model_names[:len(loaded_offline_model_names)] = loaded_offline_model_names
+        if 'all_scores' in state:
+            loaded_all_scores = state["all_scores"]
+            self.all_scores[:len(loaded_all_scores)] = loaded_all_scores
