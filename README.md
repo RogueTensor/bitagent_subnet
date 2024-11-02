@@ -139,7 +139,7 @@ The default miner is all you need with these modifications:
    Example: `--miner-hf-model-name-to-submit Salesforce/xLAM-7b-r`
 2) `--hf-model-name-to-run` - this is the model the miner is running to respond to queries to the miner. \
    Example: `--hf-model-name-to-run Salesforce/xLAM-7b-r`
-3) `--openai-api-base` - this sets the VLLM endpoint that's running your local model. \
+3) `--openai-api-base` - this sets the vLLM endpoint that's running your local model. \
    Example: `--openai-api-base http://localhost:8000/v1`
 
 See [Miner Considerations](#miner-considerations) for common areas miners should look to improve.
@@ -147,7 +147,7 @@ See [Miner Considerations](#miner-considerations) for common areas miners should
 #### Miner Considerations
 The default miner is all you need, just make sure you update the parameters described in [Default Miner](#default-miner).  
 For your consideration:
-1) Use VLLM as a fast inference runner for your tool calling LLM. See section on [VLLM setup](#vllm-setup).
+1) Use vLLM as a fast inference runner for your tool calling LLM. Check [this](https://docs.vllm.ai/en/v0.6.0/getting_started/quickstart.html#openai-compatible-server) out to stand up an openAI compliant vLLM instance.
 2) Use pm2 to launch your miner for easy management and reconfiguration as needed.
 
 #### Miner Feedback
