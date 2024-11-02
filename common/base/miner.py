@@ -23,6 +23,7 @@ import traceback
 
 import bittensor as bt
 
+#from collections import Counter
 from common.base.neuron import BaseNeuron
 
 class BaseMinerNeuron(BaseNeuron):
@@ -205,3 +206,20 @@ class BaseMinerNeuron(BaseNeuron):
             self.last_block_sync = self.block
         except Exception as e:
             bt.logging.error(f"Could not sync with metagraph right now, will try later. Error: {e}")
+
+    # each validator sends their top miner's HF model name to each miner
+    def get_top_miner_HF_model_name(self):
+        # miner can specify a HF model name to run
+        if self.config.hf_model_name_to_run != "none":
+            return self.config.hf_model_name_to_run
+
+        return "Salesforce/xLAM-7b-r"
+
+        ## TODO might consider selecting the TOP model that each validator votes for
+        ## if no specific model name is specified, miner will use the top model name from the validators' votes
+        #if not self.hf_top_model_names or len(list(self.hf_top_model_names.keys())) == 0:
+        #    return self.config.hf_model_name_to_run
+        #else:
+        #    # get the most common model name
+        #    most_common_model_name = Counter(self.hf_top_model_names).most_common(1)[0][0]
+        #    return most_common_model_name
