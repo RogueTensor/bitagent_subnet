@@ -91,10 +91,6 @@ class ToolCallTask(Task):
             # no tool call in the messages, so skip
             raise Exception("Skipping")
 
-        # TODO could check earlier if the schema (required args) and tool ground truth match
-        #tool_call_schema = [t for t in data.tools if t.name == tool_call.name][0]
-        #required_args = [argname for argname, argdict in tool_call_schema.arguments.items() if argdict['required']]
-
         # increase number of tools
         for _ in range(random.randint(2,6)):
             # filter out the tools by name that are already in the data.tools
@@ -117,7 +113,6 @@ class ToolCallTask(Task):
         user = data.messages[0].content
 
         count = 0
-        # TODO why 10 times?
         while count < 10:
             count += 1
             if find_first_tool_call(data.messages):
@@ -142,8 +137,6 @@ class ToolCallTask(Task):
                                 raise Exception('The rewritten tool call is not valid')
                 except Exception as e:
                     #bt.logging.error(f'An error occured while rewriting the tool call {e}')
-                    # TODO why do we jump to 11 and end the while loop?
-                    # TODO compare to current bitagent code for this section
                     count = 11
                     continue
 

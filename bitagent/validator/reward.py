@@ -60,7 +60,6 @@ async def evaluate_task(validator, task, response):
 
     return rewards
 
-# TODO need to add in query scores and HF scores and BFCL scores
 async def return_results(validator, task, miner_uid, reward, response):
     # means we got all of the information we need to score the miner and update wandb
     if len(reward) == 4:
@@ -84,6 +83,7 @@ Stats with this validator:
 Your Average Score: {validator.scores[miner_uid]}
 Highest Score across all miners: {validator.scores.max()}
 Median Score across all miners: {np.median(validator.scores)}"""
+# TODO need to add in query scores and HF scores and BFCL scores
             # send results
             if task.mode == "online":
                 await send_results_to_miner(validator, result, validator.metagraph.axons[miner_uid])

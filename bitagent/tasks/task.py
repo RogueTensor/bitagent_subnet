@@ -15,17 +15,15 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 import random
-import traceback
 import bittensor as bt
-from typing import List
 from pprint import pformat
+from typing import List, Tuple
 from bitagent.protocol import QueryTask
 from bitagent.schemas.tool import Tool
-from common.utils.uids import get_uid_rank
 from bitagent.tasks import TASK_FREQUENCY
 from common.base.validator import BaseValidatorNeuron
 from bitagent.criteria import Criterion, default_criteria
-from bitagent.schemas.chat import ChatMessage, messages_from_list, messages_to_list
+from bitagent.schemas.chat import ChatMessage, messages_to_list
 
 # Task()
 # combines criterion/criteria with the QueryTask (messages,tools) for eval to form a task for the miner
@@ -54,7 +52,7 @@ class Task():
         self.synapse = QueryTask(messages=messages, tools=tools)
         self.correct_answer = correct_answer
 
-    def reward(self, validator: BaseValidatorNeuron, synapse: QueryTask, response:dict) -> [float, float, List[str]]:
+    def reward(self, validator: BaseValidatorNeuron, synapse: QueryTask, response:dict) -> Tuple[float, float, List[str]]:
         total_score = 0.0
         total_possible = 0.0
         results = []
@@ -84,8 +82,7 @@ class Task():
         }
 
 # evaluate task
-def evaluate_task(validator, task:Task, synapse:bt.Synapse, response:dict) -> [float, float, List[str]]:
-    # TODO tiered weighting
+def evaluate_task(validator, task:Task, synapse:bt.Synapse, response:dict) -> Tuple[float, float, List[str]]:
     return task.reward(validator, synapse, response)
 
 # get random task
