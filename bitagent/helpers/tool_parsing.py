@@ -37,7 +37,6 @@ def validate_tool_call(tool: Tool, tool_call: Dict[str, Any]) -> bool:
 
         # Check arguments
         for arg_name, arg_schema in tool.arguments.items():
-            # TODO handle for BFCL required args too
             if arg_schema['required'] and arg_name not in tool_call_validated.arguments:
                 #bt.logging.warning(f"Missing required argument: {arg_name}")
                 return False
