@@ -87,7 +87,6 @@ Median Score across all miners: {np.median(validator.scores)}"""
             # send results
             if task.mode == "online":
                 await send_results_to_miner(validator, result, validator.metagraph.axons[miner_uid])
-
             return task_results
         return None
     elif len(reward) == 2: # skip it
@@ -99,6 +98,98 @@ Median Score across all miners: {np.median(validator.scores)}"""
         #time.sleep(25)
         return None
 
+async def write_to_wandb(validator: BaseValidatorNeuron, task: Task, responses: List[Any], miner_uids: List[int], rewards: List[List[float]], results: List[List[str]]) -> None:
+    # common wandb setup
+    try:
+        messages = task.synapse.messages
+        tools = task.synapse.tools
+        task_name = task.name
+        task_mode = task.mode
+    except Exception as e:
+        bt.logging.error("Could not setup common data - ", e)
+
+    for i in range(len(responses)):
+        response = responses[i]
+        miner_uid = miner_uids[i]
+        score,max_possible_score,_,correct_answer = rewards[i][0]
+        normalized_score = score/max_possible_score
+
+        resp = "None"
+        try:
+            resp = response.response
+            run_model = response.hf_run_model_name
+        except:
+            pass
+
+        try:
+            data = {
+                "task_name": task_name,
+                "task_mode": task_mode,
+                "hf_run_model": run_model,
+                "messages": [{'role': m.role, 'content': m.content} for m in messages],
+                "tools": [{'name': t.name, 'description': t.description, 'arguments': t.arguments} for t in tools],
+                "miners_count": len(miner_uids),
+                "messages_count": len(messages),
+                "tools_count": len(tools),
+                "response": resp,
+                "miner_uid": miner_uids[i],
+                "score": score,
+                "normalized_score": normalized_score,
+                "average_score_for_miner_with_this_validator": validator.scores[miner_uid],
+                "stake": validator.metagraph.S[miner_uid],
+                "trust": validator.metagraph.T[miner_uid],
+                "incentive": validator.metagraph.I[miner_uid],
+                "consensus": validator.metagraph.C[miner_uid],
+                "dividends": validator.metagraph.D[miner_uid],
+                "results": "\n".join(results[i]),
+                "dendrite_process_time": response.dendrite.process_time,
+                "dendrite_status_code": response.dendrite.status_code,
+                "axon_status_code": response.axon.status_code,
+                "validator_uid": validator.metagraph.hotkeys.index(validator.wallet.hotkey.ss58_address),
+                "val_spec_version": validator.spec_version,
+                "highest_score_for_miners_with_this_validator": validator.scores.max(),
+                "median_score_for_miners_with_this_validator": np.median(validator.scores),
+                #"correct_answer": correct_answer, # TODO best way to send this without lookup attack?
+            }
+
+            try:
+                validator.log_event(data)
+            except Exception as e:
+                bt.logging.debug("WandB failed to log, moving on ... exception: ", e)
+
+        except Exception as e:
+            bt.logging.warning("Exception in log_rewards: {}".format(e))
+
+
+async def process_rewards_update_scores_for_many_tasks(validator: BaseValidatorNeuron, tasks: List[Task], responses: List[Any], 
+                miner_uid: int) -> None:
+    rewards = await asyncio.gather(*[evaluate_task(validator, tasks[i], responses[i]) for i in range(len(responses))])
+    try:
+        # track which miner uids are scored for updating the scores
+        #temp_miner_uids = [miner_uids[i] for i, reward in enumerate(rewards) if len(reward[0]) == 4 and reward[0][0] is not None and reward[0][1] is not None]
+        scores = []
+        for i, reward in enumerate(rewards):
+            if len(reward[0]) == 4 and reward[0][0] is not None and reward[0][1] is not None:
+                scores.append(reward[0][0]/reward[0][1])
+                result = await return_results(validator, tasks[i], miner_uid, reward[0], responses[i])
+            else:
+                # bad reward, so 0 score
+                scores.append(0.0)
+                result = None
+
+            if result is not None:
+                await write_to_wandb(validator, tasks[i], [responses[i]], [miner_uid], rewards, result)
+
+
+    except Exception as e:
+        bt.logging.warning(f"Error logging reward data: {e}")
+
+    score = np.mean(scores)
+
+    validator.update_scores([score], [miner_uid], alpha=tasks[0].weight)
+
+    return score
+
 async def process_rewards_update_scores_and_send_feedback(validator: BaseValidatorNeuron, task: Task, responses: List[Any], 
                 miner_uids: List[int]) -> None:
     """
@@ -109,81 +200,29 @@ async def process_rewards_update_scores_and_send_feedback(validator: BaseValidat
     - responses (List[float]): A list of responses from the miner.
     - miner_uids (List[int]): A list of miner UIDs. The miner at a particular index has a response in responses at the same index.
     """
-    # common wandb setup
-    try:
-        messages = task.synapse.messages
-        tools = task.synapse.tools
-        task_name = task.name
-        task_mode = task.mode
-    except Exception as e:
-        bt.logging.error("Could not setup common data - ", e)
-
     # run these in parallel but wait for the reuslts b/c we need them downstream
     rewards = await asyncio.gather(*[evaluate_task(validator, task, response) for response in responses])
     try:
         # track which miner uids are scored for updating the scores
-        temp_miner_uids = [miner_uids[i] for i, reward in enumerate(rewards) if len(reward[0]) == 4 and reward[0][0] is not None and reward[0][1] is not None]
-        scores = [reward[0][0]/reward[0][1] for reward in rewards if len(reward[0]) == 4 and reward[0][0] is not None and reward[0][1] is not None]
-        results = await asyncio.gather(*[return_results(validator, task, miner_uids[i], reward[0], responses[i]) for i, reward in enumerate(rewards)])
+        #temp_miner_uids = [miner_uids[i] for i, reward in enumerate(rewards) if len(reward[0]) == 4 and reward[0][0] is not None and reward[0][1] is not None]
+        scores = []
+        for i, reward in enumerate(rewards):
+            if len(reward[0]) == 4 and reward[0][0] is not None and reward[0][1] is not None:
+                scores.append(reward[0][0]/reward[0][1])
+                result = await return_results(validator, task, miner_uids[i], reward[0], responses[i])
+            else:
+                # bad reward, so 0 score
+                scores.append(0.0)
+                result = None
 
-        for i, result in enumerate(results):
             if result is not None:
-                response = responses[i]
-                miner_uid = miner_uids[i]
-                score,max_possible_score,_,correct_answer = rewards[i][0]
-                normalized_score = score/max_possible_score
-
-                resp = "None"
-                try:
-                    resp = response.response
-                    run_model = response.hf_run_model_name
-                except:
-                    pass
-
-                try:
-                    data = {
-                        "task_name": task_name,
-                        "task_mode": task_mode,
-                        "hf_run_model": run_model,
-                        "messages": [{'role': m.role, 'content': m.content} for m in messages],
-                        "tools": [{'name': t.name, 'description': t.description, 'arguments': t.arguments} for t in tools],
-                        "miners_count": len(miner_uids),
-                        "messages_count": len(messages),
-                        "tools_count": len(tools),
-                        "response": resp,
-                        "miner_uid": miner_uids[i],
-                        "score": score,
-                        "normalized_score": normalized_score,
-                        "average_score_for_miner_with_this_validator": validator.scores[miner_uid],
-                        "stake": validator.metagraph.S[miner_uid],
-                        "trust": validator.metagraph.T[miner_uid],
-                        "incentive": validator.metagraph.I[miner_uid],
-                        "consensus": validator.metagraph.C[miner_uid],
-                        "dividends": validator.metagraph.D[miner_uid],
-                        "results": "\n".join(result),
-                        "dendrite_process_time": response.dendrite.process_time,
-                        "dendrite_status_code": response.dendrite.status_code,
-                        "axon_status_code": response.axon.status_code,
-                        "validator_uid": validator.metagraph.hotkeys.index(validator.wallet.hotkey.ss58_address),
-                        "val_spec_version": validator.spec_version,
-                        "highest_score_for_miners_with_this_validator": validator.scores.max(),
-                        "median_score_for_miners_with_this_validator": np.median(validator.scores),
-                        #"correct_answer": correct_answer, # TODO best way to send this without lookup attack?
-                    }
-
-                    try:
-                        validator.log_event(data)
-                    except Exception as e:
-                        bt.logging.debug("WandB failed to log, moving on ... exception: ", e)
-
-                except Exception as e:
-                    bt.logging.warning("Exception in log_rewards: {}".format(e))
+                await write_to_wandb(validator, task, responses, miner_uids, rewards, result)
 
     except Exception as e:
         bt.logging.warning(f"Error logging reward data: {e}")
 
     # Update the scores based on the rewards. You may want to define your own update_scores function for custom behavior.
-    miner_uids = temp_miner_uids
+    #miner_uids = temp_miner_uids
     validator.update_scores(scores, miner_uids, alpha=task.weight)
 
     return scores
