@@ -34,9 +34,8 @@
 
 **Key Objective** - provide intelligent agency to simplify and automate tasks in your day-to-day
 
-**See our living document for more information** - https://docs.google.com/document/d/1QVCzDu0eMmkdglD65F_Q_UjnCJauVEr62WgG8SgACt0/edit
-
-**GoGoAgent - Our Application** - https://gogoagent.ai
+**GoGoAgent - Our Application** - [https://gogoagent.ai](https://gogoagent.ai)
+**MSPTech - Real world business case** - [https://MSPTech.ai](https://msptech.ai)
 
 **Key Features**
 - Working our way up the [Berkeley Fucntion Calling Leaderboard](https://gorilla.cs.berkeley.edu/leaderboard.html#leaderboard) (BFCL)
