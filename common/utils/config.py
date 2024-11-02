@@ -154,7 +154,7 @@ def add_args(cls, parser):
             "--validator-model-name",
             type=str,
             default="thesven/Mistral-7B-Instruct-v0.3-GPTQ",
-            help="the OpenAI model name defaults to thesven/Mistral-7B-Instruct-v0.3-GPTQ",
+            help="the OpenAI model name defaults to thesven/Mistral-7B-Instruct-v0.3-GPTQ, the model that the validator uses to rewrite user queries",
         )
 
         parser.add_argument(
@@ -262,7 +262,7 @@ def add_args(cls, parser):
             "--miner-hf-model-name-to-submit",
             type=str,
             default="Salesforce/xLAM-7b-r",
-            help="the HF model name that YOU'VE uploaded to the HF hub to be evaluated, will be returned when validator asks for the model."
+            help="the HF model name that you've uploaded to the HF hub to be evaluated, will be returned when validator asks for your model to evaluate."
         )
 
 def config(cls):
