@@ -29,11 +29,7 @@ class QueryTask(bt.Synapse):
     Attributes:
     - messages: a list of ChatMessage (see bitagent/schemas) - will be used for every task except Tool Gen
     - tools: list of tools {name, description, arguments } in a List of dicts
-    - repsonse: the tool calling response messages
-    # TODO can we reduce to just response now?
-        - {response: <messages>}
-    - timeout: time in seconds to wait for the response (ONLY used for tasks coming in through validator axon)
-    - miner_uids: list of miner uids to send the task to (ONLY used for tasks coming in through validator axon)
+    - repsonse: string (e.g., tool_name(arg1=value1, arg2=value2))
     """
 
     # Required request input, filled by sending dendrite caller.
@@ -42,10 +38,6 @@ class QueryTask(bt.Synapse):
 
     # Optional request output, filled by recieving axon.
     response: str = ""
-
-    # used only for requests coming in through validator axon
-    timeout: Optional[float] = None
-    miner_uids: Optional[List[int]] = []
 
 class QueryResult(bt.Synapse):
     """
