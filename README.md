@@ -34,7 +34,7 @@
 
 **Key Objective** - provide intelligent agency to simplify and automate tasks in your day-to-day
 
-**GoGoAgent - Our Application** - [https://gogoagent.ai](https://gogoagent.ai)
+**GoGoAgent - Our Application** - [https://gogoagent.ai](https://gogoagent.ai) \
 **MSPTech - Real world business case** - [https://MSPTech.ai](https://msptech.ai)
 
 **Key Features**
