@@ -55,6 +55,7 @@ class BaseValidatorNeuron(BaseNeuron):
         bt.logging.info("Building validation weights.")
         self.scores = np.zeros(self.metagraph.n, dtype=np.float32)
         self.offline_scores = np.zeros(self.metagraph.n, dtype=np.float32)
+        self.offline_model_names = [""]*len(self.metagraph.uids)
         # Init sync with the network. Updates the metagraph.
         
         if os.path.exists(self.config.neuron.full_path + "/state.npz"):
@@ -333,6 +334,7 @@ class BaseValidatorNeuron(BaseNeuron):
                 if not check_uid_availability(self.metagraph, uid, self.config.validator.vpermit_tao_limit): 
                     self.scores[uid] = 0 
                     self.offline_scores[uid] = 0
+                    self.offline_model_names[uid] = ''
             # Check to see if the metagraph has changed size.
             # If so, we need to add new hotkeys and moving averages.
             if len(self.hotkeys) < len(self.metagraph.hotkeys):
@@ -384,6 +386,7 @@ class BaseValidatorNeuron(BaseNeuron):
             step=self.step,
             scores=self.scores,
             offline_scores=self.offline_scores,
+            offline_model_names=self.offline_model_names,
         )
         
     def load_state(self):
@@ -397,3 +400,6 @@ class BaseValidatorNeuron(BaseNeuron):
         if 'offline_scores' in state:
             loaded_offline_scores = state["offline_scores"]
             self.offline_scores[:len(loaded_offline_scores)] = loaded_offline_scores
+        if 'offline_model_names' in state:
+            loaded_offline_model_names = state["offline_model_names"]
+            self.offline_model_names[:len(loaded_offline_model_names)] = loaded_offline_model_names
