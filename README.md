@@ -123,9 +123,12 @@ pm2 start neurons/miner.py --interpreter python3 -- --netuid 20 --subtensor.netw
 
 #### Default Miner
 The default miner is all you need with these modifications:
-1) `--miner-hf-model-name-to-submit` - set this to the HF model path and repo name from Hugging Face (HF).  Example: `--miner-hf-model-name-to-submit Salesforce/xLAM-7b-r`
-2) `--hf-model-name-to-run` - this is the model the miner is running to respond to queries to the miner. Example: `--hf-model-name-to-run Salesforce/xLAM-7b-r`
-3) `--openai-api-base` - this sets the VLLM endpoint that's running your local model. Example: `--openai-api-base http://localhost:8000/v1`
+1) `--miner-hf-model-name-to-submit` - set this to the HF model path and repo name from Hugging Face (HF).  \
+   Example: `--miner-hf-model-name-to-submit Salesforce/xLAM-7b-r`
+2) `--hf-model-name-to-run` - this is the model the miner is running to respond to queries to the miner. \
+   Example: `--hf-model-name-to-run Salesforce/xLAM-7b-r`
+3) `--openai-api-base` - this sets the VLLM endpoint that's running your local model. \
+   Example: `--openai-api-base http://localhost:8000/v1`
 
 See [Miner Considerations](#miner-considerations) for common areas miners should look to improve.
 
