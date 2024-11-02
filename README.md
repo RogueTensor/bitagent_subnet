@@ -174,7 +174,11 @@ You'll receive messages like this:
 ```
 and Tools like this:
 ```bash
-[{"arguments":{"discount_percentage":{"required":true,"type":"number","description":"The percentage discount to be applied"},"original_price":{"description":"The original price of the item","required":true,"type":"number"}},"description":"Calculate the discounted price of an item based on the original price and discount percentage","name":"calculate_discount"},{"arguments":{"pod_name":{"description":"The name of the pod to be restarted","required":true,"type":"str"}},"description":"A function to restart a given pod, useful for deployment and testing.","name":"restart_pod"},{"arguments":{"deck_type":{"type":"string","description":"Type of deck, normal deck includes joker, and without_joker deck excludes joker.","required":true},"suit":{"description":"The card suit. Valid values include: 'spades', 'clubs', 'hearts', 'diamonds'.","required":true,"type":"string"}},"description":"Compute the probability of drawing a specific suit from a given deck of cards.","name":"deck_of_cards.odds"},{"arguments":{"password":{"description":"Your Instagram password","required":true,"type":"str"},"username":{"description":"Your Instagram username","required":true,"type":"str"}},"description":"Sums up the number of clicks from your last Instagram Story campaign.","name":"get_instagram_story_clicks"},{"description":"Get the latest news","name":"get_news","arguments":{"category":{"type":"string","description":"The category of news to retrieve","required":true}}}]
+[{"arguments":{"discount_percentage":{"required":true,"type":"number","description":"The percentage discount to be applied"},
+"original_price":{"description":"The original price of the item","required":true,"type":"number"}},
+"description":"Calculate the discounted price of an item based on the original price and discount percentage","name":"calculate_discount"},
+{"arguments":{"pod_name":{"description":"The name of the pod to be restarted","required":true,"type":"str"}},
+"description":"A function to restart a given pod, useful for deployment and testing.","name":"restart_pod"},...]
 ```
 
 In response your model should return the function call like this:
