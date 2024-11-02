@@ -59,7 +59,7 @@
 - The minimum requirements for a miner are determined by the resources needed to run a competitive and performant tool calling LLM.
 
 ### BitAgent
-This repository requires python3.10 or higher. 
+This repository requires python 3.10 or higher. 
 To install and get running, simply clone this repository and install the requirements.
 ```bash
 git clone https://github.com/RogueTensor/bitagent_subnet
