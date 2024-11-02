@@ -24,7 +24,7 @@ class StreamMiner(ABC):
         self.config.merge(base_config)
 
         check_config(StreamMiner, self.config)
-        bt.logging.info(self.config)  # TODO: duplicate print?
+        bt.logging.info(self.config) 
 
         self.prompt_cache: Dict[str, Tuple[str, int]] = {}
 

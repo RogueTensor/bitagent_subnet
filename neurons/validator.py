@@ -63,7 +63,7 @@ class Validator(BaseValidatorNeuron):
         return await self.forward(synapse)
 
     async def blacklist_fn(self, synapse: bitagent.protocol.QueryTask) -> Tuple[bool, str]:
-        # TODO add hotkeys to blacklist here as needed
+        # Add hotkeys to blacklist here as needed
         # blacklist the hotkeys mining on the subnet to prevent any potential issues
         #hotkeys_to_blacklist = [h for i,h in enumerate(self.hotkeys) if self.metagraph.S[i] < 20000 and h != self.wallet.hotkey.ss58_address]
         #if synapse.dendrite.hotkey in hotkeys_to_blacklist:

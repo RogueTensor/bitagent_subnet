@@ -154,7 +154,6 @@ class Miner(BaseMinerNeuron):
             else:
                 return True, "validator permit required, but hotkey not registered"
 
-        # TODO(developer): Define how miners should blacklist requests.
         if synapse.dendrite.hotkey not in self.metagraph.hotkeys:
             # Ignore requests from unrecognized entities.
             bt.logging.trace(
@@ -205,7 +204,6 @@ class Miner(BaseMinerNeuron):
         Example priority logic:
         - A higher stake results in a higher priority value.
         """
-        # TODO(developer): Define how miners should prioritize requests.
         caller_uid = self.metagraph.hotkeys.index(
             synapse.dendrite.hotkey
         )  # Get the caller index.
