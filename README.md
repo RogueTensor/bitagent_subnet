@@ -19,7 +19,9 @@
     - [Hardware Requirements](#hardware-requirements)
   - [Miner](#miner)
     - [Default Miner](#default-miner)
+    - [Miner Emissions](#miner-emissions)
     - [Miner Considerations](#miner-considerations)
+    - [Example Task](#example-task)
     - [Miner Feedback](#miner-feedback)
   - [Advanced](#advanced)
     - [Custom Miner](#custom-miner)
@@ -144,11 +146,42 @@ The default miner is all you need with these modifications:
 
 See [Miner Considerations](#miner-considerations) for common areas miners should look to improve.
 
+#### Miner Emissions
+
+Miner emissions are composed of both ONLINE and OFFLINE evaluation:
+- 50% of the miner's score is determined by the model miners persistently run to handle on-demand queries.  This is ONLINE evaluation of the miner.
+- 50% is determined by bi-weekly challenges in which the miner submits their latest huggingface model and Validators load the model on their machine to evaluate.  This is OFFLINE evaluation.
+
+Both ONLINE and OFFLINE tasks are evaluated against these alterations of these datasets:
+- Berkeley Function Calling tasks
+- Glaive Function Calling tasks
+- BitAgent Function calling tasks
+
+The Bi-weekly challenge is to finetune an 8B model (or less) to perform well on the tool call tasks and perform well on the [BFCL Leaderboard](https://gorilla.cs.berkeley.edu/leaderboard.html). Miners must publish their model to HuggingFace and update their `--miner-hf-model-name-to-subnet` parameter when starting/restarting their miner - see [Default Miner](#default-miner)
+
 #### Miner Considerations
 The default miner is all you need, just make sure you update the parameters described in [Default Miner](#default-miner).  
 For your consideration:
 1) Use vLLM as a fast inference runner for your tool calling LLM. Check [this](https://docs.vllm.ai/en/v0.6.0/getting_started/quickstart.html#openai-compatible-server) out to stand up an openAI compliant vLLM instance.
 2) Use pm2 to launch your miner for easy management and reconfiguration as needed.
+
+
+#### Example Task:
+Here's an example task you can expect your model to see in OFFLINE mode as well as your miner to see in ONLINE mode:
+
+You'll receive messages like this:
+```baseh
+[{"content":"What is the discounted price of the jacket, given it was originally $200 and there is a 20% reduction?","role":"user"}]
+```
+and Tools like this:
+```bash
+[{"arguments":{"discount_percentage":{"required":true,"type":"number","description":"The percentage discount to be applied"},"original_price":{"description":"The original price of the item","required":true,"type":"number"}},"description":"Calculate the discounted price of an item based on the original price and discount percentage","name":"calculate_discount"},{"arguments":{"pod_name":{"description":"The name of the pod to be restarted","required":true,"type":"str"}},"description":"A function to restart a given pod, useful for deployment and testing.","name":"restart_pod"},{"arguments":{"deck_type":{"type":"string","description":"Type of deck, normal deck includes joker, and without_joker deck excludes joker.","required":true},"suit":{"description":"The card suit. Valid values include: 'spades', 'clubs', 'hearts', 'diamonds'.","required":true,"type":"string"}},"description":"Compute the probability of drawing a specific suit from a given deck of cards.","name":"deck_of_cards.odds"},{"arguments":{"password":{"description":"Your Instagram password","required":true,"type":"str"},"username":{"description":"Your Instagram username","required":true,"type":"str"}},"description":"Sums up the number of clicks from your last Instagram Story campaign.","name":"get_instagram_story_clicks"},{"description":"Get the latest news","name":"get_news","arguments":{"category":{"type":"string","description":"The category of news to retrieve","required":true}}}]
+```
+
+In response your model should return the function call like this:
+`calculate_discount(discount_percentation=..., original_price=...)`
+
+The model is responsible for returning a function call like above with the right function name, the correct function argument names and values, being sure to set any required arguments appropriately.
 
 #### Miner Feedback
 As a miner, you receive tasks, you get rewarded, but on most subnets, you do not know what you're being graded on.
