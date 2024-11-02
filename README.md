@@ -151,7 +151,7 @@ Miner emissions are composed of both ONLINE and OFFLINE evaluation:
 - 50% of the miner's score is determined by the model miners persistently run to handle on-demand queries.  This is ONLINE evaluation of the miner.
 - 50% is determined by bi-weekly challenges in which the miner submits their latest huggingface model and Validators load the model on their machine to evaluate.  This is OFFLINE evaluation.
 
-Both ONLINE and OFFLINE tasks are evaluated against these alterations of these datasets:
+Both ONLINE and OFFLINE tasks are evaluated against modifications of these datasets:
 - Berkeley Function Calling tasks
 - Glaive Function Calling tasks
 - BitAgent Function calling tasks
