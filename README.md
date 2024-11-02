@@ -118,7 +118,19 @@ If you just want to run the miner without the [script](./scripts/setup_and_run.s
 # for testing (use testnet 76)
 python3 neurons/miner.py --netuid 76 --subtensor.network test --wallet.name <COLDKEY> --wallet.hotkey <HOTKEY>
 # for mainnet
-pm2 start neurons/miner.py --interpreter python3 -- --netuid 20 --subtensor.network <LOCAL/FINNEY/TEST> --wallet.name <COLDKEY> --wallet.hotkey <HOTKEY> --axon.port <PORT>
+pm2 start neurons/miners.py --interpreter python3 --
+    --netuid 20
+    --subtensor.network <finney/local/test>
+    --neuron.device cuda # could be cuda:0, cuda:1 depending on which GPU device
+    --wallet.name <your wallet> # Must be created using the bittensor-cli
+    --wallet.hotkey <your hotkey> # Must be created using the bittensor-cli
+    --miner-hf-model-name-to-submit Salesforce/xLAM-7b-r # submit your own fine tune with this param
+    --hf-model-name-to-run Salesforce/xLAM-7b-r # run the best tool calling LLM you can
+    --openai-api-base http://localhost:8000/v1 # point to your vllm instance of the model you are running
+    --logging.debug # Run in debug mode, alternatively --logging.trace for trace mode
+    --log_level trace # for trace logs
+    --axon.port # VERY IMPORTANT: set the port to be one of the open TCP ports on your machine
+
 ```
 
 #### Default Miner
