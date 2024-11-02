@@ -30,16 +30,18 @@
 
 **Quick Pitch**: BitAgent revolutionizes how you manage tasks and workflows across platforms, merging the capabilities of large language models (LLMs) with the convenience of your favorite apps such as web browsers, Discord, and custom integrations. BitAgent empowers users to seamlessly integrate intelligent agents, providing personalized assistance and integrated task automation.
 
-**Key Objective** - provide intelligent agency to simplify tasks in your day-to-day
+**Key Objective** - provide intelligent agency to simplify and automate tasks in your day-to-day
 
 **See our living document for more information** - https://docs.google.com/document/d/1QVCzDu0eMmkdglD65F_Q_UjnCJauVEr62WgG8SgACt0/edit
 
-**GoGo Agent - Our Application** - https://gogoagent.ai
+**GoGoAgent - Our Application** - https://gogoagent.ai
 
 **Key Features**
-- Leveraging concepts from [voyager](https://voyager.minedojo.org/) / [blenderGPT](https://github.com/gd3kr/BlenderGPT) / [chain of code](https://chain-of-code.github.io/) for real world applications
-- BYOD and real-time ingestion / operation
+- OFFLINE evaluation of tool calling language model fine tunes
+- ONLINE evaluation of miners running tool calling language models allowing applications to scale on top of SN20
+- Working our way up the [Berkeley Fucntion Calling Leaderboard](https://gorilla.cs.berkeley.edu/leaderboard.html#leaderboard) (BFCL)
 - No API / subscription requirements
+- Run light models (8B parameter) for huge impact
 - Miner's receive [transparent feedback](#miner-feedback)
 - And a BONUS for getting this far - are you tired of waiting for registration slots?  Check out [register.sh](./scripts/register.sh)
 
@@ -53,19 +55,18 @@
 - Before getting too far, please make sure you've looked over the [Bittensor documentation](https://docs.bittensor.com/) for your needs.
 - The min compute requirements are [noted below for Validators](#hardware-requirements).
 - See [FAQ](#faq) for a few more details related to computing requirements for validators and miners.
-- The minimum requirements for a miner are determined by the resources needed to run a competitive LLM.
+- The minimum requirements for a miner are determined by the resources needed to run a competitive and performant tool calling LLM.
 
 ### BitAgent
-This repository requires python3.8 or higher. To install, simply clone this repository and install the requirements.
+This repository requires python3.10 or higher. 
+To install and get running, simply clone this repository and install the requirements.
 ```bash
 git clone https://github.com/RogueTensor/bitagent_subnet
 cd bitagent_subnet
-python -m pip install -r requirements.txt
 python -m pip install -e .
-python -m pip uninstall uvloop # b/c it causes issues with threading/loops
 ```
 
-Then make sure to register your intended wallet (coldkey, hotkey) to subnet 20:
+Then make sure to register your intended wallet (coldkey, hotkey) to Subnet 20:
 ```bash
 btcli subnet register --wallet.name $coldkey --wallet.hotkey $hotkey --subtensor.network finney --netuid 20
 ```
@@ -82,10 +83,10 @@ Install [PM2](https://pm2.io/docs/runtime/guide/installation/) and the [`jq` pac
    brew update && brew install jq && brew install npm && sudo npm install pm2 -g && pm2 update
    ```
 
-If you just want to run the validator without the [script](./scripts/setup_and_run.sh) or are connecting to mainnet:
+If you want to run the validator without the [script](./scripts/setup_and_run.sh) or are connecting to mainnet:
 ```bash
 # for testing
-python3 neurons/validator.py --netuid 20 --subtensor.chain_endpoint ws://127.0.0.1:9946 --wallet.name <COLDKEY> --wallet.hotkey <HOTKEY>
+python3 neurons/validator.py --netuid 76 --subtensor.chain_endpoint ws://127.0.0.1:9946 --wallet.name <COLDKEY> --wallet.hotkey <HOTKEY>
 
 # for mainnet
 pm2 start neurons/validator.py --interpreter python3 -- --netuid 20 --subtensor.network <LOCAL/FINNEY/TEST> --wallet.name <COLDKEY> --wallet.hotkey <HOTKEY> --axon.port <PORT>
@@ -94,33 +95,22 @@ pm2 start neurons/validator.py --interpreter python3 -- --netuid 20 --subtensor.
 pm2 start run.sh --name bitagent_validators_autoupdate -- --wallet.name <your-wallet-name> --wallet.hotkey <your-wallet-hot-key> --netuid 20
 ```
 
-#### Running locally
-If you want to run the validator task generation and scoring locally:
-
-```bash
-# for mainnet
-pm2 start neurons/validator.py --interpreter python3 -- --netuid 20 --subtensor.network <LOCAL/FINNEY/TEST> --wallet.name <COLDKEY> --wallet.hotkey <HOTKEY> --axon.port <PORT> --run_local
-```
-
-To run locally you must spin-up your own LLM. After spinning them up you must modify `initiation.py` to point towards the endpoints of those LLM's. 
+Validators must spin-up their own LLM (specifically mistral 7B).
 Note: Previously we ran the LLM's inside the validator code with the transformer package, however we pivoted away from that due to the inefficiency of running the model using vanilla transformers. Hosting the models using llama.cpp, oobabooga, vllm, TGI, are much better options as they provide additional functionality.  
 
 To run with vLLM you can do the following:
 
 `sudo docker run -d -p 8000:8000  --gpus all --ipc host --name mistral-instruct docker.io/vllm/vllm-openai:latest --model thesven/Mistral-7B-Instruct-v0.3-GPTQ --max-model-len 8912 --quantization gptq --dtype half`
 
-This will run the LLM on port 8000. If you want to run it on another port you need to modify the port in `initation.py`
-
-The next step is to create a huggingface account and get access to `https://huggingface.co/datasets/lmsys/lmsys-chat-1m`. Once you access you will need to get an access token, then you must set the env var `HF_TOKEN=<The token you got>`.
+This will run the LLM on port 8000. To change the port, change the host port for this parameter up above `-p <host port>:<container port>`.
 
 #### Hardware Requirements
 
-Validators have the option of using the Task API, or running everything locally. If running with the Task API the validator's do not have any strong requirements, no GPU is required. If running everything locally `--run_local`, there are higher hardware requirements. A single LLM `thesven/Mistral-7B-Instruct-v0.3-GPTQ` is needed, it can run off 10GB of VRAM.
+Validaotrs have hardware requirements. Two LLMS are needed to be run simultaneously:
+  - 1st LLM `thesven/Mistral-7B-Instruct-v0.3-GPTQ` can run off of 10GB to 20GB of VRAM - this model is used to alter tasks before going out to miners.
+  - 2nd LLM is each miner's tool calling model fetched from Hugging Face, 1 at a time to be evaluated OFFLINE and takes up 20GB to 30GB of VRAM.
 
-Miners will need to run LLMs and will require at least mistral 7B, needing a GPU with 15-20GB of VRAM. 
-We had originally launched with Google Flan-T5 (800MB params) - which was suitable for the tasks we started with.  But it is not suitable for the tasks we generate and evaluate now.
-
-
+Miners will need to run a top tool calling LLM or a fine-tune of their own, needing a GPU with 20GB to 30GB of VRAM. 
 
 ### Miner
 If you just want to run the miner without the [script](./scripts/setup_and_run.sh) or are connecting to mainnet:
@@ -132,32 +122,32 @@ pm2 start neurons/miner.py --interpreter python3 -- --netuid 20 --subtensor.netw
 ```
 
 #### Default Miner
-The default miner has 3 components:
-1) The Miner logic itself.
-2) The LLM - Google Flan-T5 (800MB params).  Capable of a LOT of great LLM tasks, but is no longer competitive.
-3) The VectorDB - ChromaDB.  This provides text comparisons.
-
-This is a single packaged unit of all three components to provide a complete starting point for building your own miner.
+The default miner is all you need with these modifications:
+1) `--miner-hf-model-name-to-submit` - set this to the HF model path and repo name from Hugging Face (HF).  Example: `--miner-hf-model-name-to-submit Salesforce/xLAM-7b-r`
+2) `--hf-model-name-to-run` - this is the model the miner is running to respond to queries to the miner. Example: `--hf-model-name-to-run Salesforce/xLAM-7b-r`
+3) `--openai-api-base` - this sets the VLLM endpoint that's running your local model. Example: `--openai-api-base http://localhost:8000/v1`
 
 See [Miner Considerations](#miner-considerations) for common areas miners should look to improve.
 
 #### Miner Considerations
-The default miner is very basic and tightly coupled across the miner logic, the LLM and the vectorDB.  This is to allow as simple of a process as possible to get running.
+The default miner is all you need, just make sure you update the parameters described in [Default Miner](#default-miner).  
 For your consideration:
-1) Decouple the miner logic from the LLM and from the VectorDB.  This will allow you to run multiple miners against a single LLM and a single VectorDB.
-2) Use pm2 to launch your LLM separate from your VectorDB, separate from each miner.  Consider serving with llama.cpp, oobabooga, vllm and using through API calls.
-3) Real-time text comparison is slow using a VectorDB like chromaDB.  Instead, look to implement your own text similarity code. Look at cosine similarity as an example.
-4) See adding a [Custom Model](#custom-model).
+1) Use VLLM as a fast inference runner for your tool calling LLM. See section on [VLLM setup](#vllm-setup).
+2) Use pm2 to launch your miner for easy management and reconfiguration as needed.
 
 #### Miner Feedback
-As a miner, you receive tasks, you get rewarded, but often you do not know what you're being graded on.
-BitAgent offers transparent feedback (in debug mode), so you know what you're up against.
+As a miner, you receive tasks, you get rewarded, but on most subnets, you do not know what you're being graded on.
+BitAgent (SN20) offers transparent feedback (in debug logging mode), so you know what you're up against.
 
 Here's an example of a well performed task:
 ![miner feedback - good example](./docs/examples/output_to_miner.png)
 
 Here's an example of a poorly performed task:
 ![miner feedback - bad example](./docs/examples/bad_output_to_miner.png)
+
+Additionally, we send all queries and results to Wandb:
+- WandB Testnet - https://wandb.ai/bitagentsn20/testnet
+- WandB Mainnet - https://wandb.ai/bitagentsn20/mainnet
 
 ### Advanced
 If you have a need to create and fund wallets for your own testing ...
@@ -218,35 +208,17 @@ Example: ./scripts/setup_and_run.sh --only-launch
 This will skip everything and just launch the already registered and funded validators and miners
 ```
 
-#### Custom Miner
-You can pass in the miner code of your choice.  The defaults are "t5" and "mock".
-```
---miner MINER         Miner to load. Default choices are 't5' and 'mock'. Pass your custom miner name as appropriate.
-```
-
-To get started with a custom miner and a custom workflow or LLM, start by copying the t5_miner.py file under [bitagent/miners/](./bitagent/miners).  Name it custom_miner.py, replacing "custom" with the name of your choice, e.g., mistral_miner.py or agent_miner.py.  Make sure the filename ends with _miner.py so you don't have to make changes to [neurons/miner.py](./neurons/miner.py).  
-
-Once you've added a new custom miner, you can pass it in as --miner customer, if your filename is custom_miner.py.
-
-From here, you have quite a few things you can look to do, e.g., call to your LLM via API, call to your cosine similarity code via API.  See [Miner Considerations](#miner-considerations).
-
 ---
 
 ## FAQ
 Q: How much GPU (VRAM) and RAM do I need to run a validator and/or miner?\
-A: Validators do not need a GPU and could benefit from 32 GB of RAM with performant CPU.  Miners are left to their own devices, but should be aware that the more capable LLMs and workflows require large amounts of VRAM (common configurations: a 3090 is capable enough).
-
-Q: I am seeing: RuntimeWarning: coroutine 'Server.serve' was never awaited - help?\
-A: Asked and [Answered](https://discord.com/channels/799672011265015819/1194736998250975332/1196146782342742037)
+A: Validators need a GPU and require a minimum of 48 GBs of VRAM with performant CPU.  Miners are left to their own setup, but should be aware that the more capable tool calling LLMs require a decent amount of VRAM (common configurations: a 3090 (with 24GB VRAM) is capable enough for the smaller (~8B params) models we require).
 
 Q: Are there any required subscriptions or paid APIs?\
 A: No - no subs, no external companies, in fact we'd rather the community build amazing AI capabilities than relying on corporations.
 
-Q: What can I do if I'm getting a lot of timeouts?\
-A: See the [Miner Considerations](#miner-considerations) section, specifically looking to replace ChromaDB with Cosine Similarity or something similar.
-
 Q: What LLM should I use?\
-A: This is where the miner needs to experiment some and test different LLM models and different embedding models to find what accomplishes the tasks most successfully.  Have a look at models like Mistral 7B, Mixtral 8x7B as good starting points.
+A: This is where the miner needs to experiment some and test and fine-tune different LLM models to find what accomplishes the tasks most successfully.  Have a look at models in the Salesforce xLAM family as good starting points.
 
 ---
 
