@@ -19,9 +19,10 @@ import bittensor as bt
 from openai import OpenAI
 
 # specifically for the validator
-def get_openai_llm(self):
-    if "validator" in self.__class__.__name__.lower() and self.config.validator_hf_vllm_port:
-        base_url = self.config.openai_api_base.replace("8000", str(self.config.validator_hf_vllm_port))
+def get_openai_llm(self, hugging_face=False):
+    if "validator" in self.__class__.__name__.lower() and hugging_face and self.config.validator_hf_vllm_port:
+        # stand up a vLLM server on this port for the OFFLINE HF model evals
+        base_url = f'http://localhost:{self.config.validator_hf_vllm_port}/v1'
     else:
         base_url = self.config.openai_api_base
 
@@ -44,13 +45,13 @@ def system_prompt(tools):
     return prompt.format(functions=tools)
 
 
-def llm(self, messages, tools, model_name, max_new_tokens = 160, temperature=0.7):
+def llm(self, messages, tools, model_name, hugging_face=False,max_new_tokens = 160, temperature=0.7):
     prompt = system_prompt(tools)
 
     try:
         try:
             new_messages = [{"role":"system", "content":prompt}] + messages
-            response = get_openai_llm(self).chat.completions.create(
+            response = get_openai_llm(self, hugging_face).chat.completions.create(
                 messages=new_messages,
                 max_tokens=max_new_tokens,
                 model=model_name,
@@ -59,7 +60,7 @@ def llm(self, messages, tools, model_name, max_new_tokens = 160, temperature=0.7
         except Exception as e:
             # errored b/c the model does not allow system prompts
             messages[0].content = prompt + "\n\n" + messages[0].content
-            response = get_openai_llm(self).chat.completions.create(
+            response = get_openai_llm(self, hugging_face).chat.completions.create(
                 messages=messages,
                 max_tokens=max_new_tokens,
                 model=model_name,
