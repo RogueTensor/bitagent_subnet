@@ -82,10 +82,10 @@ def correct_tool_argument_names(task, validator: BaseValidatorNeuron, synapse: b
     max_reward = 3.0
     reward = 0.0        
 
-    _, function_args, _ = extract_function_name_and_params(synapse.response)
+    function_name, function_args, _ = extract_function_name_and_params(synapse.response)
     expected_args = expected_response['arguments'].keys()
 
-    if len(expected_args) == 0 and len(function_args) == 0:
+    if len(expected_args) == 0 and len(function_args) == 0 and function_name != "":
         reward = max_reward
         feedback = good_message("Function has no arguments, good job")
         return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
@@ -99,7 +99,7 @@ def correct_tool_argument_names(task, validator: BaseValidatorNeuron, synapse: b
     if "is_ground_truth" in expected_response.keys():
         required_args = [arg for arg in expected_args if expected_response['arguments'][arg] != [""]]
     else:
-        expected_tool = [tool for tool in synapse.tools if tool.name == expected_response['name']][0]
+        expected_tool = [tool for tool in task.synapse.tools if tool.name == expected_response['name']][0]
         required_args = [k for k in expected_tool.arguments.keys() if 'required' in expected_tool.arguments[k].keys() and expected_tool.arguments[k]['required']]
 
     feedback = "" 
@@ -122,11 +122,11 @@ def correct_tool_argument_values(task, validator: BaseValidatorNeuron, synapse: 
     feedback = "" 
 
     # MINER response
-    _, function_args, function_values = extract_function_name_and_params(synapse.response)
+    function_name, function_args, function_values = extract_function_name_and_params(synapse.response)
     expected_args = expected_response['arguments'].keys()
 
     # no args
-    if len(expected_args) == 0 and len(function_args) == 0:
+    if len(expected_args) == 0 and len(function_args) == 0 and function_name != "":
         reward = max_reward
         feedback = good_message("Function has no arguments, good job")
         return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
@@ -134,7 +134,7 @@ def correct_tool_argument_values(task, validator: BaseValidatorNeuron, synapse: 
     if "is_ground_truth" in expected_response.keys():
         required_args = [arg for arg in expected_args if expected_response['arguments'][arg] != [""]]
     else:
-        expected_tool = [tool for tool in synapse.tools if tool.name == expected_response['name']][0]
+        expected_tool = [tool for tool in task.synapse.tools if tool.name == expected_response['name']][0]
         required_args = [k for k in expected_tool.arguments.keys() if 'required' in expected_tool.arguments[k].keys() and expected_tool.arguments[k]['required']]
 
     for arg in required_args:
