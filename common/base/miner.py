@@ -18,10 +18,12 @@
 
 import time
 import asyncio
+import uvicorn
 import threading
 import traceback
 
 import bittensor as bt
+from bittensor.core.axon import FastAPIThreadedServer
 
 #from collections import Counter
 from common.base.neuron import BaseNeuron
@@ -56,6 +58,10 @@ class BaseMinerNeuron(BaseNeuron):
             external_port=self.config.axon.external_port,
             max_workers=self.config.axon.max_workers
         )
+        fast_config = uvicorn.Config(
+            self.axon.app, host="0.0.0.0", port=self.config.axon.port, log_level="trace", loop="asyncio"
+        )
+        self.axon.fast_server = FastAPIThreadedServer(config=fast_config)
 
         # Attach determiners which functions are called when servicing a request.
         bt.logging.info(f"Attaching forward function to miner axon.")
