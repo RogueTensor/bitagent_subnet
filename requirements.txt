@@ -5,4 +5,5 @@ docker
 langchain-openai
 sentence_transformers
 StrEnum
+vllm
 wandb
