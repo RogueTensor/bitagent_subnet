@@ -99,6 +99,13 @@ def add_args(cls, parser):
     )
 
     parser.add_argument(
+        "--neuron.visible_devices",
+        type=str,
+        help="Comma separated list of visible cuda devices.",
+        default="",
+    )
+
+    parser.add_argument(
         "--neuron.device",
         type=str,
         help="Device to run on.",
