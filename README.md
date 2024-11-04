@@ -281,6 +281,7 @@ A: There are a few things to check:
 - Is your axon port, as reported on the metagraph) correct (you can check taostats or metagraph)?
 - Is your axon port open and reachable from a system in the real world (like where the validators are)?
 - Do you have Trace logging on to see the dendrite requests and Debug logging on to see the task results?
+- Make sure your IsAlive() forward is returning True and wait an hour for that to update in the validator's cache.
 
 Q: What about model copying?\
 A: https://discord.com/channels/799672011265015819/1194736998250975332/1302870011362279514
