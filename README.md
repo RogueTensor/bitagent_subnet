@@ -274,6 +274,12 @@ A: This is where the miner needs to experiment some and test and fine-tune diffe
 Q: Validators are running miner HF models, will validators require `trust_remote_code`?\
 A: No, we require that no setup scripts or any code be required for running the models.
 
+Q: I started my miner and I am not receiving any tasks.\
+A: There are a few things to check:
+- Is your axon port, as reported on the metagraph) correct (you can check taostats or metagraph)?
+- Is your axon port open and reachable from a system in the real world (like where the validators are)?
+- Do you have Trace logging on to see the dendrite requests and Debug logging on to see the task results?
+
 ---
 
 ## License
