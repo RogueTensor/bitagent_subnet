@@ -163,6 +163,8 @@ The default miner is all you need, just make sure you update the parameters desc
 For your consideration:
 1) Use vLLM as a fast inference runner for your tool calling LLM. Check [this](https://docs.vllm.ai/en/v0.6.0/getting_started/quickstart.html#openai-compatible-server) out to stand up an openAI compliant vLLM instance.
 2) Use pm2 to launch your miner for easy management and reconfiguration as needed.
+3) We use [SGLang](https://sgl-project.github.io/start/install.html) to run your hugging face models, please make sure your model loads with SGLang.
+4) Don't make it obvious to other miners where your HuggingFace submission is, manage this discretely.
 
 
 #### Example Task
@@ -279,6 +281,9 @@ A: There are a few things to check:
 - Is your axon port, as reported on the metagraph) correct (you can check taostats or metagraph)?
 - Is your axon port open and reachable from a system in the real world (like where the validators are)?
 - Do you have Trace logging on to see the dendrite requests and Debug logging on to see the task results?
+
+Q: What about model copying?
+A: https://discord.com/channels/799672011265015819/1194736998250975332/1302870011362279514
 
 ---
 
