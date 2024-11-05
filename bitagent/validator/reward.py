@@ -82,11 +82,17 @@ async def return_results(validator, task, miner_uid, reward, response):
 Stats with this validator:
 Your Average Score: {validator.scores[miner_uid]}
 Highest Score across all miners: {validator.scores.max()}
-Median Score across all miners: {np.median(validator.scores)}"""
-# TODO need to add in query scores and HF scores and BFCL scores
+Median Score across all miners: {np.median(validator.scores)}
+Your Offline Model Score: {validator.offline_scores[miner_uid]}"""
+# TODO need to add BFCL scores when we do them
             # send results
             if task.mode == "online":
                 await send_results_to_miner(validator, result, validator.metagraph.axons[miner_uid])
+            else:
+                # useful if validators want to see progress or results of offline tasks
+                # rich_console.print("this is a non-online task")
+                # rich_console.print(result)
+                pass
             return task_results
         return None
     elif len(reward) == 2: # skip it
@@ -149,6 +155,8 @@ async def write_to_wandb(validator: BaseValidatorNeuron, task: Task, responses: 
                 "val_spec_version": validator.spec_version,
                 "highest_score_for_miners_with_this_validator": validator.scores.max(),
                 "median_score_for_miners_with_this_validator": np.median(validator.scores),
+                "offline_score_for_miner_with_this_validator": validator.offline_scores[miner_uid],
+                # TODO add BFCL scores
                 #"correct_answer": correct_answer, # TODO best way to send this without lookup attack?
             }
 
