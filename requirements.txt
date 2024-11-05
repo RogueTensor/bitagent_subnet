@@ -3,5 +3,6 @@ cachetools==5.5.0
 datasets==3.1.0
 langchain-openai==0.2.5
 sentence_transformers==3.2.1
+sglang==0.3.5
 StrEnum==0.4.15
 wandb==0.18.5
