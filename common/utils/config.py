@@ -144,14 +144,7 @@ def add_args(cls, parser):
     if neuron_type == "validator":
 
         parser.add_argument(
-            "--validator-hf-container-name",
-            type=str,
-            default="offline-hf-model-check",
-            help="the name of the docker container to run the offline HF model check",
-        )
-
-        parser.add_argument(
-            "--validator-hf-vllm-port",
+            "--validator-hf-server-port",
             type=int,
             default=8028, 
             help="the port of the docker container to run the offline HF model check",
