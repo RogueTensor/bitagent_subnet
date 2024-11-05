@@ -16,6 +16,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import os
 import time
 import bitagent
 from typing import Tuple
@@ -47,6 +48,12 @@ class Validator(BaseValidatorNeuron):
         bt.logging.info("initiate_validator()")
         initiate_validator(self)
         bt.logging.debug(f"spec_version: {self.spec_version}")
+        if self.config.neuron.visible_devices:
+            print(f"Setting CUDA_VISIBLE_DEVICES to: {self.config.neuron.visible_devices}")
+            os.environ["CUDA_VISIBLE_DEVICES"] = self.config.neuron.visible_devices
+        else:
+            if os.environ.get("CUDA_VISIBLE_DEVICES"):
+                del os.environ["CUDA_VISIBLE_DEVICES"]
     
     async def forward(self, synapse: bitagent.protocol.QueryTask=None):
         """
