@@ -57,6 +57,7 @@ class BaseValidatorNeuron(BaseNeuron):
         self.all_scores = [[]]*len(self.metagraph.uids)
         self.offline_scores = np.zeros(self.metagraph.n, dtype=np.float32)
         self.offline_model_names = [""]*len(self.metagraph.uids)
+        self.running_offline_mode = False
         # Init sync with the network. Updates the metagraph.
         
         if os.path.exists(self.config.neuron.full_path + "/state.npz"):
