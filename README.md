@@ -101,7 +101,7 @@ Note: Previously we ran the LLM's inside the validator code with the transformer
 
 To run with vLLM you can do the following:
 
-`sudo docker run -d -p 8000:8000  --gpus all --ipc host --name mistral-instruct docker.io/vllm/vllm-openai:latest --model thesven/Mistral-7B-Instruct-v0.3-GPTQ --max-model-len 8912 --quantization gptq --dtype half`
+`sudo docker run -d -p 8000:8000  --gpus all --ipc host --name mistral-instruct docker.io/vllm/vllm-openai:latest --model thesven/Mistral-7B-Instruct-v0.3-GPTQ --max-model-len 8912 --quantization gptq --dtype half --gpu-memory-utilization 0.45`
 
 This will run the LLM on port 8000. To change the port, change the host port for this parameter up above `-p <host port>:<container port>`.
 
