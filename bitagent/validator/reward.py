@@ -43,22 +43,10 @@ async def send_results_to_miner(validator, result, miner_axon):
     )
 
 async def evaluate_task(validator, task, response):
-    # TODO why is this a list .... of 1?
-    rewards = []
-    # TODO fix this up - need to just send in the response, the reward method can handle the rest
-    resp = {
-        "response": response.response,
-        "axon_hotkey": response.axon.hotkey,
-        "dendrite_process_time": response.dendrite.process_time,
-        "dendrite_status_code": response.dendrite.status_code,
-        "axon_status_code": response.axon.status_code,
-    }
     try:
-        rewards.append(task.reward(validator, response, resp))
+        return [task.reward(validator, response)]
     except Exception as e:
         bt.logging.warning(f"An exception calling task.reward: {e}")
-
-    return rewards
 
 async def return_results(validator, task, miner_uid, reward, response):
     # means we got all of the information we need to score the miner and update wandb
@@ -169,32 +157,28 @@ async def write_to_wandb(validator: BaseValidatorNeuron, task: Task, responses: 
             bt.logging.warning("Exception in log_rewards: {}".format(e))
 
 
-async def process_rewards_update_scores_for_many_tasks(validator: BaseValidatorNeuron, tasks: List[Task], responses: List[Any], 
-                miner_uid: int) -> None:
+# all of these miners are scored the same way with the same tasks b/c this is scoring offline models
+async def process_rewards_update_scores_for_many_tasks_and_many_miners(validator: BaseValidatorNeuron, tasks: List[Task], responses: List[Any], 
+                miner_uids: List[int]) -> None:
     rewards = await asyncio.gather(*[evaluate_task(validator, tasks[i], responses[i]) for i in range(len(responses))])
     try:
-        # track which miner uids are scored for updating the scores
-        #temp_miner_uids = [miner_uids[i] for i, reward in enumerate(rewards) if len(reward[0]) == 4 and reward[0][0] is not None and reward[0][1] is not None]
         scores = []
         for i, reward in enumerate(rewards):
             if len(reward[0]) == 4 and reward[0][0] is not None and reward[0][1] is not None:
                 scores.append(reward[0][0]/reward[0][1])
-                result = await return_results(validator, tasks[i], miner_uid, reward[0], responses[i])
+                for miner_uid in miner_uids:
+                    result = await return_results(validator, tasks[i], miner_uid, reward[0], responses[i])
+                    await write_to_wandb(validator, tasks[i], [responses[i]], [miner_uid], rewards, result)
             else:
                 # bad reward, so 0 score
                 scores.append(0.0)
-                result = None
-
-            if result is not None:
-                await write_to_wandb(validator, tasks[i], [responses[i]], [miner_uid], rewards, result)
-
 
     except Exception as e:
         bt.logging.warning(f"Error logging reward data: {e}")
 
     score = np.mean(scores)
 
-    validator.update_scores([score], [miner_uid], alpha=tasks[0].weight)
+    validator.update_offline_scores([score]*len(miner_uids), miner_uids, alpha=tasks[0].weight)
 
     return score
 
