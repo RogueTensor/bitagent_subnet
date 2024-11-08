@@ -20,10 +20,10 @@ from common.base.validator import BaseValidatorNeuron
 from bitagent.criteria.utils import good_message, bad_message, received_reward_template
 
 # CRITERION: successful call to miner
-def does_not_error(task, validator: BaseValidatorNeuron, synapse: bt.Synapse, response: dict) -> [float, float, str]:
+def does_not_error(task, validator: BaseValidatorNeuron, synapse: bt.Synapse) -> [float, float, str]:
     max_reward = 0.25
-    a_status_code = response["axon_status_code"]
-    d_status_code = response["dendrite_status_code"]
+    a_status_code = synapse.axon.status_code
+    d_status_code = synapse.dendrite.status_code
     reward = 0.0
     if a_status_code == 200 and d_status_code == 200:
         reward = max_reward
@@ -32,14 +32,14 @@ def does_not_error(task, validator: BaseValidatorNeuron, synapse: bt.Synapse, re
         feedback = bad_message("You failed to respond correctly to the request.")
         if d_status_code == 408:
             feedback += "You timed out and will fail the remainder of the criteria."
-        feedback += f" Status Code: {a_status_code}/{d_status_code} -- {response}"
+        feedback += f" Status Code: {a_status_code}/{d_status_code}"
         
     return reward, max_reward, feedback + received_reward_template.format(reward, max_reward)
 
 # CRITERION: reward speedy response
-def does_not_take_a_long_time(task, validator: BaseValidatorNeuron, synapse: bt.Synapse, response: dict) -> [float, float, str]:
+def does_not_take_a_long_time(task, validator: BaseValidatorNeuron, synapse: bt.Synapse) -> [float, float, str]:
     max_reward = 0.5
-    process_time = response["dendrite_process_time"]
+    process_time = synapse.dendrite.process_time
     if not process_time:
         feedback = f"You likely ran into an error processing this task and failed to respond appropriately."
         reward = 0
