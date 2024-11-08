@@ -83,6 +83,8 @@ async def offline_task(self):
             await asyncio.to_thread(wait_for_server, f"http://localhost:{self.config.validator_hf_server_port}")
         except Exception as e:
             #bt.logging.warning(f"Error starting server for model {hf_model_name}: {e}")
+            # TODO determine if this is a problem with the model or the server
+            # right now assuming problem with the model
             for miner_uid in hf_model_name_to_miner_uids[hf_model_name]:
                 self.offline_scores[miner_uid] = 0.0
             continue
@@ -109,6 +111,9 @@ async def offline_task(self):
             responses.append(response)
 
         # evaluate, track score and add to wandb
+        # TODO need to see if this SCORE is higher than the all-time top score
+        # if so, update the all-time top score and model name and reward TOP miners
+        # if not, then temporal decay of scores
         await process_rewards_update_scores_for_many_tasks_and_many_miners(self, tasks=tasks, responses=responses, miner_uids=these_miner_uids)
     
         # TODO remove old files from HF cache
