@@ -54,7 +54,7 @@ class Criterion():
 
         return response.strip()
 
-    def evaluate(self, task, validator: BaseValidatorNeuron, synapse: bt.Synapse, response: dict={}) -> Tuple[float, float, str]:
+    def evaluate(self, task, validator: BaseValidatorNeuron, synapse: bt.Synapse) -> Tuple[float, float, str]:
         try:
             # make sure the tool response converts nicely to an ast
             synapse.response = self.clean_response(synapse.response)
@@ -67,12 +67,12 @@ class Criterion():
                 return reward, max_reward, feedback
 
             # actually do the evaluation 
-            reward, max_reward, feedback = self.eval_fx(task, validator, synapse, response, *self.eval_args)
+            reward, max_reward, feedback = self.eval_fx(task, validator, synapse, *self.eval_args)
         except Exception as e:
             #bt.logging.error(f"Exception was raised during criteria evaluation: {e}")
             reward = -0.5
             max_reward = 1.0
-            feedback = bad_message(f"Exception while processing your response, please check format per protocol")
+            feedback = bad_message(f"Exception while processing your response, please check format per protocol - {e}")
         feedback = f"[bold blue]{self.name}[/bold blue]\n" + feedback
         return reward, max_reward, feedback
 
