@@ -69,7 +69,8 @@ class BaseValidatorNeuron(BaseNeuron):
             self.sync()
         # Serve axon to enable external connections.
         if not self.config.neuron.axon_off:
-            self.serve_axon()
+            #self.serve_axon()
+            pass
         else:
             bt.logging.warning("axon off, not serving ip to chain.")
 
@@ -354,6 +355,30 @@ class BaseValidatorNeuron(BaseNeuron):
         except Exception as e:
             bt.logging.error(f"Could not sync with metagraph right now, will try later. Error: {e}")
 
+    def update_offline_scores(self, rewards: np.ndarray, uids: List[int], alpha=None):
+        """Performs exponential moving average on the scores based on the rewards received from the miners."""
+        if np.isnan(rewards).any():
+            #bt.logging.debug(f"NaN values detected in rewards: {rewards}")
+            # Replace any NaN values in rewards with 0.
+            rewards = np.nan_to_num(rewards, nan=0)
+
+        if isinstance(uids, np.ndarray):
+            uids_array = uids.copy()
+        else:
+            uids_array = np.array(uids)
+
+        scattered_rewards: np.ndarray = self.scores.copy()
+        scattered_rewards[uids_array] = rewards
+
+        bt.logging.debug(f"OFFLINE Scattered rewards: {rewards}")
+
+        # Update scores with rewards produced by this step.
+        # shape: [ metagraph.n ]
+        if not alpha:
+            alpha: float = self.config.neuron.moving_average_alpha
+        self.offline_scores: np.ndarray = alpha * scattered_rewards + ( 1 - alpha) * self.offline_scores
+        bt.logging.debug(f"Updated moving avg OFFLINE scores: {self.offline_scores}")
+
     def update_scores(self, rewards: np.ndarray, uids: List[int], alpha=None):
         """Performs exponential moving average on the scores based on the rewards received from the miners."""
         if np.isnan(rewards).any():
@@ -369,14 +394,14 @@ class BaseValidatorNeuron(BaseNeuron):
         scattered_rewards: np.ndarray = self.scores.copy()
         scattered_rewards[uids_array] = rewards
 
-        bt.logging.debug(f"Scattered rewards: {rewards}")
+        bt.logging.debug(f"ONLINE Scattered rewards: {rewards}")
 
         # Update scores with rewards produced by this step.
         # shape: [ metagraph.n ]
         if not alpha:
             alpha: float = self.config.neuron.moving_average_alpha
         self.scores: np.ndarray = alpha * scattered_rewards + ( 1 - alpha) * self.scores
-        bt.logging.debug(f"Updated moving avg scores: {self.scores}")
+        bt.logging.debug(f"Updated moving avg ONLINE scores: {self.scores}")
     
     def save_state(self):
         """Saves the state of the validator to a file."""
