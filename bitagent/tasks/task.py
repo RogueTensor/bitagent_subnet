@@ -52,12 +52,12 @@ class Task():
         self.synapse = QueryTask(messages=messages, tools=tools)
         self.correct_answer = correct_answer
 
-    def reward(self, validator: BaseValidatorNeuron, synapse: QueryTask, response:dict) -> Tuple[float, float, List[str]]:
+    def reward(self, validator: BaseValidatorNeuron, synapse: QueryTask) -> Tuple[float, float, List[str]]:
         total_score = 0.0
         total_possible = 0.0
         results = []
         for criterion in self.criteria:
-            score, max_score, result = criterion.evaluate(self, validator, synapse, response)
+            score, max_score, result = criterion.evaluate(self, validator, synapse)
             total_score += score
             total_possible += max_score
             results.append(result)
@@ -82,8 +82,8 @@ class Task():
         }
 
 # evaluate task
-def evaluate_task(validator, task:Task, synapse:bt.Synapse, response:dict) -> Tuple[float, float, List[str]]:
-    return task.reward(validator, synapse, response)
+def evaluate_task(validator, task:Task, synapse:bt.Synapse) -> Tuple[float, float, List[str]]:
+    return task.reward(validator, synapse)
 
 # get random task
 def get_random_task(validator) -> Task:
