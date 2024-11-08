@@ -20,9 +20,9 @@ from openai import OpenAI
 
 # specifically for the validator
 def get_openai_llm(self, hugging_face=False):
-    if "validator" in self.__class__.__name__.lower() and hugging_face and self.config.validator_hf_vllm_port:
+    if "validator" in self.__class__.__name__.lower() and hugging_face and self.config.validator_hf_server_port:
         # stand up a vLLM server on this port for the OFFLINE HF model evals
-        base_url = f'http://localhost:{self.config.validator_hf_vllm_port}/v1'
+        base_url = f'http://localhost:{self.config.validator_hf_server_port}/v1'
     else:
         base_url = self.config.openai_api_base
 
@@ -49,23 +49,23 @@ def llm(self, messages, tools, model_name, hugging_face=False,max_new_tokens = 1
     prompt = system_prompt(tools)
 
     try:
-        try:
-            new_messages = [{"role":"system", "content":prompt}] + messages
-            response = get_openai_llm(self, hugging_face).chat.completions.create(
-                messages=new_messages,
-                max_tokens=max_new_tokens,
-                model=model_name,
-                temperature=temperature
-            )
-        except Exception as e:
+        #try:
+        #    new_messages = [{"role":"system", "content":prompt}] + messages
+        #    response = get_openai_llm(self, hugging_face).chat.completions.create(
+        #        messages=new_messages,
+        #        max_tokens=max_new_tokens,
+        #        model=model_name,
+        #        temperature=temperature
+        #    )
+        #except Exception as e:
             # errored b/c the model does not allow system prompts
-            messages[0].content = prompt + "\n\n" + messages[0].content
-            response = get_openai_llm(self, hugging_face).chat.completions.create(
-                messages=messages,
-                max_tokens=max_new_tokens,
-                model=model_name,
-                temperature=temperature
-            )
+        messages[0].content = prompt + "\n\n" + messages[0].content
+        response = get_openai_llm(self, hugging_face).chat.completions.create(
+            messages=messages,
+            max_tokens=max_new_tokens,
+            model=model_name,
+            temperature=temperature
+        )
     except Exception as e:
         bt.logging.error(f"Error calling to LLM: {e}")
         return ""
