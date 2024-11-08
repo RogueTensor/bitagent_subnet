@@ -1,6 +1,6 @@
 import asyncio
 
-from sglang.utils import (
+from sglang.utils import ( # type: ignore
     execute_shell_command,
     wait_for_server,
     terminate_process)
