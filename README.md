@@ -119,7 +119,7 @@ If you just want to run the miner without the [script](./scripts/setup_and_run.s
 # for testing (use testnet 76)
 python3 neurons/miner.py --netuid 76 --subtensor.network test --wallet.name <COLDKEY> --wallet.hotkey <HOTKEY>
 # for mainnet
-pm2 start neurons/miners.py --interpreter python3 --
+pm2 start neurons/miner.py --interpreter python3 --
     --netuid 20
     --subtensor.network <finney/local/test>
     --neuron.device cuda # could be cuda:0, cuda:1 depending on which GPU device
