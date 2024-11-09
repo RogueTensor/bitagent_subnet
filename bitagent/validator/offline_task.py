@@ -19,6 +19,7 @@ from bitagent.validator.reward import process_rewards_update_scores_for_many_tas
 # TODO also run the bfcl suite on the validator - but skip the API calls, don't use those at first
 # TODO store TOP score from last round and all-time in validator state
 async def offline_task(self):
+    bt.logging.debug("OFFLINE: Starting offline task")
     self.running_offline_mode = True
     # get all alive miner UIDs to compare against the top scores from the last round
     miner_uids = await asyncio.to_thread(get_alive_uids, self)
@@ -31,7 +32,12 @@ async def offline_task(self):
         deserialize=False,
         timeout=5.0,
     )
+
+    # TODO check status codes of the responses and score accordingly
+
+    # get all the HF model names from the responses
     miner_hf_model_names = [response.hf_model_name for response in responses]
+    bt.logging.debug(f"OFFLINE: Miner HF model names: {miner_hf_model_names}")
 
     hf_model_name_to_miner_uids = {}
     for i,miner_uid in enumerate(miner_uids):
@@ -42,8 +48,10 @@ async def offline_task(self):
 
     # Group all the models together uniquely and share the same inference server
     unique_miner_hf_model_names = [m for m in list(set(miner_hf_model_names)) if m not in [None, ""]]
+    bt.logging.debug(f"OFFLINE: Unique miner HF model names: {unique_miner_hf_model_names}")
 
     if len(unique_miner_hf_model_names) > 0:
+        bt.logging.debug(f"OFFLINE: Generating tasks")
         # Generate a set of tasks to run on all the offline models
         tasks = []
         for _ in range(1000):
@@ -51,9 +59,11 @@ async def offline_task(self):
             task.mode = "offline"
             tasks.append(task)
 
+    bt.logging.debug(f"OFFLINE: Generated {len(tasks)} tasks")
     for hf_model_name in unique_miner_hf_model_names:
+        bt.logging.debug(f"OFFLINE: Running tasks for model {hf_model_name}")
         if hf_model_name is None or hf_model_name == "" or hf_model_name.lower() == "none":
-            #bt.logging.warning(f"Miner returned empty HF model name")
+            bt.logging.debug(f"OFFLINE: Miner returned empty HF model name ... skipping")
             for miner_uid in hf_model_name_to_miner_uids[hf_model_name]:
                 self.offline_scores[miner_uid] = 0.0
             continue # skip this model
@@ -71,6 +81,7 @@ async def offline_task(self):
         #    except:
         #        self.offline_scores[miner_uid] = 0.0
         #        continue
+        bt.logging.debug(f"OFFLINE: Starting server for model {hf_model_name}")
         try:
             # Start the server for the model
             server_process = await asyncio.to_thread(execute_shell_command,
@@ -82,7 +93,7 @@ async def offline_task(self):
             )
             await asyncio.to_thread(wait_for_server, f"http://localhost:{self.config.validator_hf_server_port}")
         except Exception as e:
-            #bt.logging.warning(f"Error starting server for model {hf_model_name}: {e}")
+            bt.logging.error(f"OFFLINE: Error starting sglang server for model: {hf_model_name}: {e}")
             # TODO determine if this is a problem with the model or the server
             # right now assuming problem with the model
             for miner_uid in hf_model_name_to_miner_uids[hf_model_name]:
@@ -90,13 +101,17 @@ async def offline_task(self):
             continue
 
         # get LLM responses
+        bt.logging.debug(f"OFFLINE: Getting LLM responses for model {hf_model_name}")
         llm_responses = await asyncio.gather(
             *[asyncio.to_thread(llm, self, task.synapse.messages, task.synapse.tools, hf_model_name, hugging_face=True)
               for task in tasks]
         )
+        bt.logging.debug(f"OFFLINE: Got {len(llm_responses)} LLM responses for model: {hf_model_name}")
 
         # terminate the server after getting all the responses
+        bt.logging.debug(f"OFFLINE: Terminating server for model: {hf_model_name}")
         await asyncio.to_thread(terminate_process, server_process)
+        bt.logging.debug(f"OFFLINE: Terminated server for model: {hf_model_name}")
 
         these_miner_uids = hf_model_name_to_miner_uids[hf_model_name]
         responses = []
@@ -114,6 +129,7 @@ async def offline_task(self):
         # TODO need to see if this SCORE is higher than the all-time top score
         # if so, update the all-time top score and model name and reward TOP miners
         # if not, then temporal decay of scores
+        bt.logging.debug(f"OFFLINE: Processing rewards for model: {hf_model_name}, for miners: {these_miner_uids}")
         await process_rewards_update_scores_for_many_tasks_and_many_miners(self, tasks=tasks, responses=responses, miner_uids=these_miner_uids)
     
         # TODO remove old files from HF cache
@@ -121,4 +137,5 @@ async def offline_task(self):
         # TODO handle temporal decay of all scores depending on a) if no new TOP score and b) if new TOP score
         # TODO if doing tier emissions - check wandb for the TOP score and what associated model name it is - could do that here
 
+    bt.logging.debug(f"OFFLINE: Finished processing offline tasks")
     self.running_offline_mode = False

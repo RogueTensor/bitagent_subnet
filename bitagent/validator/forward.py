@@ -41,20 +41,34 @@ async def forward(self, synapse: QueryTask=None) -> QueryTask:
     # OFFLINE TASKING
     # ###########################################################
     # if we're close to the block check point for offline HF model check, then check all miners
-    if not self.running_offline_mode and self.block % self.config.neuron.block_number_check_interval_for_offline_hf_model_check <= 30:
+    interval = self.config.neuron.block_number_check_interval_for_offline_hf_model_check
+    if not self.running_offline_mode and self.block % interval <= 30:
+        bt.logging.debug(f"OFFLINE: Starting offline mode")
         self.running_offline_mode = True
         asyncio.create_task(offline_task(self))
+    elif self.running_offline_mode:
+        bt.logging.debug(f"OFFLINE: Already running offline mode")
+    else:
+        bt.logging.debug(f"OFFLINE: Not running offline mode. Block number: {self.block}, block number check interval: {interval}")
+        remainder = self.block % interval
+        next_block = self.block + interval - remainder
+        next_block_hours = (interval - remainder) * 12.0/60.0/60.0
+        bt.logging.debug(f"OFFLINE: Blocks until next offline run is {interval - remainder}: {next_block}; roughly {next_block_hours} hours")
 
     # ###########################################################
     # ONLINE TASKING
     # ###########################################################
     try:
+        bt.logging.debug(f"ONLINE: Starting online run")
         # check a random sample of miners in online mode
+        bt.logging.debug(f"ONLINE: Getting random miner uids")
         miner_uids = get_random_uids(self, min(self.config.neuron.sample_size, self.metagraph.n.item()))
+        bt.logging.debug(f"ONLINE: Getting random task")
         task = get_random_task(self)
         task.mode = "online"
 
         # send the task to the miners
+        bt.logging.debug(f"ONLINE: Sending task to miners")
         responses = self.dendrite.query(
             axons=[self.metagraph.axons[uid] for uid in miner_uids],
             synapse=task.synapse,
@@ -62,7 +76,9 @@ async def forward(self, synapse: QueryTask=None) -> QueryTask:
             timeout=task.timeout,
         )
 
+        bt.logging.debug(f"ONLINE: Evaluating responses")
         await asyncio.create_task(process_rewards_update_scores_and_send_feedback(self, task=task, responses=responses, miner_uids=miner_uids))
+        bt.logging.debug(f"ONLINE: Evaluation complete")
 
     except Exception as e:
         bt.logging.debug(f"Error in forward: {e}")
