@@ -1,3 +1,5 @@
+import os
+import shutil
 import asyncio
 
 from sglang.utils import ( # type: ignore
@@ -11,6 +13,24 @@ from common.utils.uids import get_alive_uids
 from bitagent.tasks.task import get_random_task
 from bitagent.protocol import GetHFModelName
 from bitagent.validator.reward import process_rewards_update_scores_for_many_tasks_and_many_miners
+
+# Delete the model from the huggingface cache when we're done serving it so we don't run out of disk space
+def delete_model_from_hf_cache(self, model_name: str):
+    # Determine the cache directory
+    cache_dir = self.config.validator_hf_cache_dir
+    
+    # Format the directory name based on the model name
+    model_cache_dir = os.path.join(cache_dir, f"models--{model_name.replace('/', '--')}")
+    
+    # Check if the directory exists and delete it
+    if os.path.exists(model_cache_dir):
+        try:
+            shutil.rmtree(model_cache_dir)
+            bt.logging.debug(f"OFFLINE: Model '{model_name}' has been removed from the cache.")
+        except Exception as e:
+            bt.logging.error(f"OFFLINE: Error deleting model: '{model_name}' from HF cache: {e}")
+    else:
+        bt.logging.debug(f"OFFLINE: Model '{model_name}' not found in the cache.")
 
 # ###########################################################
 # OFFLINE TASKING
@@ -132,7 +152,9 @@ async def offline_task(self):
         bt.logging.debug(f"OFFLINE: Processing rewards for model: {hf_model_name}, for miners: {these_miner_uids}")
         await process_rewards_update_scores_for_many_tasks_and_many_miners(self, tasks=tasks, responses=responses, miner_uids=these_miner_uids)
     
-        # TODO remove old files from HF cache
+        # remove old files from HF cache
+        bt.logging.debug(f"OFFLINE: Deleting model from HF cache: {hf_model_name}")
+        await asyncio.to_thread(delete_model_from_hf_cache, self, hf_model_name)
         # TODO handle temporal decay of scores if no miners outperform all time top score
         # TODO handle temporal decay of all scores depending on a) if no new TOP score and b) if new TOP score
         # TODO if doing tier emissions - check wandb for the TOP score and what associated model name it is - could do that here

@@ -144,6 +144,12 @@ def add_args(cls, parser):
     if neuron_type == "validator":
 
         parser.add_argument(
+            "--validator-hf-cache-dir",
+            type=str,
+            default="~/.cache/huggingface/hub",
+            help="the directory where the HF models are stored on your system - this is where we delete the models from after we're done serving them",
+        )
+        parser.add_argument(
             "--validator-hf-server-port",
             type=int,
             default=8028, 
