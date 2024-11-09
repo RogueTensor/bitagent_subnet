@@ -17,7 +17,7 @@ from bitagent.validator.reward import process_rewards_update_scores_for_many_tas
 # Delete the model from the huggingface cache when we're done serving it so we don't run out of disk space
 def delete_model_from_hf_cache(self, model_name: str):
     # Determine the cache directory
-    cache_dir = self.config.validator_hf_cache_dir
+    cache_dir = os.path.expanduser(self.config.validator_hf_cache_dir)
     
     # Format the directory name based on the model name
     model_cache_dir = os.path.join(cache_dir, f"models--{model_name.replace('/', '--')}")
@@ -30,7 +30,7 @@ def delete_model_from_hf_cache(self, model_name: str):
         except Exception as e:
             bt.logging.error(f"OFFLINE: Error deleting model: '{model_name}' from HF cache: {e}")
     else:
-        bt.logging.debug(f"OFFLINE: Model '{model_name}' not found in the cache.")
+        bt.logging.debug(f"OFFLINE: Model '{model_name}' not found in the cache: {model_cache_dir}")
 
 # ###########################################################
 # OFFLINE TASKING
