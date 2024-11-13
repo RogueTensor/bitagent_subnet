@@ -149,13 +149,20 @@ async def write_to_wandb(validator: BaseValidatorNeuron, task: Task, responses: 
             }
 
             try:
+                if task.mode == "offline":
+                    bt.logging.debug(f"OFFLINE Logging to WandB")
+                else:
+                    bt.logging.debug(f"ONLINE Logging to WandB")
                 validator.log_event(data)
+                if task.mode == "offline":
+                    bt.logging.debug(f"OFFLINE Logged to WandB")
+                else:
+                    bt.logging.debug(f"ONLINE Logged to WandB")
             except Exception as e:
                 bt.logging.debug("WandB failed to log, moving on ... exception: ", e)
 
         except Exception as e:
-            bt.logging.warning("Exception in log_rewards: {}".format(e))
-
+            bt.logging.warning("Exception in logging to WandB: {}".format(e))
 
 # all of these miners are scored the same way with the same tasks b/c this is scoring offline models
 async def process_rewards_update_scores_for_many_tasks_and_many_miners(validator: BaseValidatorNeuron, tasks: List[Task], responses: List[Any], 
