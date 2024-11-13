@@ -273,8 +273,8 @@ A: No - no subs, no external companies, in fact we'd rather the community build 
 Q: What LLM should I use?\
 A: This is where the miner needs to experiment some and test and fine-tune different LLM models to find what accomplishes the tasks most successfully.  Have a look at models in the Salesforce xLAM family as good starting points.
 
-Q: Validators are running miner HF models, will validators require `trust_remote_code`?\
-A: No, we require that no setup scripts or any code be required for running the models.
+Q: Validators are running miner-submitted HF models, will validators require `trust_remote_code`?\
+A: No, we require that no setup scripts or any code be necessary for running the models.
 
 Q: I started my miner and I am not receiving any tasks.\
 A: There are a few things to check:
@@ -286,6 +286,12 @@ A: There are a few things to check:
 
 Q: What about model copying?\
 A: https://discord.com/channels/799672011265015819/1194736998250975332/1302870011362279514
+
+Q: My model is not being evaluated OFFLINE and is receiving a score of 0.\
+A: There are a few things to check:
+- Is your model licensed under the apache-2.0 license?
+- Is your model size less than 10B parameters? We are looking for 8B params or less models.
+- Is your model name properly set in the Hugging Face?
 
 ---
 
