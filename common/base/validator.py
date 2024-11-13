@@ -149,12 +149,12 @@ class BaseValidatorNeuron(BaseNeuron):
                 try:
                     bt.logging.info(f"step({self.step}) block({self.block})")
                 except Exception as e:
-                    bt.logging.error("Error logging step and block, likely socket issue, will update next round", e)
-                    if "Broken pipe" in str(e):
-                        print("======= Exiting due to a broken pipe ========")
-                        self.axon.stop()
-                        self.should_exit = True
-                        exit()
+                    bt.logging.error(f"Error logging step and block, likely socket issue, will update next round: {e}")
+                    #if "Broken pipe" in str(e):
+                    #    print("======= Exiting due to a broken pipe ========")
+                    #    self.axon.stop()
+                    #    self.should_exit = True
+                    #    exit()
 
                 # Run multiple forwards concurrently.
                 self.loop.run_until_complete(self.concurrent_forward())
