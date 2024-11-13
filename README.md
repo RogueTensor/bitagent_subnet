@@ -278,7 +278,7 @@ A: No, we require that no setup scripts or any code be required for running the 
 
 Q: I started my miner and I am not receiving any tasks.\
 A: There are a few things to check:
-- Is your axon port, as reported on the metagraph) correct (you can check taostats or metagraph)?
+- Is your axon port, as reported on the metagraph correct (you can check taostats or metagraph)?
 - Is your axon port open and reachable from a system in the real world (like where the validators are)?
 - Do you have Trace logging on to see the dendrite requests and Debug logging on to see the task results?
 - Make sure your IsAlive() forward is returning True and wait an hour for that to update in the validator's cache.
