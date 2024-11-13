@@ -133,7 +133,9 @@ class BaseNeuron(ABC):
             if save_state:
                 self.save_state()
         except Exception as e:
-            bt.logging.error(f"Error trying to sync, skipping this round: {e}")
+            # Reconnect to subtensor if there is an error.
+            self.subtensor = bt.subtensor(config=self.config)
+            bt.logging.error(f"Error trying to sync, reconnected subtensor and skipping this round: {e}")
 
     def check_registered(self):
         # --- Check for registration.
