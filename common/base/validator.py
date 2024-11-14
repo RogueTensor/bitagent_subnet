@@ -367,7 +367,7 @@ class BaseValidatorNeuron(BaseNeuron):
         else:
             uids_array = np.array(uids)
 
-        scattered_rewards: np.ndarray = self.scores.copy()
+        scattered_rewards: np.ndarray = self.offline_scores.copy()
         scattered_rewards[uids_array] = rewards
 
         bt.logging.debug(f"OFFLINE Scattered rewards: {rewards}")
@@ -376,6 +376,7 @@ class BaseValidatorNeuron(BaseNeuron):
         # shape: [ metagraph.n ]
         if not alpha:
             alpha: float = self.config.neuron.moving_average_alpha
+
         self.offline_scores: np.ndarray = alpha * scattered_rewards + ( 1 - alpha) * self.offline_scores
         bt.logging.debug(f"Updated moving avg OFFLINE scores: {self.offline_scores}")
 
