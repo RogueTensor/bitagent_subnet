@@ -222,7 +222,6 @@ def add_args(cls, parser):
             default=4096,
         )
 
-
     else:
         # grab the command line arguments to find the netuid and set the default accordingly
         # for mainnet (SN20), we'll set to blacklist any validator without a validator permit
