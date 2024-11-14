@@ -164,13 +164,6 @@ def add_args(cls, parser):
         )
 
         parser.add_argument(
-            "--log_dir",
-            type=str,
-            default="./",
-            help="the location of the cometML logs"
-        )
-        
-        parser.add_argument(
             "--neuron.num_concurrent_forwards",
             type=int,
             help="The number of concurrent forwards running at any time.",
@@ -188,7 +181,7 @@ def add_args(cls, parser):
             "--neuron.block_number_check_interval_for_offline_hf_model_check",
             type=int,
             help="The interval at which to run in offline mode to check HF models for ALL miners.",
-            default=9*24*3600/12 # 12 seconds per block, run every 9 days, that's 9*24*3600/12 => 64800
+            default=14*24*3600/12 # 12 seconds per block, run every 14 days
         )
 
         parser.add_argument(

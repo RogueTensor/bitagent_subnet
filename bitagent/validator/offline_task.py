@@ -9,6 +9,7 @@ from sglang.utils import ( # type: ignore
 
 import bittensor as bt
 from bitagent.helpers.llms import llm
+from huggingface_hub import model_info
 from common.utils.uids import get_alive_uids
 from bitagent.tasks.task import get_random_task
 from bitagent.protocol import GetHFModelName
@@ -53,8 +54,6 @@ async def offline_task(self):
         timeout=5.0,
     )
 
-    # TODO check status codes of the responses and score accordingly
-
     # get all the HF model names from the responses
     miner_hf_model_names = [response.hf_model_name for response in responses]
     bt.logging.debug(f"OFFLINE: Miner HF model names: {miner_hf_model_names}")
@@ -88,19 +87,26 @@ async def offline_task(self):
                 self.offline_scores[miner_uid] = 0.0
             continue # skip this model
 
-        # TODO check size of model on disk - if larger than 8B params, then don't run and set score to 0
-        #try:
-        #    if model.num_parameters() > 10000000000:
-        #        self.offline_scores[miner_uid] = 0.0
-        #        continue
-        #except:
-        #    try:
-        #        if sum(p.numel() for p in model.parameters()) > 10000000000:
-        #            self.offline_scores[miner_uid] = 0.0
-        #            continue
-        #    except:
-        #        self.offline_scores[miner_uid] = 0.0
-        #        continue
+        # Extract the model card data for the model from HF
+        info = model_info(hf_model_name)
+        license = info.card_data['license']
+        total_size = info.safetensors.total
+
+        # confirm model license is apache-2.0 or nc-by-nc-4.0 or mit
+        # TODO eventually ONLY accept apache-2.0
+        if license not in ["apache-2.0", "cc-by-nc-4.0", "mit"]:
+            bt.logging.debug(f"OFFLINE: Skipping model {hf_model_name} due to license: {license}")
+            for miner_uid in hf_model_name_to_miner_uids[hf_model_name]:
+                self.offline_scores[miner_uid] = 0.0
+            continue
+
+        # confirm model size is less than 10B params (want 8B or less models)
+        if total_size > 10000000000:
+            bt.logging.debug(f"OFFLINE: Skipping model {hf_model_name} due to size: {total_size}")
+            for miner_uid in hf_model_name_to_miner_uids[hf_model_name]:
+                self.offline_scores[miner_uid] = 0.0
+            continue
+
         bt.logging.debug(f"OFFLINE: Starting server for model {hf_model_name}")
         try:
             # Start the server for the model
@@ -115,7 +121,7 @@ async def offline_task(self):
         except Exception as e:
             bt.logging.error(f"OFFLINE: Error starting sglang server for model: {hf_model_name}: {e}")
             # TODO determine if this is a problem with the model or the server
-            # right now assuming problem with the model
+            # right now assuming problem with the model, size for example
             for miner_uid in hf_model_name_to_miner_uids[hf_model_name]:
                 self.offline_scores[miner_uid] = 0.0
             continue
@@ -157,7 +163,6 @@ async def offline_task(self):
         await asyncio.to_thread(delete_model_from_hf_cache, self, hf_model_name)
         # TODO handle temporal decay of scores if no miners outperform all time top score
         # TODO handle temporal decay of all scores depending on a) if no new TOP score and b) if new TOP score
-        # TODO if doing tier emissions - check wandb for the TOP score and what associated model name it is - could do that here
 
     bt.logging.debug(f"OFFLINE: Finished processing offline tasks")
     self.running_offline_mode = False
