@@ -52,7 +52,7 @@ async def forward(self, synapse: QueryTask=None) -> QueryTask:
         bt.logging.debug(f"OFFLINE: Not running offline mode. Block number: {self.block}, block number check interval: {interval}")
         remainder = self.block % interval
         next_block = self.block + interval - remainder
-        next_block_hours = (interval - remainder) * 12.0/60.0/60.0
+        next_block_hours = (interval - remainder) * 12.0/60.0/60.0 # 12 seconds per block, converted to hours
         bt.logging.debug(f"OFFLINE: Blocks until next offline run is {interval - remainder}: {next_block}; roughly {next_block_hours} hours")
 
     # ###########################################################
