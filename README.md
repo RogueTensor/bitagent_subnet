@@ -75,6 +75,22 @@ btcli subnet register --wallet.name $coldkey --wallet.hotkey $hotkey --subtensor
 
 ### Validator
 
+#### Dependencies
+
+You must have the following things:
+
+- System with at least 48gb of VRAM
+- Python >=3.10
+- Docker with [gpu support](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
+
+#### Installation
+
+Ensure that you have Docker with GPU support, you can choose to follow either of the instructions:
+
+- [Official Guide](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) 
+- [Quick and Dirty Stack Overflow Guide](https://stackoverflow.com/questions/75118992/docker-error-response-from-daemon-could-not-select-device-driver-with-capab)
+
+
 Install [PM2](https://pm2.io/docs/runtime/guide/installation/) and the [`jq` package](https://jqlang.github.io/jq/) on your system.\
    **On Linux**:
    ```bash
