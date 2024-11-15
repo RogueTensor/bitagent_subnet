@@ -312,6 +312,21 @@ A: There are a few things to check:
 - Is your model size less than 10B parameters? We are looking for 8B params or less models.
 - Is your model name properly set in the Hugging Face?
 
+Q: I'm getting a wallet path error, like: `KeyFileError: Keyfile at: ${HOME}/~/.bittensor/wallets/...`\
+A: There is a bug in 8.2.0 that is setting the wallet path incorrectly, so you may need to fix this by adding this parameter to your start command:\
+`--wallet.path ~/.bittensor/wallets`
+
+Q: I have a complicated CUDA Device setup and need to use a specific GPU device as a validator running the FINETUNED models:\
+A: We provide two parameters for this:\
+`--neuron.visible_devices`\
+`--neuron.device`\
+Example usage: To use the 2nd CUDA Device, you would add these to your parameters:\
+`--neuron.visible_devices 1 --neuron.device cuda:0`
+
+Q: My vLLM or other inference instance is not served on 8000, how do I change this?\
+A: We provide a parameter `--openai-api-base`\
+It defaults to this: `http://localhost:8000/v1`, updated as needed by passing the `--openai-api-base` parameter to your start command.\
+
 ---
 
 ## License
