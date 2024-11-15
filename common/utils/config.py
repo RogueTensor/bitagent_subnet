@@ -178,13 +178,6 @@ def add_args(cls, parser):
         )
 
         parser.add_argument(
-            "--neuron.block_number_check_interval_for_offline_hf_model_check",
-            type=int,
-            help="The interval at which to run in offline mode to check HF models for ALL miners.",
-            default=14*24*3600/12 # 12 seconds per block, run every 14 days
-        )
-
-        parser.add_argument(
             "--neuron.disable_set_weights",
             action="store_true",
             help="Disables setting weights.",
