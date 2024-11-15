@@ -84,6 +84,7 @@ async def offline_task(self):
         if hf_model_name is None or hf_model_name == "" or hf_model_name.lower() == "none":
             bt.logging.debug(f"OFFLINE: Miner returned empty HF model name ... skipping")
             for miner_uid in hf_model_name_to_miner_uids[hf_model_name]:
+                # TODO also track compeition completion
                 self.offline_scores[miner_uid] = 0.0
             continue # skip this model
 
@@ -97,6 +98,7 @@ async def offline_task(self):
         if license not in ["apache-2.0", "cc-by-nc-4.0", "mit"]:
             bt.logging.debug(f"OFFLINE: Skipping model {hf_model_name} due to license: {license}")
             for miner_uid in hf_model_name_to_miner_uids[hf_model_name]:
+                # TODO also track compeition completion
                 self.offline_scores[miner_uid] = 0.0
             continue
 
@@ -104,6 +106,7 @@ async def offline_task(self):
         if total_size > 10000000000:
             bt.logging.debug(f"OFFLINE: Skipping model {hf_model_name} due to size: {total_size}")
             for miner_uid in hf_model_name_to_miner_uids[hf_model_name]:
+                # TODO also track compeition completion
                 self.offline_scores[miner_uid] = 0.0
             continue
 
@@ -123,6 +126,7 @@ async def offline_task(self):
             # TODO determine if this is a problem with the model or the server
             # right now assuming problem with the model, size for example
             for miner_uid in hf_model_name_to_miner_uids[hf_model_name]:
+                # TODO also track compeition completion
                 self.offline_scores[miner_uid] = 0.0
             continue
 
@@ -149,8 +153,12 @@ async def offline_task(self):
             response.dendrite.status_code = 200 
             response.axon.status_code = 200
             response.hf_run_model_name = hf_model_name
+            # TODO Track competition end date in wandb
+            response.competition_id = self.config.competition_id
+            response.competition_date = self.config.competition_date
             responses.append(response)
 
+        # TODO also track compeition completion
         # evaluate, track score and add to wandb
         # TODO need to see if this SCORE is higher than the all-time top score
         # if so, update the all-time top score and model name and reward TOP miners
