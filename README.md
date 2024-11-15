@@ -16,8 +16,9 @@
 - [Get Running](#get-running)
   - [BitAgent](#bitagent)
   - [Validator](#validator)
-    - [Hardware Requirements](#hardware-requirements)
+    - [Hardware Requirements](#validator-hardware-requirements)
   - [Miner](#miner)
+    - [Hardware Requirements](#miner-hardware-requirements)
     - [Default Miner](#default-miner)
     - [Miner Emissions](#miner-emissions)
     - [Miner Considerations](#miner-considerations)
@@ -105,13 +106,11 @@ To run with vLLM you can do the following:
 
 This will run the LLM on port 8000. To change the port, change the host port for this parameter up above `-p <host port>:<container port>`.
 
-#### Hardware Requirements
+#### Validator Hardware Requirements
 
 Validators have hardware requirements. Two LLMS are needed to be run simultaneously:
   - 1st LLM `thesven/Mistral-7B-Instruct-v0.3-GPTQ` can run off of 10GB to 20GB of VRAM - this model is used to alter tasks before going out to miners.
   - 2nd LLM is each miner's tool calling model fetched from Hugging Face, one at a time to be evaluated OFFLINE and takes up 20GB to 30GB of VRAM.
-
-Miners will need to run a top tool calling LLM or a fine-tune of their own, needing a GPU with 20GB to 30GB of VRAM. 
 
 ### Miner
 If you just want to run the miner without the [script](./scripts/setup_and_run.sh) or are connecting to mainnet:
@@ -133,6 +132,8 @@ pm2 start neurons/miner.py --interpreter python3 --
     --axon.port # VERY IMPORTANT: set the port to be one of the open TCP ports on your machine
 
 ```
+#### Miner Hardware Requirements
+Miners will need to run a top tool calling LLM or a fine-tune of their own, needing a GPU with 20GB to 30GB of VRAM. 
 
 #### Default Miner
 The default miner is all you need with these modifications:
