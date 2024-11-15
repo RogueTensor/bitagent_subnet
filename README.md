@@ -16,8 +16,9 @@
 - [Get Running](#get-running)
   - [BitAgent](#bitagent)
   - [Validator](#validator)
-    - [Hardware Requirements](#hardware-requirements)
+    - [Hardware Requirements](#validator-hardware-requirements)
   - [Miner](#miner)
+    - [Hardware Requirements](#miner-hardware-requirements)
     - [Default Miner](#default-miner)
     - [Miner Emissions](#miner-emissions)
     - [Miner Considerations](#miner-considerations)
@@ -74,6 +75,22 @@ btcli subnet register --wallet.name $coldkey --wallet.hotkey $hotkey --subtensor
 
 ### Validator
 
+#### Dependencies
+
+You must have the following things:
+
+- System with at least 48gb of VRAM
+- Python >=3.10
+- Docker with [gpu support](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
+
+#### Installation
+
+Ensure that you have Docker with GPU support, you can choose to follow either of the instructions:
+
+- [Official Guide](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) 
+- [Quick and Dirty Stack Overflow Guide](https://stackoverflow.com/questions/75118992/docker-error-response-from-daemon-could-not-select-device-driver-with-capab)
+
+
 Install [PM2](https://pm2.io/docs/runtime/guide/installation/) and the [`jq` package](https://jqlang.github.io/jq/) on your system.\
    **On Linux**:
    ```bash
@@ -101,17 +118,17 @@ Note: Previously we ran the LLM's inside the validator code with the transformer
 
 To run with vLLM you can do the following:
 
-`sudo docker run -d -p 8000:8000  --gpus all --ipc host --name mistral-instruct docker.io/vllm/vllm-openai:latest --model thesven/Mistral-7B-Instruct-v0.3-GPTQ --max-model-len 8912 --quantization gptq --dtype half --gpu-memory-utilization 0.45`
+```bash
+sudo docker run -d -p 8000:8000  --gpus all --ipc host --name mistral-instruct docker.io/vllm/vllm-openai:latest --model thesven/Mistral-7B-Instruct-v0.3-GPTQ --max-model-len 8912 --quantization gptq --dtype half --gpu-memory-utilization 0.45
+```
 
 This will run the LLM on port 8000. To change the port, change the host port for this parameter up above `-p <host port>:<container port>`.
 
-#### Hardware Requirements
+#### Validator Hardware Requirements
 
 Validators have hardware requirements. Two LLMS are needed to be run simultaneously:
   - 1st LLM `thesven/Mistral-7B-Instruct-v0.3-GPTQ` can run off of 10GB to 20GB of VRAM - this model is used to alter tasks before going out to miners.
   - 2nd LLM is each miner's tool calling model fetched from Hugging Face, one at a time to be evaluated OFFLINE and takes up 20GB to 30GB of VRAM.
-
-Miners will need to run a top tool calling LLM or a fine-tune of their own, needing a GPU with 20GB to 30GB of VRAM. 
 
 ### Miner
 If you just want to run the miner without the [script](./scripts/setup_and_run.sh) or are connecting to mainnet:
@@ -133,6 +150,8 @@ pm2 start neurons/miner.py --interpreter python3 --
     --axon.port # VERY IMPORTANT: set the port to be one of the open TCP ports on your machine
 
 ```
+#### Miner Hardware Requirements
+Miners will need to run a top tool calling LLM or a fine-tune of their own, needing a GPU with 20GB to 30GB of VRAM. 
 
 #### Default Miner
 The default miner is all you need with these modifications:
