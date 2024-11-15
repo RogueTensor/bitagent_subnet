@@ -42,8 +42,8 @@
 - Working our way up the [Berkeley Function Calling Leaderboard](https://gorilla.cs.berkeley.edu/leaderboard.html#leaderboard) (BFCL)
 - No API / subscription requirements
 - Run light models (8B parameter) for huge impact
-- OFFLINE evaluation of tool calling language model fine tunes
-- ONLINE evaluation of miners running tool calling language models allowing applications to scale on top of SN20
+- FINETUNED MODEL evaluation of tool calling language model fine tunes
+- MINER HOSTED evaluation of miners running tool calling language models allowing applications to scale on top of SN20
 - Miner's receive [transparent feedback](#miner-feedback)
 - And a BONUS for getting this far - are you tired of waiting for registration slots?  Check out [register.sh](./scripts/register.sh)
 
@@ -128,7 +128,7 @@ This will run the LLM on port 8000. To change the port, change the host port for
 
 Validators have hardware requirements. Two LLMS are needed to be run simultaneously:
   - 1st LLM `thesven/Mistral-7B-Instruct-v0.3-GPTQ` can run off of 10GB to 20GB of VRAM - this model is used to alter tasks before going out to miners.
-  - 2nd LLM is each miner's tool calling model fetched from Hugging Face, one at a time to be evaluated OFFLINE and takes up 20GB to 30GB of VRAM.
+  - 2nd LLM is each miner's tool calling model fetched from Hugging Face, one at a time to be evaluated OFFLINE for FINETUNED SUBMISSION and takes up 20GB to 30GB of VRAM.
 
 ### Miner
 If you just want to run the miner without the [script](./scripts/setup_and_run.sh) or are connecting to mainnet:
@@ -166,11 +166,11 @@ See [Miner Considerations](#miner-considerations) for common areas miners should
 
 #### Miner Emissions
 
-Miner emissions are composed of both ONLINE and OFFLINE evaluation:
-- 50% of the miner's score is determined by the model miners persistently run to handle on-demand queries.  This is ONLINE evaluation of the miner.
-- 50% is determined by bi-weekly challenges in which the miner submits their latest huggingface model and Validators load the model on their machine to evaluate.  This is OFFLINE evaluation.
+Miner emissions are composed of both MINER-HOSTED and FINETUNED SUBMISSION evaluation:
+- 50% of the miner's score is determined by the model miners persistently run to handle on-demand queries.  This is MINER-HOSTED evaluation of the miner.
+- 50% is determined by bi-weekly challenges in which the miner submits their latest huggingface model and Validators load the model on their machine to evaluate.  This is FINETUNED SUBMISSION evaluation.
 
-Both ONLINE and OFFLINE tasks are evaluated against modifications of these datasets:
+Both MINER-HOSTED and FINETUNED SUBMISSION tasks are evaluated against modifications of these datasets:
 - Berkeley Function Calling tasks
 - Glaive Function Calling tasks
 - BitAgent Function calling tasks
@@ -187,7 +187,7 @@ For your consideration:
 
 
 #### Example Task
-Here's an example task you can expect your model to see in OFFLINE mode as well as your miner to see in ONLINE mode:
+Here's an example task you can expect your model to see in FINETUNED SUBMISSION mode as well as your local miner to see in MINER-HOSTED mode:
 
 You'll receive messages like this:
 ```baseh
@@ -306,7 +306,7 @@ A: There are a few things to check:
 Q: What about model copying?\
 A: https://discord.com/channels/799672011265015819/1194736998250975332/1302870011362279514
 
-Q: My model is not being evaluated OFFLINE and is receiving a score of 0.\
+Q: My model is not being evaluated OFFLINE for FINETUNED SUBMISSION and is receiving a score of 0.\
 A: There are a few things to check:
 - Is your model licensed under the apache-2.0 license?
 - Is your model size less than 10B parameters? We are looking for 8B params or less models.
