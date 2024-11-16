@@ -70,7 +70,7 @@ python -m pip install -e .
 
 Then make sure to register your intended wallet (coldkey, hotkey) to Subnet 20:
 ```bash
-btcli subnet register --wallet.name $coldkey --wallet.hotkey $hotkey --subtensor.network finney --netuid 20
+btcli subnet register --wallet.path <YOUR PATH: e.g., ~/.bittensor/wallets> --wallet.name $coldkey --wallet.hotkey $hotkey --subtensor.network finney --netuid 20
 ```
 
 ### Validator
@@ -104,13 +104,13 @@ Install [PM2](https://pm2.io/docs/runtime/guide/installation/) and the [`jq` pac
 If you want to run the validator without the [script](./scripts/setup_and_run.sh) or are connecting to mainnet:
 ```bash
 # for testing
-python3 neurons/validator.py --netuid 76 --subtensor.network test --wallet.name <COLDKEY> --wallet.hotkey <HOTKEY>
+python3 neurons/validator.py --netuid 76 --subtensor.network test --wallet.path <YOUR PATH: e.g., ~/.bittensor/wallets> --wallet.name <COLDKEY> --wallet.hotkey <HOTKEY>
 
 # for mainnet
-pm2 start neurons/validator.py --interpreter python3 -- --netuid 20 --subtensor.network <LOCAL/FINNEY/TEST> --wallet.name <COLDKEY> --wallet.hotkey <HOTKEY> --axon.port <PORT>
+pm2 start neurons/validator.py --interpreter python3 -- --netuid 20 --subtensor.network <LOCAL/FINNEY/TEST> --wallet.path <YOUR PATH: e.g., ~/.bittensor/wallets> --wallet.name <COLDKEY> --wallet.hotkey <HOTKEY> --axon.port <PORT>
 
 # for mainnet with AUTO UPDATES (recommended)
-pm2 start run.sh --name bitagent_validators_autoupdate -- --wallet.name <your-wallet-name> --wallet.hotkey <your-wallet-hot-key> --netuid 20
+pm2 start run.sh --name bitagent_validators_autoupdate -- --wallet.path <YOUR PATH: e.g., ~/.bittensor/wallets> --wallet.name <your-wallet-name> --wallet.hotkey <your-wallet-hot-key> --netuid 20
 ```
 
 Validators must spin-up their own LLM (specifically mistral 7B).
@@ -134,12 +134,13 @@ Validators have hardware requirements. Two LLMS are needed to be run simultaneou
 If you just want to run the miner without the [script](./scripts/setup_and_run.sh) or are connecting to mainnet:
 ```bash
 # for testing (use testnet 76)
-python3 neurons/miner.py --netuid 76 --subtensor.network test --wallet.name <COLDKEY> --wallet.hotkey <HOTKEY>
+python3 neurons/miner.py --netuid 76 --subtensor.network test --wallet.path <YOUR PATH: e.g., ~/.bittensor/wallets> --wallet.name <COLDKEY> --wallet.hotkey <HOTKEY>
 # for mainnet
 pm2 start neurons/miner.py --interpreter python3 --
     --netuid 20
     --subtensor.network <finney/local/test>
     --neuron.device cuda # could be cuda:0, cuda:1 depending on which GPU device
+    --wallet.path <YOUR PATH: e.g., ~/.bittensor/wallets> # 8.2.0 has a bug that requires wallet path to be provided
     --wallet.name <your wallet> # Must be created using the bittensor-cli
     --wallet.hotkey <your hotkey> # Must be created using the bittensor-cli
     --miner-hf-model-name-to-submit Salesforce/xLAM-7b-r # submit your own fine tune with this param
