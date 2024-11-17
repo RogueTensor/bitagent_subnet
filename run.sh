@@ -284,13 +284,13 @@ if [ "$?" -eq 1 ]; then
 
                         # Ensure pip is up-to-date in the virtual environment
                         echo "Upgrading pip in $VENV_DIR"
-                        $VENV_PIP install --upgrade pip
+                        $SGLVENV_PIP install --upgrade pip
 
                         # Install requirements if requirements.sglang.txt exists
                         if [ -f "requirements.sglang.txt" ]; then
                             echo "Installing requirements from requirements.sglang.txt"
-                            $VENV_PIP install flashinfer -i https://flashinfer.ai/whl/cu121/torch2.4/
-                            $VENV_PIP install -r requirements.sglang.txt
+                            $SGLVENV_PIP install flashinfer -i https://flashinfer.ai/whl/cu121/torch2.4/
+                            $SGLVENV_PIP install -r requirements.sglang.txt
 
                             # Check if installation was successful
                             if [ $? -ne 0 ]; then
