@@ -21,7 +21,7 @@
     - [vLLM Setup for Validators](#vllm-setup-for-validators)
     - [Recommended Startup](#recommended-startup)
     - [Alternative Startup](#alternative-startup)
-    - [Hardware Requirements](#hardware-requirements)
+    - [Hardware Requirements](#validator-hardware-requirements)
   - [Miner](#miner)
     - [Hardware Requirements](#miner-hardware-requirements)
     - [Default Miner](#default-miner)
