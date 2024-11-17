@@ -146,6 +146,8 @@ Make sure you do the [vLLM setup](#vllm-setup-for-validators) above and the [sgl
 pm2 start run.sh --name bitagent_validators_autoupdate -- --wallet.path <YOUR PATH: e.g., ~/.bittensor/wallets> --wallet.name <your-wallet-name> --wallet.hotkey <your-wallet-hot-key> --netuid 20
 ```
 
+Double check everything is working by following [these steps](#verify-validator-is-working).
+
 #### Alternative Startup
 
 Make sure you do the [vLLM setup](#vllm-setup-for-validators) above and the [sglang setup](#sglang-setup-for-validators) above.
@@ -157,6 +159,57 @@ python3 neurons/validator.py --netuid 76 --subtensor.network test --wallet.path 
 # for mainnet
 pm2 start neurons/validator.py --interpreter python3 -- --netuid 20 --subtensor.network <LOCAL/FINNEY/TEST> --wallet.path <YOUR PATH: e.g., ~/.bittensor/wallets> --wallet.name <COLDKEY> --wallet.hotkey <HOTKEY> --axon.port <PORT>
 ```
+
+Double check everything is working by following [these steps](#verify-validator-is-working).
+
+#### Verify Validator is Working
+
+After you've launched and pm2 is running, here's what to expect:\
+- You'll see a LOT (one per mind) of IsAlive() queries like this:\
+  ```bash
+  1|bitagent | 2024-11-17 23:25:59.156 |      TRACE       | bittensor:loggingmachine.py:432 | dendrite | <-- | 3354 B | IsAlive | 5GbnkQJ6zfsWa9iX4ZtwKccXZv4s8MTt2LSQFmS8CMgjkSgx | 213.180.0.45:20019 | 200 | Success
+  1|bitagent | 2024-11-17 23:26:04.135 |      TRACE       | bittensor:loggingmachine.py:432 | dendrite | <-- | 3327 B | IsAlive | 5E7eqUChR4WUnRwNAUXRNUZhhjEzTfdeGAvDyf99aygVGYBJ | 176.55.1.98:8091 | 408 | Request timeout after 5.0 seconds
+  1|bitagent | 2024-11-17 23:26:04.180 |      TRACE       | bittensor:loggingmachine.py:432 | dendrite | <-- | 3331 B | IsAlive | 5EHQoRqwMHG3QVVpsSZBPHJD87SEwGn6FhTSR3LCj8XiHVUC | 109.206.196.130:8888 | 408 | Request timeout after 5.0 seconds
+  ```
+- After the IsAlive() queries, you'll start to see QueryTask queries followed by QueryResult queries, like these:\
+  ```bash
+  1|bitagent | 2024-11-17 23:53:20.322 |      ERROR       | bittensor:loggingmachine.py:457 |  - ContentTypeError#aefadd84-8586-4faa-9206-e048c2b85114: 404, message='Attempt to decode JSON with unexpected mimetype: text/html', url='http://52.220.128.145:32222/QueryTask' - 
+  1|bitagent | 2024-11-17 23:53:20.323 |      TRACE       | bittensor:loggingmachine.py:432 | dendrite | <-- | 27205 B | QueryTask | 5GjGiziPatj7mf4is5JaDPJq4jbPnagoeiSHe4TfFERafM7X | 52.220.128.145:32222 | 422 | Failed to parse response: 404, message='Attempt to decode JSON with unexpected mimetype: text/html', url='http://52.220.128.145:32222/QueryTask'
+  1|bitagent | 2024-11-17 23:53:21.708 |      TRACE       | bittensor:loggingmachine.py:432 | dendrite | <-- | 27522 B | QueryTask | 5GbnkQJ6zfsWa9iX4ZtwKccXZv4s8MTt2LSQFmS8CMgjkSgx | 213.180.0.45:20019 | 500 | Internal Server Error #b36dc761-1035-44d0-b88d-24fe9ccc7e1e
+  1|bitagent | 2024-11-17 23:53:21.806 |      TRACE       | bittensor:loggingmachine.py:432 | dendrite | --> | 5418 B | QueryResult | 5GbnkQJ6zfsWa9iX4ZtwKccXZv4s8MTt2LSQFmS8CMgjkSgx | 213.180.0.45:20019 | 0 | Success
+  1|bitagent | 2024-11-17 23:53:23.200 |      TRACE       | bittensor:loggingmachine.py:432 | dendrite | <-- | 5578 B | QueryResult | 5GbnkQJ6zfsWa9iX4ZtwKccXZv4s8MTt2LSQFmS8CMgjkSgx | 213.180.0.45:20019 | 200 | Success
+
+  ```
+- These logs above let you know that the ONLINE / MINER HOSTED querying is working.
+- Finally, you'll want to check the miners' HF (hugging face) models are being evaluated OFFLINE.
+- You'll want to check your `pm2 log <ID> | grep OFFLINE` output for lines like these (from testnet):\
+  ```bash
+  1|bitagent | 2024-11-17 23:26:07.154 |      DEBUG       | bittensor:loggingmachine.py:437 | OFFLINE: Starting offline mode for competition 1-1
+  1|bitagent | 2024-11-17 23:26:08.831 |      DEBUG       | bittensor:loggingmachine.py:437 | OFFLINE: Starting offline task
+  1|bitagent | 2024-11-17 23:26:12.529 |      DEBUG       | bittensor:loggingmachine.py:437 | OFFLINE: Miner HF model names: [None, 'Salesforce/xLAM-7b-r']
+  1|bitagent | 2024-11-17 23:26:12.529 |      DEBUG       | bittensor:loggingmachine.py:437 | OFFLINE: Unique miner HF model names: ['Salesforce/xLAM-7b-r']
+  1|bitagent | 2024-11-17 23:26:12.529 |      DEBUG       | bittensor:loggingmachine.py:437 | OFFLINE: Generating tasks
+  1|bitagent | 2024-11-17 23:28:21.793 |      DEBUG       | bittensor:loggingmachine.py:437 | OFFLINE: Generated 1000 tasks of 1000 total
+  1|bitagent | 2024-11-17 23:28:21.793 |      DEBUG       | bittensor:loggingmachine.py:437 | OFFLINE: Running tasks for model Salesforce/xLAM-7b-r
+  1|bitagent | 2024-11-17 23:28:21.939 |      DEBUG       | bittensor:loggingmachine.py:437 | OFFLINE: Starting server for model Salesforce/xLAM-7b-r
+  1|bitagent | 2024-11-17 23:28:21.941 |      DEBUG       | bittensor:loggingmachine.py:437 | OFFLINE: Started server for model Salesforce/xLAM-7b-r, waiting for it to start on port 8028 (could take several minutes)
+  1|bitagent | 2024-11-17 23:29:25.469 |      DEBUG       | bittensor:loggingmachine.py:437 | OFFLINE: Server for model Salesforce/xLAM-7b-r started
+  1|bitagent | 2024-11-17 23:29:25.470 |      DEBUG       | bittensor:loggingmachine.py:437 | OFFLINE: Getting LLM responses for model Salesforce/xLAM-7b-r
+  1|bitagent | 2024-11-17 23:38:54.257 |      DEBUG       | bittensor:loggingmachine.py:437 | OFFLINE: Got 1000 LLM responses for model: Salesforce/xLAM-7b-r
+  1|bitagent | 2024-11-17 23:38:54.258 |      DEBUG       | bittensor:loggingmachine.py:437 | OFFLINE: Terminating server for model: Salesforce/xLAM-7b-r
+  1|bitagent | 2024-11-17 23:38:54.965 |      DEBUG       | bittensor:loggingmachine.py:437 | OFFLINE: Terminated server for model: Salesforce/xLAM-7b-r
+  1|bitagent | 2024-11-17 23:38:55.030 |      DEBUG       | bittensor:loggingmachine.py:437 | OFFLINE: Processing rewards for model: Salesforce/xLAM-7b-r, for miners: [160]
+  1|bitagent | 2024-11-17 23:38:58.530 |      DEBUG       | bittensor:loggingmachine.py:437 | OFFLINE Scattered rewards: [np.float64(0.16442660138718893)]
+  1|bitagent | 2024-11-17 23:38:58.531 |      DEBUG       | bittensor:loggingmachine.py:437 | Updated moving avg OFFLINE scores for Competition 1-1: [-0.5       -0.5       -0.5       -0.5       -0.5       -0.5
+  1|bitagent | 2024-11-17 23:38:58.533 |      DEBUG       | bittensor:loggingmachine.py:437 | OFFLINE: Deleting model from HF cache: Salesforce/xLAM-7b-r
+  1|bitagent | 2024-11-17 23:39:01.198 |      DEBUG       | bittensor:loggingmachine.py:437 | OFFLINE: Model 'Salesforce/xLAM-7b-r' has been removed from the cache.
+  1|bitagent | 2024-11-17 23:39:01.199 |      DEBUG       | bittensor:loggingmachine.py:437 | OFFLINE: Finished processing offline tasks
+  1|bitagent | 2024-11-17 23:39:02.765 |      DEBUG       | bittensor:loggingmachine.py:437 | OFFLINE: Starting offline mode for competition 1-1
+  1|bitagent | 2024-11-17 23:39:03.147 |      DEBUG       | bittensor:loggingmachine.py:437 | OFFLINE: Starting offline task
+  1|bitagent | 2024-11-17 23:39:03.638 |      DEBUG       | bittensor:loggingmachine.py:437 | OFFLINE: Miner HF model names: [None]
+  1|bitagent | 2024-11-17 23:39:03.638 |      DEBUG       | bittensor:loggingmachine.py:437 | OFFLINE: No unique miner HF model names to evaluate in OFFLINE mode
+  ```
+- If you're seeing all of this output, your validator is working!
 
 #### Validator Hardware Requirements
 
