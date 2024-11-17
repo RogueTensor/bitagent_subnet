@@ -71,7 +71,8 @@ Stats with this validator:
 Your Average Score: {validator.scores[miner_uid]}
 Highest Score across all miners: {validator.scores.max()}
 Median Score across all miners: {np.median(validator.scores)}
-Your Offline Model Score: {validator.offline_scores[miner_uid]}"""
+Your Offline Model Score for Competition {validator.previous_competition_version}: {validator.offline_scores[validator.previous_competition_version][miner_uid]}
+Your Offline Model Score for Competition {validator.competition_version}: {validator.offline_scores[validator.competition_version][miner_uid]}"""
 # TODO need to add BFCL scores when we do them
             # send results
             if task.mode == "online":
@@ -143,7 +144,7 @@ async def write_to_wandb(validator: BaseValidatorNeuron, task: Task, responses: 
                 "val_spec_version": validator.spec_version,
                 "highest_score_for_miners_with_this_validator": validator.scores.max(),
                 "median_score_for_miners_with_this_validator": np.median(validator.scores),
-                "offline_score_for_miner_with_this_validator": validator.offline_scores[miner_uid],
+                "offline_score_for_miner_with_this_validator": validator.offline_scores[validator.competition_version][miner_uid],
                 # TODO add BFCL scores
                 #"correct_answer": correct_answer, # TODO best way to send this without lookup attack?
             }
@@ -181,7 +182,7 @@ async def process_rewards_update_scores_for_many_tasks_and_many_miners(validator
                 scores.append(0.0)
 
     except Exception as e:
-        bt.logging.warning(f"Error logging reward data: {e}")
+        bt.logging.warning(f"OFFLINE: Error logging reward data: {e}")
 
     score = np.mean(scores)
 
@@ -218,7 +219,7 @@ async def process_rewards_update_scores_and_send_feedback(validator: BaseValidat
                 await write_to_wandb(validator, task, responses, miner_uids, rewards, result)
 
     except Exception as e:
-        bt.logging.warning(f"Error logging reward data: {e}")
+        bt.logging.warning(f"ONLINE: Error logging reward data: {e}")
 
     # Update the scores based on the rewards. You may want to define your own update_scores function for custom behavior.
     #miner_uids = temp_miner_uids
