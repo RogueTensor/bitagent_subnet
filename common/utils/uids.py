@@ -6,7 +6,7 @@ from bitagent.protocol import IsAlive
 from cachetools import cached, TTLCache
 
 def check_uid_availability(
-    metagraph: "bt.metagraph.Metagraph", uid: int, vpermit_tao_limit: int
+    metagraph: "bt.metagraph.Metagraph", uid: int, vpermit_tao_limit: int # type: ignore
 ) -> bool:
     """Check if uid is available. The UID should be available if it is serving and has less than vpermit_tao_limit stake
     Args:

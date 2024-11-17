@@ -392,7 +392,7 @@ class BaseValidatorNeuron(BaseNeuron):
         if not alpha:
             alpha: float = self.config.neuron.moving_average_alpha
 
-        self.offline_scores[self.competition_version]: np.ndarray = scattered_rewards
+        self.offline_scores[self.competition_version]: np.ndarray = scattered_rewards # type: ignore
         self.offline_miners_scored[self.competition_version].extend([int(x) for x in uids_array])
         bt.logging.debug(f"Updated moving avg OFFLINE scores for Competition {self.competition_version}: {self.offline_scores[self.competition_version]}")
         self.save_state()
