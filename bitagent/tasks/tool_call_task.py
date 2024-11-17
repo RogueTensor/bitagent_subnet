@@ -40,12 +40,16 @@ class ToolCallTask(Task):
         validator: BaseValidatorNeuron,
         name: str,
         desc: str = "",
+        offline: bool = False,
     ):
         super().__init__(name=name, desc=desc)
         self.validator = validator
         self.timeout = 12.0
         self.name += " - Tool Call"
         self.weight = TASK_WEIGHTS["tool_call"]
+
+        if offline:
+            self.mode = "offline"
 
         while True:
             try:

@@ -86,7 +86,7 @@ def evaluate_task(validator, task:Task, synapse:bt.Synapse) -> Tuple[float, floa
     return task.reward(validator, synapse)
 
 # get random task
-def get_random_task(validator) -> Task:
+def get_random_task(validator, offline=False) -> Task:
     from bitagent.tasks import ToolCallTask
     task_names = list(TASK_FREQUENCY.keys())
     task_frequencies = list(TASK_FREQUENCY.values())
@@ -96,7 +96,7 @@ def get_random_task(validator) -> Task:
         try:
             match choice:
                 case "tool_call":
-                    return ToolCallTask(validator=validator, name="Responds with correct function call")
+                    return ToolCallTask(validator=validator, name="Responds with correct function call", offline=offline)
 
         except Exception as e:
             #bt.logging.warning(f'Error getting task (name {choice}): ', e)
