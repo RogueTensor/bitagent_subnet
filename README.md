@@ -119,7 +119,17 @@ sudo docker run -d -p 8000:8000  --gpus all --ipc host --name mistral-instruct d
 
 This will run the LLM on port 8000. To change the port, change the host port for this parameter up above `-p <host port>:<container port>`.
 
+You'll need to create a virtual env and install the requirements for sglang:
+```bash
+python3 -m venv .venvsglang
+# note to change cu121 in this path according to this page: https://docs.flashinfer.ai/installation.html
+./.venvsglang/bin/pip install flashinfer -i https://flashinfer.ai/whl/cu121/torch2.4/ 
+./.venvsglang/bin/pip install -r requirements.sglang.txt
+```
+
 #### Recommended Startup
+
+Make sure you do the vLLM setup above and the sglang setup above.
 
 ```bash
 # for mainnet with AUTO UPDATES (recommended)
@@ -128,13 +138,7 @@ pm2 start run.sh --name bitagent_validators_autoupdate -- --wallet.path <YOUR PA
 
 #### Alternative Startup
 
-If you don't use the run.sh script, you'll need to create a virtual env and install the requirements for sglang:
-```bash
-python3 -m venv .venvsglang
-# note to change cu121 in this path according to this page: https://docs.flashinfer.ai/installation.html
-./.venvsglang/bin/pip install flashinfer -i https://flashinfer.ai/whl/cu121/torch2.4/ 
-./.venvsglang/bin/pip install -r requirements.sglang.txt
-```
+Make sure you do the vLLM setup above and the sglang setup above.
 
 ```bash
 # for testnet
