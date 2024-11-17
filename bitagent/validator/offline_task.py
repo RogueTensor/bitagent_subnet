@@ -46,7 +46,7 @@ async def offline_task(self):
     bt.logging.debug("OFFLINE: Starting offline task")
     self.running_offline_mode = True
     # get all alive miner UIDs to compare against the top scores from the last round
-    miner_uids = await asyncio.to_thread(get_alive_uids, self)
+    miner_uids = self.miners_left_to_score
 
     # TODO potentially fetch prompt template from miner too
     # Grab all the models that the miners submitted
@@ -61,20 +61,24 @@ async def offline_task(self):
     miner_hf_model_names = [response.hf_model_name for response in responses]
     bt.logging.debug(f"OFFLINE: Miner HF model names: {miner_hf_model_names}")
 
-    hf_model_name_to_miner_uids = {}
-    for i,miner_uid in enumerate(miner_uids):
-        if responses[i].hf_model_name is not None:
-            if responses[i].hf_model_name not in hf_model_name_to_miner_uids:
-                hf_model_name_to_miner_uids[responses[i].hf_model_name] = []
-            hf_model_name_to_miner_uids[responses[i].hf_model_name].append(int(miner_uid))
+    try:
+        hf_model_name_to_miner_uids = {}
+        for i,miner_uid in enumerate(miner_uids):
+            if responses[i].hf_model_name is not None:
+                if responses[i].hf_model_name not in hf_model_name_to_miner_uids:
+                    hf_model_name_to_miner_uids[responses[i].hf_model_name] = []
+                hf_model_name_to_miner_uids[responses[i].hf_model_name].append(int(miner_uid))
 
-    # Group all the models together uniquely and share the same inference server
-    unique_miner_hf_model_names = [m for m in list(set(miner_hf_model_names)) if m not in [None, ""]]
-    if len(unique_miner_hf_model_names) == 0:
-        for miner_uid in hf_model_name_to_miner_uids[responses[i].hf_model_name]:
-            self.offline_scores[self.competition_version][miner_uid] = 0.0
-            self.offline_miners_scored[self.competition_version].append(int(miner_uid))
-        bt.logging.debug(f"OFFLINE: No unique miner HF model names to evaluate in OFFLINE mode")
+        # Group all the models together uniquely and share the same inference server
+        unique_miner_hf_model_names = [m for m in list(set(miner_hf_model_names)) if m not in [None, ""]]
+        if len(unique_miner_hf_model_names) == 0:
+            bt.logging.debug(f"OFFLINE: No unique miner HF model names to evaluate in OFFLINE mode")
+            for miner_uid in miner_uids:
+                self.offline_scores[self.competition_version][miner_uid] = 0.0
+                self.offline_miners_scored[self.competition_version].append(int(miner_uid))
+            return
+    except Exception as e:
+        bt.logging.error(f"OFFLINE: Error getting unique miner HF model names: {e}")
         return
 
     bt.logging.debug(f"OFFLINE: Unique miner HF model names: {unique_miner_hf_model_names}")
