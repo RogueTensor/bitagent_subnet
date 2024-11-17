@@ -22,7 +22,7 @@ import asyncio
 import threading
 import numpy as np
 import bittensor as bt
-from datetime import datetime
+from datetime import datetime, timezone
 from common.utils.uids import get_alive_uids
 from bitagent.validator.constants import DEPLOYED_DATE, COMPETITION_LENGTH_DAYS, COMPETITION_PREFIX, COMPETITION_PREVIOUS_PREFIX
 
@@ -339,11 +339,13 @@ class BaseValidatorNeuron(BaseNeuron):
                     self.scores[uid] = np.median(self.scores)
                     self.offline_scores[self.previous_competition_version][uid] = 0
                     self.offline_scores[self.competition_version][uid] = 0
-                # returns false if validator or uid 0 , will set validators scores to 0
+                    self.offline_miners_scored[self.competition_version].remove(uid)
                 if not check_uid_availability(self.metagraph, uid, self.config.validator.vpermit_tao_limit): 
+                    # if validator, set validators scores to 0
                     self.scores[uid] = 0 
                     self.offline_scores[self.previous_competition_version][uid] = 0
                     self.offline_scores[self.competition_version][uid] = 0
+                    self.offline_miners_scored[self.competition_version].append(uid)
             # Check to see if the metagraph has changed size.
             # If so, we need to add new hotkeys and moving averages.
             if len(self.hotkeys) < len(self.metagraph.hotkeys):
@@ -467,7 +469,7 @@ class BaseValidatorNeuron(BaseNeuron):
         try:
             # get competition details
             competition_start_date = datetime.strptime(DEPLOYED_DATE, "%Y-%m-%d")
-            delta = datetime.now() - competition_start_date 
+            delta = datetime.now(timezone.utc) - competition_start_date  
             number_of_days_since_start = delta.days + (delta.seconds / (24*3600))
             number_of_competitions_since_start = int(number_of_days_since_start / COMPETITION_LENGTH_DAYS)
 
@@ -502,8 +504,8 @@ class BaseValidatorNeuron(BaseNeuron):
                 if uid not in [int(x) for x in self.offline_miners_scored[self.competition_version]]:
                     self.miners_left_to_score.append(int(uid))
             
-            # if number of keys in offline_scores is greater than 2, we need to delete the oldest one
-            if len(self.offline_scores.keys()) > 2:
+            # if number of keys in offline_scores is greater than 5, we need to delete the oldest one
+            if len(self.offline_scores.keys()) > 5:
                 oldest_key = list(self.offline_scores.keys())[0]
                 del self.offline_scores[oldest_key]
                 del self.offline_miners_scored[oldest_key]
