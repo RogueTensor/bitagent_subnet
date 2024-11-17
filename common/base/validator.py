@@ -468,7 +468,7 @@ class BaseValidatorNeuron(BaseNeuron):
     def update_competition_numbers(self):
         try:
             # get competition details
-            competition_start_date = datetime.strptime(DEPLOYED_DATE, "%Y-%m-%d")
+            competition_start_date = datetime.strptime(DEPLOYED_DATE, "%Y-%m-%d").replace(tzinfo=timezone.utc)
             delta = datetime.now(timezone.utc) - competition_start_date  
             number_of_days_since_start = delta.days + (delta.seconds / (24*3600))
             number_of_competitions_since_start = int(number_of_days_since_start / COMPETITION_LENGTH_DAYS)
