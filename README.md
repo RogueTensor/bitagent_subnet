@@ -132,7 +132,7 @@ python3 -m venv .venvsglang
 
 **Test that it's working with:**
 ```
-.venvsglang/bin/python -m sglang.launch_server --model-path Salesforce/xLAM-7b-r --port 8028 --host 0.0.0.0 --mem-fraction-static 0.5
+.venvsglang/bin/python -m sglang.launch_server --model-path Salesforce/xLAM-7b-r --port 8028 --host 0.0.0.0 --mem-fraction-static 0.55
 ```
 
 You should not run out of memory and it should eventually show that the Salesforce model loaded correclty.
@@ -357,6 +357,10 @@ A: We provide two parameters for this:\
 `--neuron.device`\
 Example usage: To use the 2nd CUDA Device, you would add these to your parameters:\
 `--neuron.visible_devices 1 --neuron.device cuda:0`
+
+Q: My validator is running out of GPU memory when loading OFFLINE models via sglang.\
+A: You can use this parameter: `--validator-hf-server-mem-fraction-static` to increase or decrease the amount of the GPU VRAM to use.\
+It defaults to 0.55, just over half of the VRAM.
 
 Q: My vLLM or other inference instance is not served on 8000, how do I change this?\
 A: We provide a parameter `--openai-api-base`\
