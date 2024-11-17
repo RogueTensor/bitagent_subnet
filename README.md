@@ -132,7 +132,7 @@ python3 -m venv .venvsglang
 
 #### Recommended Startup
 
-Make sure you do the vLLM setup above and the sglang setup above.
+Make sure you do the [vLLM setup](#vllm-setup-for-validators) above and the [sglang setup](#sglang-setup-for-validators) above.
 
 ```bash
 # for mainnet with AUTO UPDATES (recommended)
@@ -141,7 +141,7 @@ pm2 start run.sh --name bitagent_validators_autoupdate -- --wallet.path <YOUR PA
 
 #### Alternative Startup
 
-Make sure you do the vLLM setup above and the sglang setup above.
+Make sure you do the [vLLM setup](#vllm-setup-for-validators) above and the [sglang setup](#sglang-setup-for-validators) above.
 
 ```bash
 # for testnet
