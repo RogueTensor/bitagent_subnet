@@ -23,6 +23,7 @@
     - [sglang Setup for Validators](#sglang-setup-for-validators)
     - [Recommended Startup](#recommended-startup)
     - [Alternative Startup](#alternative-startup)
+    - [Verify Validator is Working](#verify-validator-is-working)
     - [Hardware Requirements](#validator-hardware-requirements)
   - [Miner](#miner)
     - [Hardware Requirements](#miner-hardware-requirements)
