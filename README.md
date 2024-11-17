@@ -130,6 +130,13 @@ python3 -m venv .venvsglang
 ./.venvsglang/bin/pip install -r requirements.sglang.txt
 ```
 
+**Test that it's working with:**
+```
+.venvsglang/bin/python -m sglang.launch_server --model-path Salesforce/xLAM-7b-r --port 8028 --host 0.0.0.0 --mem-fraction-static 0.5
+```
+
+You should not run out of memory and it should eventually show that the Salesforce model loaded correclty.
+
 #### Recommended Startup
 
 Make sure you do the [vLLM setup](#vllm-setup-for-validators) above and the [sglang setup](#sglang-setup-for-validators) above.
@@ -354,6 +361,9 @@ Example usage: To use the 2nd CUDA Device, you would add these to your parameter
 Q: My vLLM or other inference instance is not served on 8000, how do I change this?\
 A: We provide a parameter `--openai-api-base`\
 It defaults to this: `http://localhost:8000/v1`, updated as needed by passing the `--openai-api-base` parameter to your start command.\
+
+Q: My vTrust is low and it looks like I'm not setting OFFLINE weights.\
+A: Please test your sglang setup - check [here](#sglang-setup-for-validators).
 
 ---
 
