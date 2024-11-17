@@ -155,6 +155,12 @@ def add_args(cls, parser):
             default=8028, 
             help="the port of the docker container to run the offline HF model check",
         )
+        parser.add_argument(
+            "--validator-hf-server-mem-fraction-static",
+            type=float,
+            default=0.55,
+            help="the fraction of the GPU memory to use for the HF server",
+        )
 
         parser.add_argument(
             "--validator-model-name",

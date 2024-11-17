@@ -133,7 +133,7 @@ async def offline_task(self):
             f"""
             {os.getcwd()}/.venvsglang/bin/python -m sglang.launch_server --model-path {hf_model_name} \
             --port {self.config.validator_hf_server_port} --host 0.0.0.0 \
-            --mem-fraction-static 0.5
+            --mem-fraction-static {self.config.validator_hf_server_mem_fraction_static}
             """
             )
 
