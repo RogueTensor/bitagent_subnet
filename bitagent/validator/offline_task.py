@@ -15,6 +15,9 @@ from bitagent.tasks.task import get_random_task
 from bitagent.protocol import GetHFModelName
 from bitagent.validator.reward import process_rewards_update_scores_for_many_tasks_and_many_miners
 
+# TODO overall for tracking, would be nice to track based on hotkey instead of UID
+# it's currently handled for uid and new hotkeys taking over a uid, but might be cleaner
+
 # Delete the model from the huggingface cache when we're done serving it so we don't run out of disk space
 def delete_model_from_hf_cache(self, model_name: str):
     # Determine the cache directory
@@ -79,13 +82,16 @@ async def offline_task(self):
     if len(unique_miner_hf_model_names) > 0:
         bt.logging.debug(f"OFFLINE: Generating tasks")
         # Generate a set of tasks to run on all the offline models
-        tasks = []
-        generated_tasks = await asyncio.gather(*[asyncio.to_thread(get_random_task, self) for _ in range(1000)])
+        num_tasks = 1000
+        batch_size = 100
+        generated_tasks = []
+        for _ in range(0, num_tasks, batch_size):
+            generated_tasks.append(await asyncio.gather(*[asyncio.to_thread(get_random_task, self) for _ in range(batch_size)]))
         tasks = []
         for task in generated_tasks:
             task.mode = "offline"
             tasks.append(task)
-        bt.logging.debug(f"OFFLINE: Generated {len(tasks)} tasks")
+        bt.logging.debug(f"OFFLINE: Generated {len(tasks)} tasks of {num_tasks} total")
 
     for hf_model_name in unique_miner_hf_model_names:
         bt.logging.debug(f"OFFLINE: Running tasks for model {hf_model_name}")
@@ -125,21 +131,30 @@ async def offline_task(self):
             f"""
             {os.getcwd()}/.venvsglang/bin/python -m sglang.launch_server --model-path {hf_model_name} \
             --port {self.config.validator_hf_server_port} --host 0.0.0.0 \
-            --mem-fraction-static 0.45
+            --mem-fraction-static 0.5
             """
             )
 
             bt.logging.debug(f"OFFLINE: Started server for model {hf_model_name}, waiting for it to start on port {self.config.validator_hf_server_port} (could take several minutes)")
-            await asyncio.to_thread(wait_for_server, f"http://localhost:{self.config.validator_hf_server_port}")
-            bt.logging.debug(f"OFFLINE: Server for model {hf_model_name} started")
+            try:
+                await asyncio.wait_for(
+                    asyncio.to_thread(wait_for_server, f"http://localhost:{self.config.validator_hf_server_port}"), 
+                    timeout=60*10 # wait up to 10 minutes
+                )
+                bt.logging.debug(f"OFFLINE: Server for model {hf_model_name} started")
+            except asyncio.TimeoutError:
+                # likely a validator error
+                bt.logging.error(f"OFFLINE: Timeout waiting for server for model {hf_model_name} to start")
+                # can't score this model, so skipping it for now, the miner will be tried again if this runs again
+                continue
+            except Exception as e:
+                bt.logging.error(f"OFFLINE: Error waiting for server: {e}")
 
         except Exception as e:
+            # likely a validator error
             bt.logging.error(f"OFFLINE: Error starting sglang server for model: {hf_model_name}: {e}")
-            # TODO determine if this is a problem with the model or the server
-            # right now assuming problem with the model, size for example
-            for miner_uid in hf_model_name_to_miner_uids[hf_model_name]:
-                self.offline_scores[self.competition_version][miner_uid] = 0.0
-                self.offline_miners_scored[self.competition_version].append(int(miner_uid))
+            # can't score this model, so skipping it for now, the miner will be tried again if this runs again
+            # could be an issue with model size
             continue
 
         # get LLM responses
