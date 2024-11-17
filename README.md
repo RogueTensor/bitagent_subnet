@@ -130,6 +130,13 @@ python3 -m venv .venvsglang
 ./.venvsglang/bin/pip install -r requirements.sglang.txt
 ```
 
+**Test that it's working with:**
+```
+.venvsglang/bin/python -m sglang.launch_server --model-path Salesforce/xLAM-7b-r --port 8028 --host 0.0.0.0 --mem-fraction-static 0.5
+```
+
+You should not run out of memory and it should eventually show that the Salesforce model loaded correclty.
+
 #### Recommended Startup
 
 Make sure you do the [vLLM setup](#vllm-setup-for-validators) above and the [sglang setup](#sglang-setup-for-validators) above.
