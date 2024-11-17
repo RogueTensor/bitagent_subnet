@@ -23,7 +23,7 @@ import threading
 import traceback
 
 import bittensor as bt
-from bittensor.core.axon import FastAPIThreadedServer
+from bittensor.core.axon import FastAPIThreadedServer # type: ignore
 
 #from collections import Counter
 from common.base.neuron import BaseNeuron
