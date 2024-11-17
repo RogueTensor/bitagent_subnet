@@ -17,7 +17,6 @@
 # DEALINGS IN THE SOFTWARE.
 
 import asyncio
-from datetime import datetime
 import bittensor as bt
 from bitagent.protocol import QueryTask
 from common.utils.uids import get_alive_uids
@@ -41,21 +40,18 @@ async def forward(self, synapse: QueryTask=None) -> QueryTask:
     # ###########################################################
     # OFFLINE TASKING
     # ###########################################################
-    # if we're close to the block check point for offline HF model check, then check all miners
-    # TODO Track competition end date in config
-    if not self.running_offline_mode: # TODO and datetime.now() > datetime.strptime(COMPETITION_END_DATE, "%Y-%m-%d"):
-        bt.logging.debug(f"OFFLINE: Starting offline mode")
-        self.last_offline_run_block = self.block
+    # if all miners have been processed for this competition, then don't run offline mode
+    self.update_competition_numbers()
+    if len(self.miners_left_to_score) == 0:
+        bt.logging.debug(f"OFFLINE: No miners left to score for competition {self.competition_version}")
+    elif not self.running_offline_mode:
+        bt.logging.debug(f"OFFLINE: Starting offline mode for competition {self.competition_version}")
+        bt.logging.debug(f"OFFLINE: Miners left to score: {self.miners_left_to_score}")
         self.running_offline_mode = True
         asyncio.create_task(offline_task(self))
     elif self.running_offline_mode:
-        bt.logging.debug(f"OFFLINE: Already running offline mode")
-    # TODO else:
-    #    bt.logging.debug(f"OFFLINE: Not running offline mode. Block number: {self.block}, block number check interval: {interval}")
-    #    remainder = self.block % interval
-    #    next_block = self.block + interval - remainder
-    #    next_block_hours = (interval - remainder) * 12.0/60.0/60.0 # 12 seconds per block, converted to hours
-    #    bt.logging.debug(f"OFFLINE: Blocks until next offline run is {interval - remainder}: {next_block}; roughly {next_block_hours} hours")
+        bt.logging.debug(f"OFFLINE: Already running offline mode for competition {self.competition_version}")
+        bt.logging.debug(f"OFFLINE: Miners left to score: {self.miners_left_to_score}")
 
     # ###########################################################
     # ONLINE TASKING
