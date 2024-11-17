@@ -30,7 +30,6 @@
     - [Example Task](#example-task)
     - [Miner Feedback](#miner-feedback)
   - [Advanced](#advanced)
-    - [Custom Miner](#custom-miner)
 - [FAQ](#faq)
 - [License](#license)
 
