@@ -98,7 +98,7 @@ def get_random_uids(
             uids = random.sample(available_uids, k)
             return uids
         except Exception as e:
-            bt.logging.debug(f"Reduced sample size from {k} to {k-1} and trying again.")
+            #bt.logging.debug(f"Reduced sample size from {k} to {k-1} and trying again.")
             k -= 1
 
 def get_uid_rank(self, uid: int) -> int:
