@@ -8,7 +8,7 @@
 
 ## Transforming Your World Through Natural Language <!-- omit in toc -->
 
-[Discord](https://discord.gg/bittensor) • [Network](https://taostats.io/) • [Research](https://bittensor.com/whitepaper)
+[BitAgent Discord](https://discord.com/channels/799672011265015819/1194736998250975332) • [GoGoAgent](https://gogoagent.ai/) • [MSP Tech Downstream](https://msptech.ai)
 </div>
 
 ---
