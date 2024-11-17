@@ -16,6 +16,11 @@
 - [Get Running](#get-running)
   - [BitAgent](#bitagent)
   - [Validator](#validator)
+    - [Dependencies](#validator-dependencies)
+    - [Installation](#validator-installation)
+    - [Recommended Startup](#validator-recommended-startup)
+    - [Alternative Startup](#validator-alternative-startup)
+    - [vLLM Setup for Validators](#vllm-setup-for-validators)
     - [Hardware Requirements](#validator-hardware-requirements)
   - [Miner](#miner)
     - [Hardware Requirements](#miner-hardware-requirements)
@@ -101,17 +106,30 @@ Install [PM2](https://pm2.io/docs/runtime/guide/installation/) and the [`jq` pac
    brew update && brew install jq && brew install npm && sudo npm install pm2 -g && pm2 update
    ```
 
-If you want to run the validator without the [script](./scripts/setup_and_run.sh) or are connecting to mainnet:
+#### Recommended Startup
+
 ```bash
-# for testing
+# for mainnet with AUTO UPDATES (recommended)
+pm2 start run.sh --name bitagent_validators_autoupdate -- --wallet.path <YOUR PATH: e.g., ~/.bittensor/wallets> --wallet.name <your-wallet-name> --wallet.hotkey <your-wallet-hot-key> --netuid 20
+```
+
+#### Alternative Startup
+
+If you don't use the run.sh script, you'll need to create a virtual env and install the requirements for sglang:
+```bash
+python3 -m venv .venvsglang
+./.venvsglang/bin/pip install -r requirements.sglang.txt
+```
+
+```bash
+# for testnet
 python3 neurons/validator.py --netuid 76 --subtensor.network test --wallet.path <YOUR PATH: e.g., ~/.bittensor/wallets> --wallet.name <COLDKEY> --wallet.hotkey <HOTKEY>
 
 # for mainnet
 pm2 start neurons/validator.py --interpreter python3 -- --netuid 20 --subtensor.network <LOCAL/FINNEY/TEST> --wallet.path <YOUR PATH: e.g., ~/.bittensor/wallets> --wallet.name <COLDKEY> --wallet.hotkey <HOTKEY> --axon.port <PORT>
-
-# for mainnet with AUTO UPDATES (recommended)
-pm2 start run.sh --name bitagent_validators_autoupdate -- --wallet.path <YOUR PATH: e.g., ~/.bittensor/wallets> --wallet.name <your-wallet-name> --wallet.hotkey <your-wallet-hot-key> --netuid 20
 ```
+
+#### vLLM Setup for Validators
 
 Validators must spin-up their own LLM (specifically mistral 7B).
 Note: Previously we ran the LLM's inside the validator code with the transformer package, however we pivoted away from that due to the inefficiency of running the model using vanilla transformers. Hosting the models using llama.cpp, oobabooga, vllm, TGI, are much better options as they provide additional functionality.  
