@@ -18,9 +18,9 @@
   - [Validator](#validator)
     - [Dependencies](#validator-dependencies)
     - [Installation](#validator-installation)
+    - [vLLM Setup for Validators](#vllm-setup-for-validators)
     - [Recommended Startup](#validator-recommended-startup)
     - [Alternative Startup](#validator-alternative-startup)
-    - [vLLM Setup for Validators](#vllm-setup-for-validators)
     - [Hardware Requirements](#validator-hardware-requirements)
   - [Miner](#miner)
     - [Hardware Requirements](#miner-hardware-requirements)
@@ -106,6 +106,19 @@ Install [PM2](https://pm2.io/docs/runtime/guide/installation/) and the [`jq` pac
    brew update && brew install jq && brew install npm && sudo npm install pm2 -g && pm2 update
    ```
 
+#### vLLM Setup for Validators
+
+Validators must spin-up their own LLM (specifically mistral 7B).
+Note: Previously we ran the LLM's inside the validator code with the transformer package, however we pivoted away from that due to the inefficiency of running the model using vanilla transformers. Hosting the models using llama.cpp, oobabooga, vllm, TGI, are much better options as they provide additional functionality.  
+
+To run with vLLM you can do the following:
+
+```bash
+sudo docker run -d -p 8000:8000  --gpus all --ipc host --name mistral-instruct docker.io/vllm/vllm-openai:latest --model thesven/Mistral-7B-Instruct-v0.3-GPTQ --max-model-len 8912 --quantization gptq --dtype half --gpu-memory-utilization 0.45
+```
+
+This will run the LLM on port 8000. To change the port, change the host port for this parameter up above `-p <host port>:<container port>`.
+
 #### Recommended Startup
 
 ```bash
@@ -130,19 +143,6 @@ python3 neurons/validator.py --netuid 76 --subtensor.network test --wallet.path 
 # for mainnet
 pm2 start neurons/validator.py --interpreter python3 -- --netuid 20 --subtensor.network <LOCAL/FINNEY/TEST> --wallet.path <YOUR PATH: e.g., ~/.bittensor/wallets> --wallet.name <COLDKEY> --wallet.hotkey <HOTKEY> --axon.port <PORT>
 ```
-
-#### vLLM Setup for Validators
-
-Validators must spin-up their own LLM (specifically mistral 7B).
-Note: Previously we ran the LLM's inside the validator code with the transformer package, however we pivoted away from that due to the inefficiency of running the model using vanilla transformers. Hosting the models using llama.cpp, oobabooga, vllm, TGI, are much better options as they provide additional functionality.  
-
-To run with vLLM you can do the following:
-
-```bash
-sudo docker run -d -p 8000:8000  --gpus all --ipc host --name mistral-instruct docker.io/vllm/vllm-openai:latest --model thesven/Mistral-7B-Instruct-v0.3-GPTQ --max-model-len 8912 --quantization gptq --dtype half --gpu-memory-utilization 0.45
-```
-
-This will run the LLM on port 8000. To change the port, change the host port for this parameter up above `-p <host port>:<container port>`.
 
 #### Validator Hardware Requirements
 
