@@ -63,29 +63,37 @@ async def offline_task(self):
         if responses[i].hf_model_name is not None:
             if responses[i].hf_model_name not in hf_model_name_to_miner_uids:
                 hf_model_name_to_miner_uids[responses[i].hf_model_name] = []
-            hf_model_name_to_miner_uids[responses[i].hf_model_name].append(miner_uid)
+            hf_model_name_to_miner_uids[responses[i].hf_model_name].append(int(miner_uid))
 
     # Group all the models together uniquely and share the same inference server
     unique_miner_hf_model_names = [m for m in list(set(miner_hf_model_names)) if m not in [None, ""]]
+    if len(unique_miner_hf_model_names) == 0:
+        for miner_uid in hf_model_name_to_miner_uids[hf_model_name]:
+            self.offline_scores[self.competition_version][miner_uid] = 0.0
+            self.offline_miners_scored[self.competition_version].append(int(miner_uid))
+        bt.logging.debug(f"OFFLINE: No unique miner HF model names to evaluate in OFFLINE mode")
+        return
+
     bt.logging.debug(f"OFFLINE: Unique miner HF model names: {unique_miner_hf_model_names}")
 
     if len(unique_miner_hf_model_names) > 0:
         bt.logging.debug(f"OFFLINE: Generating tasks")
         # Generate a set of tasks to run on all the offline models
         tasks = []
-        for _ in range(1000):
-            task = await asyncio.to_thread(get_random_task, self)
+        generated_tasks = await asyncio.gather(*[asyncio.to_thread(get_random_task, self) for _ in range(1000)])
+        tasks = []
+        for task in generated_tasks:
             task.mode = "offline"
             tasks.append(task)
+        bt.logging.debug(f"OFFLINE: Generated {len(tasks)} tasks")
 
-    bt.logging.debug(f"OFFLINE: Generated {len(tasks)} tasks")
     for hf_model_name in unique_miner_hf_model_names:
         bt.logging.debug(f"OFFLINE: Running tasks for model {hf_model_name}")
         if hf_model_name is None or hf_model_name == "" or hf_model_name.lower() == "none":
             bt.logging.debug(f"OFFLINE: Miner returned empty HF model name ... skipping")
             for miner_uid in hf_model_name_to_miner_uids[hf_model_name]:
-                # TODO also track compeition completion
-                self.offline_scores[miner_uid] = 0.0
+                self.offline_scores[self.competition_version][miner_uid] = 0.0
+                self.offline_miners_scored[self.competition_version].append(int(miner_uid))
             continue # skip this model
 
         # Extract the model card data for the model from HF
@@ -98,16 +106,16 @@ async def offline_task(self):
         if license not in ["apache-2.0", "cc-by-nc-4.0", "mit"]:
             bt.logging.debug(f"OFFLINE: Skipping model {hf_model_name} due to license: {license}")
             for miner_uid in hf_model_name_to_miner_uids[hf_model_name]:
-                # TODO also track compeition completion
-                self.offline_scores[miner_uid] = 0.0
+                self.offline_scores[self.competition_version][miner_uid] = 0.0
+                self.offline_miners_scored[self.competition_version].append(int(miner_uid))
             continue
 
         # confirm model size is less than 10B params (want 8B or less models)
         if total_size > 10000000000:
             bt.logging.debug(f"OFFLINE: Skipping model {hf_model_name} due to size: {total_size}")
             for miner_uid in hf_model_name_to_miner_uids[hf_model_name]:
-                # TODO also track compeition completion
-                self.offline_scores[miner_uid] = 0.0
+                self.offline_scores[self.competition_version][miner_uid] = 0.0
+                self.offline_miners_scored[self.competition_version].append(int(miner_uid))
             continue
 
         bt.logging.debug(f"OFFLINE: Starting server for model {hf_model_name}")
@@ -115,19 +123,23 @@ async def offline_task(self):
             # Start the server for the model
             server_process = await asyncio.to_thread(execute_shell_command,
             f"""
-            python -m sglang.launch_server --model-path {hf_model_name} \
-            --port {self.config.validator_hf_server_port} --host 0.0.0.0
+            {os.getcwd()}/.venvsglang/bin/python -m sglang.launch_server --model-path {hf_model_name} \
+            --port {self.config.validator_hf_server_port} --host 0.0.0.0 \
             --mem-fraction-static 0.45
             """
             )
+
+            bt.logging.debug(f"OFFLINE: Started server for model {hf_model_name}, waiting for it to start on port {self.config.validator_hf_server_port} (could take several minutes)")
             await asyncio.to_thread(wait_for_server, f"http://localhost:{self.config.validator_hf_server_port}")
+            bt.logging.debug(f"OFFLINE: Server for model {hf_model_name} started")
+
         except Exception as e:
             bt.logging.error(f"OFFLINE: Error starting sglang server for model: {hf_model_name}: {e}")
             # TODO determine if this is a problem with the model or the server
             # right now assuming problem with the model, size for example
             for miner_uid in hf_model_name_to_miner_uids[hf_model_name]:
-                # TODO also track compeition completion
-                self.offline_scores[miner_uid] = 0.0
+                self.offline_scores[self.competition_version][miner_uid] = 0.0
+                self.offline_miners_scored[self.competition_version].append(int(miner_uid))
             continue
 
         # get LLM responses
@@ -153,16 +165,13 @@ async def offline_task(self):
             response.dendrite.status_code = 200 
             response.axon.status_code = 200
             response.hf_run_model_name = hf_model_name
-            # TODO Track competition end date in wandb
-            response.competition_id = self.config.competition_id
-            response.competition_date = self.config.competition_date
+            response.competition_version = self.competition_version
             responses.append(response)
 
-        # TODO also track compeition completion
         # evaluate, track score and add to wandb
         # TODO need to see if this SCORE is higher than the all-time top score
-        # if so, update the all-time top score and model name and reward TOP miners
-        # if not, then temporal decay of scores
+        # TODO if so, update the all-time top score and model name and reward TOP miners
+        # TODO if not, then temporal decay of scores
         bt.logging.debug(f"OFFLINE: Processing rewards for model: {hf_model_name}, for miners: {these_miner_uids}")
         await process_rewards_update_scores_for_many_tasks_and_many_miners(self, tasks=tasks, responses=responses, miner_uids=these_miner_uids)
     
