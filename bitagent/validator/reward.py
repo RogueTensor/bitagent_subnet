@@ -150,17 +150,17 @@ async def write_to_wandb(validator: BaseValidatorNeuron, task: Task, responses: 
             }
 
             try:
-                if task.mode == "offline":
-                    bt.logging.debug(f"OFFLINE Logging to WandB")
-                else:
-                    bt.logging.debug(f"ONLINE Logging to WandB")
+                #if task.mode == "offline":
+                #    bt.logging.debug(f"OFFLINE Logging to WandB")
+                #else:
+                #    bt.logging.debug(f"ONLINE Logging to WandB")
                 validator.log_event(data)
-                if task.mode == "offline":
-                    bt.logging.debug(f"OFFLINE Logged to WandB")
-                else:
-                    bt.logging.debug(f"ONLINE Logged to WandB")
+                #if task.mode == "offline":
+                #    bt.logging.debug(f"OFFLINE Logged to WandB")
+                #else:
+                #    bt.logging.debug(f"ONLINE Logged to WandB")
             except Exception as e:
-                bt.logging.debug("WandB failed to log, moving on ... exception: ", e)
+                bt.logging.warning("WandB failed to log, moving on ... exception: {}".format(e))
 
         except Exception as e:
             bt.logging.warning("Exception in logging to WandB: {}".format(e))
