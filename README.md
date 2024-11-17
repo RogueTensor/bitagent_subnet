@@ -362,7 +362,7 @@ Q: My vLLM or other inference instance is not served on 8000, how do I change th
 A: We provide a parameter `--openai-api-base`\
 It defaults to this: `http://localhost:8000/v1`, updated as needed by passing the `--openai-api-base` parameter to your start command.\
 
-Q: My vTrust is low and it looks like I'm not setting OFFLINE weights.
+Q: My vTrust is low and it looks like I'm not setting OFFLINE weights.\
 A: Please test your sglang setup - check [here](#sglang-setup-for-validators).
 
 ---
