@@ -84,13 +84,11 @@ async def offline_task(self):
         # Generate a set of tasks to run on all the offline models
         num_tasks = 1000
         batch_size = 100
-        generated_tasks = []
-        for _ in range(0, num_tasks, batch_size):
-            generated_tasks.append(await asyncio.gather(*[asyncio.to_thread(get_random_task, self) for _ in range(batch_size)]))
         tasks = []
-        for task in generated_tasks:
-            task.mode = "offline"
-            tasks.append(task)
+        for i,_ in enumerate(range(0, num_tasks, batch_size)):
+            #bt.logging.debug(f"OFFLINE: Generating tasks batch {i} of {num_tasks // batch_size}")
+            tasks.extend(await asyncio.gather(*[asyncio.to_thread(get_random_task, self, offline=True) for _ in range(batch_size)]))
+            #bt.logging.debug(f"OFFLINE: Generated tasks batch {i} of {num_tasks // batch_size}")
         bt.logging.debug(f"OFFLINE: Generated {len(tasks)} tasks of {num_tasks} total")
 
     for hf_model_name in unique_miner_hf_model_names:
