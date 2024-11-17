@@ -22,6 +22,9 @@ import asyncio
 import threading
 import numpy as np
 import bittensor as bt
+from datetime import datetime
+from common.utils.uids import get_alive_uids
+from bitagent.validator.constants import DEPLOYED_DATE, COMPETITION_LENGTH_DAYS, COMPETITION_PREFIX, COMPETITION_PREVIOUS_PREFIX
 
 from common.utils.weight_utils import (
     process_weights_for_netuid,
@@ -54,13 +57,13 @@ class BaseValidatorNeuron(BaseNeuron):
         # Set up initial scoring weights for validation
         bt.logging.info("Building validation weights.")
         self.scores = np.zeros(self.metagraph.n, dtype=np.float32)
-        self.all_scores = [[]]*len(self.metagraph.uids)
-        self.offline_scores = np.zeros(self.metagraph.n, dtype=np.float32)
-        self.offline_model_names = [""]*len(self.metagraph.uids)
+        self.offline_scores = {}
+        self.offline_miners_scored = {}
         self.running_offline_mode = False
+        self.update_competition_numbers()
         # Init sync with the network. Updates the metagraph.
         
-        if os.path.exists(self.config.neuron.full_path + "/state.npz"):
+        if os.path.exists(self.config.neuron.full_path + "/ft_state.npz"):
             # if we are booting up and have this file, then we'll want to load it
             # otherwise, if we save state, it will overwrite from the sync
             self.sync(save_state=False)
@@ -306,7 +309,8 @@ class BaseValidatorNeuron(BaseNeuron):
             bt.logging.error(f"set_weights failed: {msg}")
 
     def get_weighted_scores(self):
-        scaled_scores = (self.scores+self.offline_scores) * 5
+        # scores are based on PREVIOUS competition scores
+        scaled_scores = (self.scores+self.offline_scores[self.previous_competition_version]) * 5
         exp_scores = np.exp(scaled_scores)
         return exp_scores / np.sum(exp_scores)
 
@@ -333,11 +337,13 @@ class BaseValidatorNeuron(BaseNeuron):
             for uid, hotkey in enumerate(self.hotkeys):
                 if hotkey != self.metagraph.hotkeys[uid]:
                     self.scores[uid] = np.median(self.scores)
+                    self.offline_scores[self.previous_competition_version][uid] = 0
+                    self.offline_scores[self.competition_version][uid] = 0
                 # returns false if validator or uid 0 , will set validators scores to 0
                 if not check_uid_availability(self.metagraph, uid, self.config.validator.vpermit_tao_limit): 
                     self.scores[uid] = 0 
-                    self.offline_scores[uid] = 0
-                    self.offline_model_names[uid] = ''
+                    self.offline_scores[self.previous_competition_version][uid] = 0
+                    self.offline_scores[self.competition_version][uid] = 0
             # Check to see if the metagraph has changed size.
             # If so, we need to add new hotkeys and moving averages.
             if len(self.hotkeys) < len(self.metagraph.hotkeys):
@@ -347,8 +353,17 @@ class BaseValidatorNeuron(BaseNeuron):
                 new_moving_average[:min_len] = self.scores[:min_len]
                 self.scores = new_moving_average
 
-                new_moving_average[:min_len] = self.offline_scores[:min_len]
-                self.offline_scores = new_moving_average
+                # previous offline scores
+                new_moving_average = np.zeros((self.metagraph.n))
+                min_len = min(len(self.hotkeys), len(self.offline_scores[self.previous_competition_version]))
+                new_moving_average[:min_len] = self.offline_scores[self.previous_competition_version][:min_len]
+                self.offline_scores[self.previous_competition_version] = new_moving_average
+
+                # current offline scores
+                new_moving_average = np.zeros((self.metagraph.n))
+                min_len = min(len(self.hotkeys), len(self.offline_scores[self.competition_version]))
+                new_moving_average[:min_len] = self.offline_scores[self.competition_version][:min_len]
+                self.offline_scores[self.competition_version] = new_moving_average
 
             # Update the hotkeys.
             self.hotkeys = copy.deepcopy(self.metagraph.hotkeys)
@@ -367,7 +382,7 @@ class BaseValidatorNeuron(BaseNeuron):
         else:
             uids_array = np.array(uids)
 
-        scattered_rewards: np.ndarray = self.offline_scores.copy()
+        scattered_rewards: np.ndarray = self.offline_scores[self.competition_version].copy()
         scattered_rewards[uids_array] = rewards
 
         bt.logging.debug(f"OFFLINE Scattered rewards: {rewards}")
@@ -377,8 +392,10 @@ class BaseValidatorNeuron(BaseNeuron):
         if not alpha:
             alpha: float = self.config.neuron.moving_average_alpha
 
-        self.offline_scores: np.ndarray = alpha * scattered_rewards + ( 1 - alpha) * self.offline_scores
-        bt.logging.debug(f"Updated moving avg OFFLINE scores: {self.offline_scores}")
+        self.offline_scores[self.competition_version]: np.ndarray = scattered_rewards
+        self.offline_miners_scored[self.competition_version].extend([int(x) for x in uids_array])
+        bt.logging.debug(f"Updated moving avg OFFLINE scores for Competition {self.competition_version}: {self.offline_scores[self.competition_version]}")
+        self.save_state()
 
     def update_scores(self, rewards: np.ndarray, uids: List[int], alpha=None):
         """Performs exponential moving average on the scores based on the rewards received from the miners."""
@@ -406,32 +423,84 @@ class BaseValidatorNeuron(BaseNeuron):
     
     def save_state(self):
         """Saves the state of the validator to a file."""
-        bt.logging.debug(f"Saving validator state - {self.config.neuron.full_path}/state.npz.")
+        bt.logging.debug(f"Saving validator state - {self.config.neuron.full_path}/ft_state.npz.")
 
         # Save the state of the validator to file.
-        np.savez(
-            self.config.neuron.full_path + "/state.npz",
-            step=self.step,
-            scores=self.scores,
-            all_scores=self.all_scores,
-            offline_scores=self.offline_scores,
-            offline_model_names=self.offline_model_names,
-        )
+        try:
+            np.savez(
+                self.config.neuron.full_path + "/ft_state.npz",
+                step=self.step,
+                scores=self.scores,
+                offline_scores=self.offline_scores,
+                offline_miners_scored=np.array(list(self.offline_miners_scored.items()), dtype=object),
+                allow_pickle=True,
+            )
+        except Exception as e:
+            bt.logging.error(f"OFFLINE: Error saving validator state: {e}")
         
     def load_state(self):
         """Loads the state of the validator from a file."""
         bt.logging.info("Loading validator state.")
-        state = np.load(self.config.neuron.full_path + "/state.npz")
+        state = np.load(self.config.neuron.full_path + "/ft_state.npz",allow_pickle=True)
+        bt.logging.debug(f"OFFLINE: LOADING STATE: {state}")
+
         self.step = state["step"]
         if 'scores' in state:
             loaded_scores = state["scores"]
             self.scores[:len(loaded_scores)] = loaded_scores
         if 'offline_scores' in state:
             loaded_offline_scores = state["offline_scores"]
-            self.offline_scores[:len(loaded_offline_scores)] = loaded_offline_scores
-        if 'offline_model_names' in state:
-            loaded_offline_model_names = state["offline_model_names"]
-            self.offline_model_names[:len(loaded_offline_model_names)] = loaded_offline_model_names
-        if 'all_scores' in state:
-            loaded_all_scores = state["all_scores"]
-            self.all_scores[:len(loaded_all_scores)] = loaded_all_scores
+            if isinstance(loaded_offline_scores, dict):
+                self.offline_scores = loaded_offline_scores
+            #else:
+            #    self.offline_scores = {}
+            #    self.offline_scores[self.previous_competition_version] = loaded_offline_scores
+            #    self.offline_scores[self.competition_version] = np.zeros(self.metagraph.n, dtype=np.float32)
+            for uid in self.metagraph.uids:
+                if uid not in self.offline_scores[self.previous_competition_version]:
+                    self.offline_scores[self.previous_competition_version][uid] = 0
+        if 'offline_miners_scored' in state:
+            loaded_offline_miners_scored = state["offline_miners_scored"]
+            self.offline_miners_scored = dict(loaded_offline_miners_scored)
+
+    def update_competition_numbers(self):
+        # get competition details
+        competition_start_date = datetime.strptime(DEPLOYED_DATE, "%Y-%m-%d")
+        delta = datetime.now() - competition_start_date 
+        number_of_days_since_start = delta.days + (delta.seconds / (24*3600))
+        number_of_competitions_since_start = int(number_of_days_since_start / COMPETITION_LENGTH_DAYS)
+
+        bt.logging.debug(f"number_of_competitions_since_start: {number_of_competitions_since_start}")
+
+        if number_of_competitions_since_start < 1:
+            # we have not completed any competitions with this prefix, so the previous competition number is the last one we completed with the old prefix
+            largest_previous_competition_number = 0
+            # search through all the previous competition numbers to find the largest (most recent) one
+            for k,_ in self.offline_scores.items():
+                if k.startswith(f"{COMPETITION_PREVIOUS_PREFIX}-"):
+                    if int(k.split("-")[1]) > largest_previous_competition_number:
+                        largest_previous_competition_number = int(k.split("-")[1])
+            self.previous_competition_version = f"{COMPETITION_PREVIOUS_PREFIX}-{largest_previous_competition_number}"
+        else:
+            # we have completed at least one competition with this prefix, so the previous competition number is the last one we completed
+            self.previous_competition_version = f"{COMPETITION_PREFIX}-{int(number_of_competitions_since_start-1)}"
+
+        if self.offline_scores.get(self.previous_competition_version) is None:
+            self.offline_scores[self.previous_competition_version] = np.zeros(self.metagraph.n, dtype=np.float32)
+
+        try:
+            self.competition_version = f"{COMPETITION_PREFIX}-{int(number_of_competitions_since_start)}"
+
+            if self.offline_scores.get(self.competition_version) is None:
+                self.offline_scores[self.competition_version] = np.zeros(self.metagraph.n, dtype=np.float32)
+
+            if self.offline_miners_scored.get(self.competition_version) is None:
+                self.offline_miners_scored[self.competition_version] = []
+
+            self.miners_left_to_score = []
+            for uid in get_alive_uids(self):
+                if uid not in [int(x) for x in self.offline_miners_scored[self.competition_version]]:
+                    self.miners_left_to_score.append(int(uid))
+
+        except Exception as e:
+            bt.logging.error(f"Error updating competition numbers: {e}")
