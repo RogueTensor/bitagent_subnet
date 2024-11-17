@@ -10,6 +10,10 @@ version="__version__"
 
 old_args=$@
 
+# Define the virtual environment directory
+SGLVENV_DIR=".venvsglang"
+SGLVENV_PIP="$SGLVENV_DIR/bin/pip"
+
 # Check if pm2 is installed
 if ! command -v pm2 &> /dev/null
 then
@@ -261,7 +265,42 @@ if [ "$?" -eq 1 ]; then
 
                         # Install latest changes just in case.
                         pip install -e .
-                        pip uninstall -y uvloop
+
+                        # Check if the virtual environment already exists
+                        if [ ! -d "$SGLVENV_DIR" ]; then
+                            echo "Creating virtual environment: $SGLVENV_DIR"
+                            python3 -m venv "$SGLVENV_DIR"
+
+                            # Check if virtual environment creation was successful
+                            if [ $? -ne 0 ]; then
+                                echo "Failed to create virtual environment. Exiting."
+                                exit 1
+                            fi
+
+                            echo "Virtual environment created successfully."
+                        else
+                            echo "Virtual environment $VENV_DIR already exists. Skipping creation."
+                        fi
+
+                        # Ensure pip is up-to-date in the virtual environment
+                        echo "Upgrading pip in $VENV_DIR"
+                        $VENV_PIP install --upgrade pip
+
+                        # Install requirements if requirements.sglang.txt exists
+                        if [ -f "requirements.sglang.txt" ]; then
+                            echo "Installing requirements from requirements.sglang.txt"
+                            $VENV_PIP install flashinfer -i https://flashinfer.ai/whl/cu121/torch2.4/
+                            $VENV_PIP install -r requirements.sglang.txt
+
+                            # Check if installation was successful
+                            if [ $? -ne 0 ]; then
+                                echo "Failed to install requirements. Exiting."
+                                exit 1
+                            fi
+                        else
+                            echo "requirements.sglang.txt file not found. Skipping requirements installation."
+                        fi
+
                         # # Run the Python script with the arguments using pm2
                         echo "Restarting PM2 process"
                         pm2 restart $proc_name
