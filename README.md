@@ -20,6 +20,7 @@
     - [Dependencies](#dependencies)
     - [Installation](#installation)
     - [vLLM Setup for Validators](#vllm-setup-for-validators)
+    - [sglang Setup for Validators](#sglang-setup-for-validators)
     - [Recommended Startup](#recommended-startup)
     - [Alternative Startup](#alternative-startup)
     - [Hardware Requirements](#validator-hardware-requirements)
@@ -118,6 +119,8 @@ sudo docker run -d -p 8000:8000  --gpus all --ipc host --name mistral-instruct d
 ```
 
 This will run the LLM on port 8000. To change the port, change the host port for this parameter up above `-p <host port>:<container port>`.
+
+#### sglang Setup for Validators
 
 You'll need to create a virtual env and install the requirements for sglang:
 ```bash
