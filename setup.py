@@ -64,7 +64,7 @@ with codecs.open(
 setup(
     name="bitagent",
     version=version_string,
-    description="BitAgent Subnet - Tasking and Q&A with Your Data and Your World",
+    description="BitAgent Subnet - AI Agency for Your World",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/RogueTensor/bitagent_subnet",
