@@ -402,17 +402,17 @@ A: There are a few things to check:
 - Is your model name properly set in the Hugging Face?
 
 Q: I'm getting a wallet path error, like: `KeyFileError: Keyfile at: ${HOME}/~/.bittensor/wallets/...`\
-A: There is a bug in 8.2.0 that is setting the wallet path incorrectly, so you may need to fix this by adding this parameter to your start command:\
-`--wallet.path ~/.bittensor/wallets`
+A: There is a bug in 8.2.0 that is setting the wallet path incorrectly, so you may need to fix this by adding this parameter to your start command: \
+  `--wallet.path ~/.bittensor/wallets`
 
 Q: I have a complicated CUDA Device setup and need to use a specific GPU device as a validator running the FINETUNED models:\
-A: We provide two parameters for this:\
-`--neuron.visible_devices`\
-`--neuron.device`\
-Example usage: To use the 2nd CUDA Device, you would add these to your parameters:\
-`--neuron.visible_devices 1 --neuron.device cuda:0`
+A: We provide two parameters for this: \
+  `--neuron.visible_devices`\
+  `--neuron.device`\
+Example usage: To use the 2nd CUDA Device, you would add these to your parameters: \
+  `--neuron.visible_devices 1 --neuron.device cuda:0`
 
-Q: My validator is running out of GPU memory when loading OFFLINE models via sglang.\
+Q: My validator is running out of GPU memory when loading OFFLINE models via sglang. \
 A: You can use this parameter: `--validator-hf-server-mem-fraction-static` to increase or decrease the amount of the GPU VRAM to use.\
 It defaults to 0.55, just over half of the VRAM.
 
