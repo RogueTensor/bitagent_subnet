@@ -372,19 +372,19 @@ This will skip everything and just launch the already registered and funded vali
 ---
 
 ## FAQ
-Q: How much GPU (VRAM) and RAM do I need to run a validator and/or miner?\
+**Q: How much GPU (VRAM) and RAM do I need to run a validator and/or miner?** \
 A: Validators need a GPU and require a minimum of 48 GBs of VRAM with performant CPU.  Miners are left to their own setup, but should be aware that the more capable tool calling LLMs require a decent amount of VRAM (common configurations: a 3090 (with 24GB VRAM) is capable enough for the smaller (~8B params) models we require).
 
-Q: Are there any required subscriptions or paid APIs?\
+**Q: Are there any required subscriptions or paid APIs?** \
 A: No - no subs, no external companies, in fact we'd rather the community build amazing AI capabilities than relying on corporations.
 
-Q: What LLM should I use?\
+**Q: What LLM should I use?** \
 A: This is where the miner needs to experiment some and test and fine-tune different LLM models to find what accomplishes the tasks most successfully.  Have a look at models in the Salesforce xLAM family as good starting points.
 
-Q: Validators are running miner-submitted HF models, will validators require `trust_remote_code`?\
+**Q: Validators are running miner-submitted HF models, will validators require `trust_remote_code`?** \
 A: No, we require that no setup scripts or any code be necessary for running the models.
 
-Q: I started my miner and I am not receiving any tasks.\
+**Q: I started my miner and I am not receiving any tasks.** \
 A: There are a few things to check:
 - Is your axon port, as reported on the metagraph correct (you can check taostats or metagraph)?
 - Is your axon port open and reachable from a system in the real world (like where the validators are)?
@@ -392,44 +392,44 @@ A: There are a few things to check:
 - Make sure your IsAlive() forward is returning True and wait an hour for that to update in the validator's cache.
 - Make sure there isn't a stale process that is preventing your new miner process from starting up on the intended port.
 
-Q: What about model copying?\
+**Q: What about model copying?** \
 A: https://discord.com/channels/799672011265015819/1194736998250975332/1302870011362279514
 
-Q: My model is not being evaluated OFFLINE for FINETUNED SUBMISSION and is receiving a score of 0.\
+**Q: My model is not being evaluated OFFLINE for FINETUNED SUBMISSION and is receiving a score of 0.** \
 A: There are a few things to check:
 - Is your model licensed under the apache-2.0 license?
 - Is your model size less than 10B parameters? We are looking for 8B params or less models.
 - Is your model name properly set in the Hugging Face?
 
-Q: I'm getting a wallet path error, like: `KeyFileError: Keyfile at: ${HOME}/~/.bittensor/wallets/...`\
+**Q: I'm getting a wallet path error, like: `KeyFileError: Keyfile at: ${HOME}/~/.bittensor/wallets/...`** \
 A: There is a bug in 8.2.0 that is setting the wallet path incorrectly, so you may need to fix this by adding this parameter to your start command: \
   `--wallet.path ~/.bittensor/wallets`
 
-Q: I have a complicated CUDA Device setup and need to use a specific GPU device as a validator running the FINETUNED models:\
+**Q: I have a complicated CUDA Device setup and need to use a specific GPU device as a validator running the FINETUNED models:** \
 A: We provide two parameters for this: \
   `--neuron.visible_devices`\
   `--neuron.device`\
 Example usage: To use the 2nd CUDA Device, you would add these to your parameters: \
   `--neuron.visible_devices 1 --neuron.device cuda:0`
 
-Q: My validator is running out of GPU memory when loading OFFLINE models via sglang. \
+**Q: My validator is running out of GPU memory when loading OFFLINE models via sglang.** \
 A: You can use this parameter: `--validator-hf-server-mem-fraction-static` to increase or decrease the amount of the GPU VRAM to use.\
 It defaults to 0.55, just over half of the VRAM.
 
-Q: My vLLM or other inference instance is not served on 8000, how do I change this?\
+**Q: My vLLM or other inference instance is not served on 8000, how do I change this?**\
 A: We provide a parameter `--openai-api-base`\
 It defaults to this: `http://localhost:8000/v1`, updated as needed by passing the `--openai-api-base` parameter to your start command.
 
-Q: My vTrust is low and it looks like I'm not setting OFFLINE weights.\
+**Q: My vTrust is low and it looks like I'm not setting OFFLINE weights.**\
 A: Please test your sglang setup - check [here](#sglang-setup-for-validators).
 
-Q: I'm validating and seeing errors like:
+**Q: I'm validating and seeing errors like:**
 - TimeoutError
 - ClientConnectorError \
 
 A: These are responses likely during the IsAlive() query, they are just letting you know that the miner is not responding or connecting in time.
 
-Q: My validator is hanging, just printing out "Validator running ..."\
+**Q: My validator is hanging, just printing out "Validator running ..."**\
 A: There are a few things to check:\
 - Make sure your vLLM is running with the required LLM from [vLLM Setup](#vllm-setup-for-validators)
 - You may not see much unless you turn on some logging, you can add this to your params to see more details:\
