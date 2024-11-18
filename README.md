@@ -428,6 +428,16 @@ Q: I'm validating and seeing errors like:\
 - ClientConnectorError\
 A: These are responses likely during the IsAlive() query, they are just letting you know that the miner is not responding or connecting in time.
 
+Q: My validator is hanging, just printing out "Validator running ..."\
+A: There are a few things to check:\
+- Make sure your vLLM is running with the required LLM from [vLLM Setup](#vllm-setup-for-validators)\
+- You may not see much unless you turn on some logging, you can add this to your params to see more details:\
+  `--log_level trace --logging.trace --logging.debug`
+- Check your storage, make sure you didn't run out:\
+  `df -h`
+- If all else fails, [reach out](https://discord.com/channels/799672011265015819/1194736998250975332)
+
+
 ---
 
 ## License
