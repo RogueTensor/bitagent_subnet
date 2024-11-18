@@ -12,8 +12,8 @@ async-timeout==5.0.1
 attrs==24.2.0
 backoff==2.2.1
 base58==2.1.1
--e git+ssh://git@github.com/RogueTensor/bitagent_subnet.git@8a91ebdeb93d7d8038139ee1045ab4afc4598fab#egg=bitagent
-bittensor==8.2.0
+-e git+ssh://git@github.com/RogueTensor/bitagent_subnet.git@b8838a1977f56af9cb153379e63e535edf341817#egg=bitagent
+bittensor==8.3.1
 bittensor-cli==8.3.1
 bittensor-wallet==2.1.0
 bt-decode==0.2.0a0
@@ -23,11 +23,14 @@ cffi==1.17.1
 charset-normalizer==3.4.0
 click==8.1.7
 colorama==0.4.6
+comm==0.2.2
 cryptography==43.0.3
 cytoolz==1.0.0
 datasets==3.1.0
+debugpy==1.8.8
 decorator==5.1.1
 dill==0.3.8
+distlib==0.3.9
 distro==1.9.0
 docker-pycreds==0.4.0
 ecdsa==0.19.0
@@ -50,6 +53,7 @@ httpx==0.27.2
 huggingface-hub==0.26.2
 idna==3.10
 iniconfig==2.0.0
+ipykernel==6.29.5
 ipython==8.29.0
 jedi==0.19.2
 Jinja2==3.1.4
@@ -57,6 +61,8 @@ jiter==0.7.1
 joblib==1.4.2
 jsonpatch==1.33
 jsonpointer==3.0.0
+jupyter_client==8.6.3
+jupyter_core==5.7.2
 langchain-core==0.3.19
 langchain-openai==0.2.5
 langsmith==0.1.143
@@ -155,6 +161,7 @@ toml==0.10.0
 tomli==2.1.0
 toolz==1.0.0
 torch==2.5.1
+tornado==6.4.1
 tqdm==4.67.0
 traitlets==5.14.3
 transformers==4.46.2
