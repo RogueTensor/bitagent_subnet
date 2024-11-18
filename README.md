@@ -430,7 +430,7 @@ A: These are responses likely during the IsAlive() query, they are just letting 
 
 Q: My validator is hanging, just printing out "Validator running ..."\
 A: There are a few things to check:\
-- Make sure your vLLM is running with the required LLM from [vLLM Setup](#vllm-setup-for-validators)\
+- Make sure your vLLM is running with the required LLM from [vLLM Setup](#vllm-setup-for-validators)
 - You may not see much unless you turn on some logging, you can add this to your params to see more details:\
   `--log_level trace --logging.trace --logging.debug`
 - Check your storage, make sure you didn't run out:\
