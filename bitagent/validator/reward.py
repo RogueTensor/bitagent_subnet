@@ -206,17 +206,17 @@ async def process_rewards_update_scores_and_send_feedback(validator: BaseValidat
         # track which miner uids are scored for updating the scores
         #temp_miner_uids = [miner_uids[i] for i, reward in enumerate(rewards) if len(reward[0]) == 4 and reward[0][0] is not None and reward[0][1] is not None]
         scores = []
+        results = []
         for i, reward in enumerate(rewards):
             if len(reward[0]) == 4 and reward[0][0] is not None and reward[0][1] is not None:
                 scores.append(reward[0][0]/reward[0][1])
-                result = await return_results(validator, task, miner_uids[i], reward[0], responses[i])
+                results.append(await return_results(validator, task, miner_uids[i], reward[0], responses[i]))
             else:
                 # bad reward, so 0 score
                 scores.append(0.0)
-                result = None
+                results.append(None)
 
-            if result is not None:
-                await write_to_wandb(validator, task, responses, miner_uids, rewards, result)
+        await write_to_wandb(validator, task, responses, miner_uids, rewards, results)
 
     except Exception as e:
         bt.logging.warning(f"ONLINE: Error logging reward data: {e}")
