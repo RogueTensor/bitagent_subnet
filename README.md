@@ -418,14 +418,15 @@ It defaults to 0.55, just over half of the VRAM.
 
 Q: My vLLM or other inference instance is not served on 8000, how do I change this?\
 A: We provide a parameter `--openai-api-base`\
-It defaults to this: `http://localhost:8000/v1`, updated as needed by passing the `--openai-api-base` parameter to your start command.\
+It defaults to this: `http://localhost:8000/v1`, updated as needed by passing the `--openai-api-base` parameter to your start command.
 
 Q: My vTrust is low and it looks like I'm not setting OFFLINE weights.\
 A: Please test your sglang setup - check [here](#sglang-setup-for-validators).
 
-Q: I'm validating and seeing errors like:\
-- TimeoutError\
-- ClientConnectorError\
+Q: I'm validating and seeing errors like:
+- TimeoutError
+- ClientConnectorError \
+
 A: These are responses likely during the IsAlive() query, they are just letting you know that the miner is not responding or connecting in time.
 
 Q: My validator is hanging, just printing out "Validator running ..."\
