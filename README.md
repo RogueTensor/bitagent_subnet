@@ -119,7 +119,7 @@ To run with vLLM you can do the following:
 sudo docker run -d -p 8000:8000  --gpus all --ipc host --name mistral-instruct docker.io/vllm/vllm-openai:latest --model thesven/Mistral-7B-Instruct-v0.3-GPTQ --max-model-len 8912 --quantization gptq --dtype half --gpu-memory-utilization 0.45
 ```
 
-This will run the LLM on port 8000. To change the port, change the host port for this parameter up above `-p <host port>:<container port>`.
+This will run the LLM on port 8000. To change the port, change the host port for this parameter up above `-p <host port>:<container port>`. And use `--openai-api-base http://localhost:<new_port>/v1` in your params to point to the vLLM model for SN20.
 
 #### sglang Setup for Validators
 
