@@ -22,7 +22,6 @@ exceptiongroup==1.2.2
 executing==2.1.0
 fastapi==0.115.5
 filelock==3.16.1
-flashinfer==0.1.6+cu121torch2.4
 frozenlist==1.5.0
 fsspec==2024.9.0
 gguf==0.10.0
