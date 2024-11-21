@@ -50,8 +50,8 @@ class ToolCallTask(Task):
 
         if offline:
             self.mode = "offline"
-
-        while True:
+        messages = None
+        for _ in range(100):
             try:
                 messages, tools, data = self.generate_task_data()
                 expected_messages = messages_to_list(data.messages)
@@ -83,7 +83,8 @@ class ToolCallTask(Task):
                 #else:
                 #    bt.logging.debug(f'Exception getting new task - {e}')
                 pass
-
+        if not messages:
+            raise Exception("Failed to generate task data 100 times")
         self.messages = messages
         self.synapse = QueryTask(messages=messages, tools=tools)
     
