@@ -59,16 +59,16 @@ async def forward(self, synapse: QueryTask=None) -> QueryTask:
     # ONLINE TASKING
     # ###########################################################
     try:
-        #bt.logging.debug(f"ONLINE: Starting online run")
+        bt.logging.debug(f"ONLINE: Starting online run")
         # check a random sample of miners in online mode
-        #bt.logging.debug(f"ONLINE: Getting random miner uids")
+        bt.logging.debug(f"ONLINE: Getting random miner uids")
         miner_uids = get_random_uids(self, min(self.config.neuron.sample_size, self.metagraph.n.item()))
-        #bt.logging.debug(f"ONLINE: Getting random task")
+        bt.logging.debug(f"ONLINE: Getting random task")
         task = get_random_task(self)
         task.mode = "online"
 
         # send the task to the miners
-        #bt.logging.debug(f"ONLINE: Sending task to miners")
+        bt.logging.debug(f"ONLINE: Sending task to miners")
         responses = self.dendrite.query(
             axons=[self.metagraph.axons[uid] for uid in miner_uids],
             synapse=task.synapse,
@@ -76,9 +76,9 @@ async def forward(self, synapse: QueryTask=None) -> QueryTask:
             timeout=task.timeout,
         )
 
-        #bt.logging.debug(f"ONLINE: Evaluating responses")
+        bt.logging.debug(f"ONLINE: Evaluating responses")
         await asyncio.create_task(process_rewards_update_scores_and_send_feedback(self, task=task, responses=responses, miner_uids=miner_uids))
-        #bt.logging.debug(f"ONLINE: Evaluation complete")
+        bt.logging.debug(f"ONLINE: Evaluation complete")
 
     except Exception as e:
         bt.logging.debug(f"Error in forward: {e}")
