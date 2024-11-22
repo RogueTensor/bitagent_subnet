@@ -72,6 +72,9 @@ To install and get running, simply clone this repository and install the require
 ```bash
 git clone https://github.com/RogueTensor/bitagent_subnet
 cd bitagent_subnet
+# at this point, it's recommended that you use a venv, but not required, the next two lines are venv specific
+python -m venv .venv #replace .venv with the name you'd like to use for your venv
+source ./.venv/bin/activate
 python -m pip install -e .
 ```
 
