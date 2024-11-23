@@ -18,11 +18,11 @@
 import ast
 import bittensor as bt
 from typing import Tuple
-from common.base.validator import BaseValidatorNeuron
 from bitagent.criteria.utils import good_message, bad_message, received_reward_template
 
+
 # just checking if the function can be parsed by ast
-def correct_tool_call_function_format(task, validator: BaseValidatorNeuron, synapse: bt.Synapse) -> Tuple[float, float, str]:
+def correct_tool_call_function_format(task, validator, synapse: bt.Synapse) -> Tuple[float, float, str]:
     max_reward = 1.0
     reward = 1.0
 
@@ -61,7 +61,7 @@ def extract_function_name_and_params(response: str):
     return function_name, param_names, param_values_dict
 
 # just checking if the function name is correct
-def correct_tool_call_function_name(task, validator: BaseValidatorNeuron, synapse: bt.Synapse, expected_response: dict) -> Tuple[float, float, str]:
+def correct_tool_call_function_name(task, validator, synapse: bt.Synapse, expected_response: dict) -> Tuple[float, float, str]:
     max_reward = 3.0
     reward = 3.0    
 
@@ -78,7 +78,7 @@ def correct_tool_call_function_name(task, validator: BaseValidatorNeuron, synaps
 
 # comparing just the argument names
 # looking for required arguments and that they are present
-def correct_tool_argument_names(task, validator: BaseValidatorNeuron, synapse: bt.Synapse, expected_response: dict) -> Tuple[float, float, str]:
+def correct_tool_argument_names(task, validator, synapse: bt.Synapse, expected_response: dict) -> Tuple[float, float, str]:
     max_reward = 3.0
     reward = 0.0        
 
@@ -115,7 +115,7 @@ def correct_tool_argument_names(task, validator: BaseValidatorNeuron, synapse: b
 
     return reward, max_reward, feedback[:-1]+received_reward_template.format(reward, max_reward)
 
-def correct_tool_argument_values(task, validator: BaseValidatorNeuron, synapse: bt.Synapse, expected_response: dict) -> Tuple[float, float, str]:
+def correct_tool_argument_values(task, validator, synapse: bt.Synapse, expected_response: dict) -> Tuple[float, float, str]:
     max_reward = 3.0
     reward = 0.0        
 
@@ -155,7 +155,7 @@ def correct_tool_argument_values(task, validator: BaseValidatorNeuron, synapse: 
 
     return reward, max_reward, feedback[:-1]+received_reward_template.format(reward, max_reward)
 
-def correct_irrelevant_tool_call(task, validator: BaseValidatorNeuron, synapse: bt.Synapse) -> Tuple[float, float, str]:
+def correct_irrelevant_tool_call(task, validator, synapse: bt.Synapse) -> Tuple[float, float, str]:
     max_reward = 3.0
     reward = 3.0
     
@@ -166,3 +166,223 @@ def correct_irrelevant_tool_call(task, validator: BaseValidatorNeuron, synapse: 
 
     feedback = good_message(f"You responded with the expected response.")
     return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
+
+
+# Examples:
+synapse_response1 = 'calculate_gpa(grades=["A", "B", "A", "C"], credit_hours=[3, 4, 3, 2])'
+synapse_response2 = 'calculate_gpa(credit_hours=[3, 4, 3, 2], grades=["A", "B", "A", "C"])'
+expected_response = {'name': 'calculate_gpa', 'arguments': {'grades': ['A', 'B', 'A', 'C'], 'credit_hours': [3, 4, 3, 2]}}
+
+import unittest
+from typing import List
+
+class MockSynapse:
+    from bitagent.schemas.tool import Tool
+    response: str
+    tools: List[Tool] = [Tool(name="calculate_gpa", description="Calculate the GPA of a student", arguments={"grades": {"type": "list", "required": True}, "credit_hours": {"type": "list", "required": True}})]
+
+    def __init__(self, response: str):
+        self.response = response
+
+class MockTask:
+    synapse: MockSynapse
+
+    def __init__(self, synapse: MockSynapse):
+        self.synapse = synapse
+
+class TestToolCallCriteria(unittest.TestCase):
+
+    def setUp(self):
+        self.validator = ""
+
+    def test_correct_tool_call_function_format(self):
+        # Test valid function format
+        synapse = MockSynapse(response="calculate_gpa(grades=['A'], credit_hours=[3])")
+        task = MockTask(synapse=synapse)
+        reward, max_reward, feedback = correct_tool_call_function_format(task, self.validator, synapse)
+        self.assertEqual(reward, 1.0)
+        self.assertEqual(max_reward, 1.0)
+        self.assertTrue("was in the correct format" in feedback.lower())
+
+        # Test invalid function format
+        synapse = MockSynapse(response="invalid(function syntax")
+        task = MockTask(synapse=synapse)
+        reward, max_reward, feedback = correct_tool_call_function_format(task, self.validator, synapse)
+        self.assertEqual(reward, -1.0)
+        self.assertEqual(max_reward, 1.0)
+        self.assertTrue("not in the correct format" in feedback.lower())
+
+        # Test json response
+        synapse = MockSynapse(response='{"name": "calculate_gpa", "arguments": {"grades": ["A"], "credit_hours": [3]}}')
+        task = MockTask(synapse=synapse)
+        reward, max_reward, feedback = correct_tool_call_function_format(task, self.validator, synapse)
+        self.assertEqual(reward, 1.0)
+        self.assertEqual(max_reward, 1.0)
+        self.assertTrue("was in the correct format" in feedback.lower())
+
+    def test_extract_function_name_and_params(self):
+        # Test basic function extraction
+        response = "calculate_gpa(grades=['A'], credit_hours=[3])"
+        name, params, values = extract_function_name_and_params(response)
+        self.assertEqual(name, "calculate_gpa")
+        self.assertEqual(params, ["grades", "credit_hours"])
+        self.assertEqual(values, {"grades": ["A"], "credit_hours": [3]})
+
+        # Test empty response
+        name, params, values = extract_function_name_and_params("")
+        self.assertEqual(name, "")
+        self.assertEqual(params, [])
+        self.assertEqual(values, {})
+
+        # Test function with dot notation
+        response = "math.sqrt(value=16)"
+        name, params, values = extract_function_name_and_params(response)
+        self.assertEqual(name, "math.sqrt")
+        self.assertEqual(params, ["value"])
+        self.assertEqual(values, {"value": 16})
+
+        # Test function with dot notation and no value
+        response = "math.sqrt()"
+        name, params, values = extract_function_name_and_params(response)
+        self.assertEqual(name, "math.sqrt")
+        self.assertEqual(params, [])
+        self.assertEqual(values, {})
+
+    def test_correct_irrelevant_tool_call(self):
+        # Test empty response (correct)
+        synapse = MockSynapse(response="")
+        task = MockTask(synapse=synapse)
+        reward, max_reward, feedback = correct_irrelevant_tool_call(task, self.validator, synapse)
+        self.assertEqual(reward, 3.0)
+        self.assertEqual(max_reward, 3.0)
+        self.assertTrue("expected response" in feedback.lower())
+
+        # Test non-empty response (incorrect)
+        synapse = MockSynapse(response="some_function()")
+        task = MockTask(synapse=synapse)
+        reward, max_reward, feedback = correct_irrelevant_tool_call(task, self.validator, synapse)
+        self.assertEqual(reward, -0.5)
+        self.assertEqual(max_reward, 3.0)
+        self.assertTrue("not empty" in feedback.lower())
+
+    def test_correct_tool_call_function_name(self):
+        # Test correct function name
+        synapse = MockSynapse(response="calculate_gpa(grades=['A'])")
+        task = MockTask(synapse=synapse)
+        expected = {"name": "calculate_gpa", "arguments": {"grades": ["A"]}}
+        reward, max_reward, feedback = correct_tool_call_function_name(task, self.validator, synapse, expected)
+        self.assertEqual(reward, 3.0)
+        self.assertEqual(max_reward, 3.0)
+        self.assertTrue("matches the expected function name" in feedback.lower())
+
+        # Test incorrect function name
+        synapse = MockSynapse(response="wrong_function(grades=['A'])")
+        task = MockTask(synapse=synapse)
+        reward, max_reward, feedback = correct_tool_call_function_name(task, self.validator, synapse, expected)
+        self.assertEqual(reward, -0.5)
+        self.assertEqual(max_reward, 3.0)
+        self.assertTrue("not match" in feedback.lower())
+
+    def test_correct_tool_argument_names(self):
+        # Test no expected arguments
+        synapse = MockSynapse(response="calculate_gpa()")
+        task = MockTask(synapse=synapse)
+        expected = {"name": "calculate_gpa", "arguments": {}}
+        reward, max_reward, feedback = correct_tool_argument_names(task, self.validator, synapse, expected)
+        self.assertEqual(reward, 3.0)
+        self.assertEqual(max_reward, 3.0)
+        self.assertTrue("no arguments, good job" in feedback.lower())
+
+        # Test no expected arguments, but pass in arguments anyway
+        synapse = MockSynapse(response="calculate_gpa(grades=['A'])")
+        task = MockTask(synapse=synapse)
+        expected = {"name": "calculate_gpa", "arguments": {}}
+        reward, max_reward, feedback = correct_tool_argument_names(task, self.validator, synapse, expected)
+        self.assertEqual(reward, 0.0)
+        self.assertEqual(max_reward, 3.0)
+        self.assertTrue("expects no arguments" in feedback.lower())
+
+        # Test correct argument names
+        synapse = MockSynapse(response="calculate_gpa(grades=['A'], credit_hours=[3])")
+        task = MockTask(synapse=synapse)
+        expected = {"name": "calculate_gpa", "arguments": {"grades": ["A"], "credit_hours": [3]}}
+        reward, max_reward, feedback = correct_tool_argument_names(task, self.validator, synapse, expected)
+        self.assertEqual(reward, 3.0)
+        self.assertEqual(max_reward, 3.0)
+        self.assertEqual(feedback.lower().count("has the required argument"), 2)
+
+        # Test correct argument names plus an incorrect argument
+        synapse = MockSynapse(response="calculate_gpa(grades=['A'], credit_hours=[3], extra_arg=1)")
+        task = MockTask(synapse=synapse)
+        expected = {"name": "calculate_gpa", "arguments": {"grades": ["A"], "credit_hours": [3]}}
+        reward, max_reward, feedback = correct_tool_argument_names(task, self.validator, synapse, expected)
+        self.assertEqual(reward, 2.0)
+        self.assertEqual(max_reward, 3.0)
+        self.assertEqual(feedback.lower().count("has the required argument"), 2)
+
+        # Test correct argument names out of order
+        synapse = MockSynapse(response="calculate_gpa(credit_hours=[3], grades=['A'])")
+        task = MockTask(synapse=synapse)
+        expected = {"name": "calculate_gpa", "arguments": {"grades": ["A"], "credit_hours": [3]}}
+        reward, max_reward, feedback = correct_tool_argument_names(task, self.validator, synapse, expected)
+        self.assertEqual(reward, 3.0)
+        self.assertEqual(max_reward, 3.0)
+        self.assertEqual(feedback.lower().count("has the required argument"), 2)
+
+        # Test missing argument
+        synapse = MockSynapse(response="calculate_gpa(grades=['A'])")
+        task = MockTask(synapse=synapse)
+        reward, max_reward, feedback = correct_tool_argument_names(task, self.validator, synapse, expected)
+        self.assertEqual(reward, 0.0)
+        self.assertEqual(max_reward, 3.0)
+        self.assertEqual(feedback.lower().count("has the required argument"), 1)
+        self.assertEqual(feedback.lower().count("missing the required argument"), 1)
+
+    def test_correct_tool_argument_values(self):
+        # Test correct argument values
+        synapse = MockSynapse(response="calculate_gpa(grades=['A'], credit_hours=[3])")
+        task = MockTask(synapse=synapse)
+        expected = {"name": "calculate_gpa", "arguments": {"grades": ["A"], "credit_hours": [3]}}
+        reward, max_reward, feedback = correct_tool_argument_values(task, self.validator, synapse, expected)
+        self.assertEqual(reward, 3.0)
+        self.assertEqual(max_reward, 3.0)
+        self.assertEqual(feedback.lower().count("has the required value for argument"), 2)
+
+        # Test correct argument values out of order
+        synapse = MockSynapse(response="calculate_gpa(credit_hours=[3], grades=['A'])")
+        task = MockTask(synapse=synapse)
+        expected = {"name": "calculate_gpa", "arguments": {"grades": ["A"], "credit_hours": [3]}}
+        reward, max_reward, feedback = correct_tool_argument_values(task, self.validator, synapse, expected)
+        self.assertEqual(reward, 3.0)
+        self.assertEqual(max_reward, 3.0)
+        self.assertEqual(feedback.lower().count("has the required value for argument"), 2)
+
+        # Test incorrect argument values
+        synapse = MockSynapse(response="calculate_gpa(grades=['B'], credit_hours=[4])")
+        task = MockTask(synapse=synapse)
+        reward, max_reward, feedback = correct_tool_argument_values(task, self.validator, synapse, expected)
+        self.assertEqual(reward, -3.0)
+        self.assertEqual(max_reward, 3.0)
+        self.assertEqual(feedback.lower().count("has the incorrect value for argument"), 2)
+
+        # Test incorrect argument values out of order
+        synapse = MockSynapse(response="calculate_gpa(credit_hours=[4], grades=['B'])")
+        task = MockTask(synapse=synapse)
+        reward, max_reward, feedback = correct_tool_argument_values(task, self.validator, synapse, expected)
+        self.assertEqual(reward, -3.0)
+        self.assertEqual(max_reward, 3.0)
+        self.assertEqual(feedback.lower().count("has the incorrect value for argument"), 2)
+
+        # Test incorrect value types
+        synapse = MockSynapse(response="calculate_gpa(grades='A', credit_hours=3)")
+        task = MockTask(synapse=synapse)
+        reward, max_reward, feedback = correct_tool_argument_values(task, self.validator, synapse, expected)
+        self.assertEqual(reward, -3.0)
+        self.assertEqual(max_reward, 3.0)
+        self.assertEqual(feedback.lower().count("has the incorrect value for argument"), 2)
+
+if __name__ == '__main__':
+    # Run all tests in this file
+    # You can run this file directly with: python -m bitagent.criteria.tool_call_criteria
+    # Or run all tests with: python -m pytest bitagent/criteria/tool_call_criteria.py
+    unittest.main(verbosity=2)
