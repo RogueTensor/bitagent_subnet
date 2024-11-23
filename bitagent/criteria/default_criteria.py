@@ -16,11 +16,10 @@
 # DEALINGS IN THE SOFTWARE.
 
 import bittensor as bt
-from common.base.validator import BaseValidatorNeuron
 from bitagent.criteria.utils import good_message, bad_message, received_reward_template
 
 # CRITERION: successful call to miner
-def does_not_error(task, validator: BaseValidatorNeuron, synapse: bt.Synapse) -> [float, float, str]:
+def does_not_error(task, validator, synapse: bt.Synapse) -> [float, float, str]:
     max_reward = 0.25
     a_status_code = synapse.axon.status_code
     d_status_code = synapse.dendrite.status_code
@@ -37,7 +36,7 @@ def does_not_error(task, validator: BaseValidatorNeuron, synapse: bt.Synapse) ->
     return reward, max_reward, feedback + received_reward_template.format(reward, max_reward)
 
 # CRITERION: reward speedy response
-def does_not_take_a_long_time(task, validator: BaseValidatorNeuron, synapse: bt.Synapse) -> [float, float, str]:
+def does_not_take_a_long_time(task, validator, synapse: bt.Synapse) -> [float, float, str]:
     max_reward = 0.5
     process_time = synapse.dendrite.process_time
     if not process_time:

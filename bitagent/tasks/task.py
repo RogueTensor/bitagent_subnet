@@ -21,7 +21,6 @@ from typing import List, Tuple
 from bitagent.protocol import QueryTask
 from bitagent.schemas.tool import Tool
 from bitagent.tasks import TASK_FREQUENCY
-from common.base.validator import BaseValidatorNeuron
 from bitagent.criteria import Criterion, default_criteria
 from bitagent.schemas.chat import ChatMessage, messages_to_list
 
@@ -52,7 +51,7 @@ class Task():
         self.synapse = QueryTask(messages=messages, tools=tools)
         self.correct_answer = correct_answer
 
-    def reward(self, validator: BaseValidatorNeuron, synapse: QueryTask) -> Tuple[float, float, List[str]]:
+    def reward(self, validator, synapse: QueryTask) -> Tuple[float, float, List[str]]:
         total_score = 0.0
         total_possible = 0.0
         results = []
