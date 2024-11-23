@@ -2,3 +2,4 @@ COMPETITION_PREVIOUS_PREFIX = 1 # This is the previous competition prefix for wh
 COMPETITION_PREFIX = 1
 DEPLOYED_DATE = "2024-11-02" # 2 weeks ago
 COMPETITION_LENGTH_DAYS = 14
+TESTNET_COMPETITION_LENGTH_DAYS = 1.0/24.0 # every hour

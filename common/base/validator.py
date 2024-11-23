@@ -24,7 +24,7 @@ import numpy as np
 import bittensor as bt
 from datetime import datetime, timezone
 from common.utils.uids import get_alive_uids
-from bitagent.validator.constants import DEPLOYED_DATE, COMPETITION_LENGTH_DAYS, COMPETITION_PREFIX, COMPETITION_PREVIOUS_PREFIX
+from bitagent.validator.constants import DEPLOYED_DATE, COMPETITION_LENGTH_DAYS, TESTNET_COMPETITION_LENGTH_DAYS, COMPETITION_PREFIX, COMPETITION_PREVIOUS_PREFIX
 
 from common.utils.weight_utils import (
     process_weights_for_netuid,
@@ -472,8 +472,11 @@ class BaseValidatorNeuron(BaseNeuron):
             delta = datetime.now(timezone.utc) - competition_start_date  
             number_of_days_since_start = delta.days + (delta.seconds / (24*3600))
             number_of_competitions_since_start = int(number_of_days_since_start / COMPETITION_LENGTH_DAYS)
+            if self.config.subtensor.network == "test":
+                bt.logging.debug(f"OFFLINE TESTNET: using {TESTNET_COMPETITION_LENGTH_DAYS} days per competition")
+                number_of_competitions_since_start = int(number_of_days_since_start / TESTNET_COMPETITION_LENGTH_DAYS)
 
-            bt.logging.debug(f"number_of_competitions_since_start: {number_of_competitions_since_start}")
+            bt.logging.debug(f"OFFLINE: number_of_competitions_since_start: {number_of_competitions_since_start}")
 
             if number_of_competitions_since_start < 1:
                 # we have not completed any competitions with this prefix, so the previous competition number is the last one we completed with the old prefix
