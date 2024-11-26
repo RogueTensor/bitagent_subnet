@@ -58,11 +58,13 @@ class ToolCallTask(Task):
                 if len(expected_tool_call_messages) > 0:
                     expected_tool_call_message = expected_tool_call_messages[0]['content']
                 else:
-                    #bt.logging.debug(f"Skipping - no tool call message found in: {expected_messages}")
+                    #bt.logging.debug(f"Skipping - no tool call message found in expected messages: {expected_messages}")
                     continue
-                expected_tool_call = json.loads(expected_tool_call_message)
-                if type(expected_tool_call) == str:
-                    expected_tool_call = json.loads(expected_tool_call)
+
+                if type(expected_tool_call_message) == str:
+                    expected_tool_call = json.loads(expected_tool_call_message)
+                else:
+                    expected_tool_call = expected_tool_call_message
                 self.criteria = default_criteria + tool_call_criteria(expected_response=expected_tool_call)
 
                 # 75% of the time do a tool call task with a relevant tool, other times do a tool call with no valid tool option
@@ -74,6 +76,7 @@ class ToolCallTask(Task):
                         expected_tool_call_message_json = json.loads(expected_tool_call_message_json)
                     tools = [t for t in tools if t.name != expected_tool_call_message_json['name']]
                     self.criteria = default_criteria + irrelevant_tool_call_criteria()
+
                 break
 
             except Exception as e:
