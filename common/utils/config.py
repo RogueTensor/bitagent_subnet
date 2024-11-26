@@ -136,9 +136,9 @@ def add_args(cls, parser):
     parser.add_argument(
         "--log_level",
         type=str,
-        choices=["trace", "debug"],  # Add more levels if needed
+        choices=["trace", "debug", "info"],  # Add more levels if needed
         help="Logging level to use",
-        default="debug"
+        default="info"
     )
      
     if neuron_type == "validator":
