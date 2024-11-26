@@ -309,8 +309,8 @@ class BaseValidatorNeuron(BaseNeuron):
             bt.logging.error(f"set_weights failed: {msg}")
 
     def get_weighted_scores(self):
-        # scores are based on PREVIOUS competition scores
-        scaled_scores = (self.scores+self.offline_scores[self.previous_competition_version]) * 5
+        # scores are largely based on PREVIOUS competition scores
+        scaled_scores = ((0.2 * self.scores) + (0.8 * self.offline_scores[self.previous_competition_version])) * 5
         exp_scores = np.exp(scaled_scores)
         return exp_scores / np.sum(exp_scores)
 
