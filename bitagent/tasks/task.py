@@ -86,7 +86,7 @@ def evaluate_task(validator, task:Task, synapse:bt.Synapse) -> Tuple[float, floa
 
 # get random task
 def get_random_task(validator, offline=False) -> Task:
-    from bitagent.tasks import ToolCallTask
+    from bitagent.tasks.tool_call_task import ToolCallTask
     task_names = list(TASK_FREQUENCY.keys())
     task_frequencies = list(TASK_FREQUENCY.values())
     choice = random.choices(task_names, weights=task_frequencies)[0]
