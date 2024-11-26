@@ -20,7 +20,6 @@ import bittensor as bt
 from bitagent.protocol import QueryTask
 from bitagent.tasks import Task
 from bitagent.tasks import TASK_WEIGHTS
-from common.base.validator import BaseValidatorNeuron
 from bitagent.schemas.chat import messages_to_list
 from bitagent.datasources.tools import ToolCallData
 from bitagent.helpers.tool_parsing import validate_tool_call, find_msgs_before_tool_call, find_first_tool_call
@@ -37,7 +36,7 @@ Modified Question: """
 class ToolCallTask(Task):
     def __init__(
         self,
-        validator: BaseValidatorNeuron,
+        validator,
         name: str,
         desc: str = "",
         offline: bool = False,
@@ -51,7 +50,7 @@ class ToolCallTask(Task):
         if offline:
             self.mode = "offline"
         messages = None
-        for _ in range(100):
+        for _ in range(10):
             try:
                 messages, tools, data = self.generate_task_data()
                 expected_messages = messages_to_list(data.messages)
@@ -78,13 +77,10 @@ class ToolCallTask(Task):
                 break
 
             except Exception as e:
-                #if str(e) != "Skipping":
-                #    bt.logging.debug(f'Exception getting new task - {e}')
-                #else:
-                #    bt.logging.debug(f'Exception getting new task - {e}')
+                #bt.logging.debug(f'Exception getting new task - {e}')
                 pass
         if not messages:
-            raise Exception("Failed to generate task data 100 times")
+            raise Exception(f"Failed to generate task data 10 times")
         self.messages = messages
         self.synapse = QueryTask(messages=messages, tools=tools)
     
@@ -94,7 +90,7 @@ class ToolCallTask(Task):
         tool_call = find_first_tool_call(data.messages)
         if not tool_call:
             # no tool call in the messages, so skip
-            raise Exception("Skipping")
+            raise Exception(f"Skipping - no tool call in the messages: {data.messages}")
 
         # increase number of tools
         for _ in range(random.randint(2,6)):
@@ -124,11 +120,15 @@ class ToolCallTask(Task):
                 tool_call = find_first_tool_call(data.messages).content
                 try: # check that the tool call can be loaded, and that it's valid
                     try:
-                        new_tool_call = json.dumps(json.loads(tool_call))
-                        tool_call_dict = json.loads(tool_call)
-                        # should load as a dict, but if not, try to convert it
-                        if not isinstance(tool_call_dict, dict):
-                            tool_call_dict = json.loads(tool_call_dict)
+                        if isinstance(tool_call, str):
+                            new_tool_call = json.dumps(json.loads(tool_call))
+                            tool_call_dict = json.loads(new_tool_call)
+                        elif isinstance(tool_call, dict):
+                            new_tool_call = tool_call
+                            tool_call_dict = tool_call
+                        else:
+                            raise Exception(f'tool call is not a string or dict: {tool_call}')
+
                     except Exception as e:
                         # this usually happens when the json is not valid (single vs double quotes)
                         new_tool_call = json.dumps(ast.literal_eval(tool_call))
@@ -136,10 +136,11 @@ class ToolCallTask(Task):
                     # check through all the tools that will be passed to the miner
                     # find the tool that is THE tool that is expected to be returned
                     # since it has been rewritten, validate that the tool call is valid/comparable still
-                    for tool in data.tools:
-                        if tool.name == tool_call_dict['name']:
-                            if not validate_tool_call(tool, tool_call_dict):
-                                raise Exception('The rewritten tool call is not valid')
+                    #for tool in data.tools:
+                    #    if tool.name == tool_call_dict['name']:
+                    #        if not validate_tool_call(tool, tool_call_dict):
+                    #            raise Exception('The rewritten tool call is not valid')
+                    #bt.logging.debug(f'finished validating tool call: {tool_call_dict}')
                 except Exception as e:
                     #bt.logging.error(f'An error occured while rewriting the tool call {e}')
                     count = 11
@@ -157,13 +158,13 @@ class ToolCallTask(Task):
                 
             else:
                 # no tool call in the messages, so skip
-                raise Exception("Skipping")
+                raise Exception(f"Skipping - guess there was no tool call in the messages: {data.messages}")
                 
             all_tools = data.tools
             random.shuffle(all_tools)
             return messages_before_call, all_tools, data
         
-        raise Exception("Skipping")
+        raise Exception("Skipping - while loop ended without a tool call task")
 
     def check_rewrite_alignment(self, original: str, rewrite: str) -> bool:
         score = self.validator.measure_relevance_of_texts(original, rewrite)
