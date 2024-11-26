@@ -147,7 +147,7 @@ def correct_tool_argument_values(task, validator, synapse: bt.Synapse, expected_
                 reward += max_reward/max(len(function_args),len(expected_args))
                 feedback += good_message(f"Your function has the required value for argument: {arg}") + "\n"
             else:
-                reward -= max_reward/len(required_args)
+                reward -= 0 # max_reward/len(required_args)
                 feedback += bad_message(f"Your function has the incorrect value for argument: {arg}") + "\n"
         else:
             reward -= max_reward/len(required_args)
