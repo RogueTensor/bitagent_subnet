@@ -259,8 +259,8 @@ See [Miner Considerations](#miner-considerations) for common areas miners should
 #### Miner Emissions
 
 Miner emissions are composed of both MINER-HOSTED and FINETUNED SUBMISSION evaluation:
-- 50% of the miner's score is determined by the model miners persistently run to handle on-demand queries.  This is MINER-HOSTED evaluation of the miner.
-- 50% is determined by bi-weekly challenges in which the miner submits their latest huggingface model and Validators load the model on their machine to evaluate.  This is FINETUNED SUBMISSION evaluation.
+- 20% of the miner's score is determined by the model miners persistently run to handle on-demand queries.  This is MINER-HOSTED evaluation of the miner.
+- 80% is determined by bi-weekly challenges in which the miner submits their latest huggingface model and Validators load the model on their machine to evaluate.  This is FINETUNED SUBMISSION evaluation.
 
 Both MINER-HOSTED and FINETUNED SUBMISSION tasks are evaluated against modifications of these datasets:
 - Berkeley Function Calling tasks
