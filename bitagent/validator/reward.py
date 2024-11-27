@@ -120,7 +120,6 @@ async def write_to_wandb(validator: BaseValidatorNeuron, task: Task, responses: 
             data = {
                 "task_name": task_name,
                 "task_mode": task_mode,
-                "hf_run_model": run_model,
                 "messages": [{'role': m.role, 'content': m.content} for m in messages],
                 "tools": [{'name': t.name, 'description': t.description, 'arguments': t.arguments} for t in tools],
                 "miners_count": len(miner_uids),
@@ -145,6 +144,9 @@ async def write_to_wandb(validator: BaseValidatorNeuron, task: Task, responses: 
                 "highest_score_for_miners_with_this_validator": validator.scores.max(),
                 "median_score_for_miners_with_this_validator": np.median(validator.scores),
                 "offline_score_for_miner_with_this_validator": validator.offline_scores[validator.competition_version][miner_uid],
+                "highest_offline_score_for_miners_with_this_validator": validator.offline_scores[validator.competition_version].max(),
+                "median_offline_score_for_miners_with_this_validator": np.median(validator.offline_scores[validator.competition_version]),
+                "competition_version": validator.competition_version,
                 # TODO add BFCL scores
                 #"correct_answer": correct_answer, # TODO best way to send this without lookup attack?
             }
@@ -167,7 +169,7 @@ async def write_to_wandb(validator: BaseValidatorNeuron, task: Task, responses: 
 
 # all of these miners are scored the same way with the same tasks b/c this is scoring offline models
 async def process_rewards_update_scores_for_many_tasks_and_many_miners(validator: BaseValidatorNeuron, tasks: List[Task], responses: List[Any], 
-                miner_uids: List[int]) -> None:
+                miner_uids: List[int], wandb_data: dict) -> None:
     rewards = await asyncio.gather(*[evaluate_task(validator, tasks[i], responses[i]) for i in range(len(responses))])
     try:
         scores = []
@@ -183,10 +185,23 @@ async def process_rewards_update_scores_for_many_tasks_and_many_miners(validator
 
     except Exception as e:
         bt.logging.warning(f"OFFLINE: Error logging reward data: {e}")
+        wandb_data['event_name'] = "Processing Rewards - Error"
+        wandb_data['miner_uids'] = miner_uids
+        wandb_data['error'] = e
+        validator.log_event(wandb_data)
+        wandb_data.pop('error')
+        wandb_data.pop('miner_uids')
+
 
     score = np.mean(scores)
+    wandb_data['event_name'] = "Processing Rewards - Score"
+    wandb_data['score'] = score
+    wandb_data['miner_uids'] = miner_uids
+    validator.log_event(wandb_data)
+    wandb_data.pop('score')
+    wandb_data.pop('miner_uids')
 
-    validator.update_offline_scores([score]*len(miner_uids), miner_uids, alpha=tasks[0].weight)
+    validator.update_offline_scores([score]*len(miner_uids), miner_uids)
 
     return score
 

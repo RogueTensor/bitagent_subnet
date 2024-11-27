@@ -17,6 +17,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import asyncio
+import numpy as np
 import bittensor as bt
 from bitagent.protocol import QueryTask
 from common.utils.uids import get_alive_uids
@@ -42,17 +43,50 @@ async def forward(self, synapse: QueryTask=None) -> QueryTask:
     # ###########################################################
     # if all miners have been processed for this competition, then don't run offline mode
     self.update_competition_numbers()
+
+    wandb_data = {
+        "task_name": "offline_model_check",
+        "task_mode": "offline",
+        "validator_uid": self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address),
+        "val_spec_version": self.spec_version,
+        "highest_score_for_miners_with_this_validator": self.scores.max(),
+        "median_score_for_miners_with_this_validator": np.median(self.scores),
+        "highest_offline_score_for_miners_with_this_validator": self.offline_scores[self.competition_version].max(),
+        "median_offline_score_for_miners_with_this_validator": np.median(self.offline_scores[self.competition_version]),
+        "competition_version": self.competition_version,
+    }
+
     if len(self.miners_left_to_score) == 0:
+        if self.offline_status != "complete":
+            self.offline_status = "complete"
+            wandb_data['offline_status'] = self.offline_status
+            self.log_event(wandb_data)
+            wandb_data.pop('offline_status')
+        self.running_offline_mode = False
         #bt.logging.debug(f"OFFLINE: No miners left to score for competition {self.competition_version}")
         pass
     elif not self.running_offline_mode:
         bt.logging.debug(f"OFFLINE: Starting offline mode for competition {self.competition_version}")
         #bt.logging.debug(f"OFFLINE: Miners left to score: {self.miners_left_to_score}")
         self.running_offline_mode = True
-        asyncio.create_task(offline_task(self))
+        self.offline_status = "starting"
+        wandb_data['offline_status'] = self.offline_status
+        wandb_data['num_miners_left_to_score'] = len(self.miners_left_to_score)
+        wandb_data['miners_left_to_score'] = self.miners_left_to_score
+        self.log_event(wandb_data)
+        wandb_data.pop('num_miners_left_to_score')
+        wandb_data.pop('miners_left_to_score')
+        wandb_data.pop('offline_status')
+        asyncio.create_task(offline_task(self, wandb_data))
+        self.running_offline_mode = False
     elif self.running_offline_mode:
         #bt.logging.debug(f"OFFLINE: Already running offline mode for competition {self.competition_version}")
         #bt.logging.debug(f"OFFLINE: Miners left to score: {self.miners_left_to_score}")
+        if self.offline_status != "running":
+            self.offline_status = "running"
+            wandb_data['offline_status'] = self.offline_status
+            self.log_event(wandb_data)
+            wandb_data.pop('offline_status')
         pass
 
     # ###########################################################
