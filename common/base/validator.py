@@ -373,7 +373,7 @@ class BaseValidatorNeuron(BaseNeuron):
         except Exception as e:
             bt.logging.error(f"Could not sync with metagraph right now, will try later. Error: {e}")
 
-    def update_offline_scores(self, rewards: np.ndarray, uids: List[int], alpha=None):
+    def update_offline_scores(self, rewards: np.ndarray, uids: List[int]):
         """Performs exponential moving average on the scores based on the rewards received from the miners."""
         if np.isnan(rewards).any():
             #bt.logging.debug(f"NaN values detected in rewards: {rewards}")
@@ -389,11 +389,6 @@ class BaseValidatorNeuron(BaseNeuron):
         scattered_rewards[uids_array] = rewards
 
         bt.logging.debug(f"OFFLINE Scattered rewards: {rewards}")
-
-        # Update scores with rewards produced by this step.
-        # shape: [ metagraph.n ]
-        if not alpha:
-            alpha: float = self.config.neuron.moving_average_alpha
 
         self.offline_scores[self.competition_version]: np.ndarray = scattered_rewards # type: ignore
         self.offline_miners_scored[self.competition_version].extend([int(x) for x in uids_array])
