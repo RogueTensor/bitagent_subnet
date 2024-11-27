@@ -60,6 +60,7 @@ class BaseValidatorNeuron(BaseNeuron):
         self.offline_scores = {}
         self.offline_miners_scored = {}
         self.running_offline_mode = False
+        self.offline_status = None
         self.update_competition_numbers()
         # Init sync with the network. Updates the metagraph.
         
