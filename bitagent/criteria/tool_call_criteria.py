@@ -41,13 +41,32 @@ def extract_function_name_and_params(response: str):
         return "", [], {}
 
     node = ast.parse(response , mode="eval")
-    # handle situation where the function name has a dot in it
-    try:    
-        # handle a dot in the function name
-        function_name = node.body.func.value.id + "." + node.body.func.attr
-    except:
-        # no dot in teh function name
-        function_name = node.body.func.id   
+
+    # Walk through the AST to extract the function name
+    class FunctionNameExtractor(ast.NodeVisitor):
+        def __init__(self):
+            self.function_name = None
+
+        def visit_Call(self, node):
+            # Check if the node is a function call
+            if isinstance(node.func, ast.Attribute):
+                # Reconstruct the full function name
+                parts = []
+                current = node.func
+                while isinstance(current, ast.Attribute):
+                    parts.append(current.attr)
+                    current = current.value
+                if isinstance(current, ast.Name):
+                    parts.append(current.id)
+                # Join the parts in reverse to get the full function name
+                self.function_name = '.'.join(reversed(parts))
+            # No need to visit further
+            self.generic_visit(node)
+
+    extractor = FunctionNameExtractor()
+    extractor.visit(node)
+    function_name = extractor.function_name
+
     param_names = [kw.arg for kw in node.body.keywords]
     if param_names: 
         param_values = [ast.literal_eval(kw.value) for kw in node.body.keywords]
