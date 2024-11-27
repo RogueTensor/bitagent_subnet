@@ -12,10 +12,10 @@ async-timeout==5.0.1
 attrs==24.2.0
 backoff==2.2.1
 base58==2.1.1
--e git+ssh://git@github.com/RogueTensor/bitagent_subnet.git@b8838a1977f56af9cb153379e63e535edf341817#egg=bitagent
-bittensor==8.3.1
+-e git+ssh://git@github.com/RogueTensor/bitagent_subnet.git@494c76f1e982ac10166dcd640568225478524f98#egg=bitagent
+bittensor==8.4.0
 bittensor-cli==8.3.1
-bittensor-wallet==2.1.0
+bittensor-wallet==2.1.3
 bt-decode==0.2.0a0
 cachetools==5.5.0
 certifi==2024.8.30
