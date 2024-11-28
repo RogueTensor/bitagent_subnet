@@ -87,6 +87,7 @@ async def offline_task(self, wandb_data):
             wandb_data['miners_left_to_score'] = miner_uids
             self.log_event(wandb_data)
             wandb_data.pop('miners_left_to_score')
+            self.running_offline_mode = False
             return
     except Exception as e:
         bt.logging.error(f"OFFLINE: Error getting unique miner HF model names: {e}")
@@ -94,6 +95,7 @@ async def offline_task(self, wandb_data):
         wandb_data['error'] = e
         self.log_event(wandb_data)
         wandb_data.pop('error')
+        self.running_offline_mode = False
         return
 
     bt.logging.debug(f"OFFLINE: Unique miner HF model names: {len(unique_miner_hf_model_names)}")
