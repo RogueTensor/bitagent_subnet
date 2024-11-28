@@ -58,7 +58,7 @@ async def offline_task(self, wandb_data):
         axons=[self.metagraph.axons[miner_uid] for miner_uid in miner_uids],
         synapse=GetHFModelName(),
         deserialize=False,
-        timeout=5.0,
+        timeout=15.0,
     )
 
     wandb_data['event_name'] = "GetHFModelName Responses Fetched"
