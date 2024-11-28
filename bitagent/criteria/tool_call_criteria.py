@@ -49,8 +49,7 @@ def extract_function_name_and_params(response: str):
 
         def visit_Call(self, node):
             # Check if the node is a function call
-            if isinstance(node.func, ast.Attribute):
-                # Reconstruct the full function name
+            if isinstance(node.func, ast.Attribute):  # Handles dot notation (e.g., module.function)
                 parts = []
                 current = node.func
                 while isinstance(current, ast.Attribute):
@@ -60,6 +59,8 @@ def extract_function_name_and_params(response: str):
                     parts.append(current.id)
                 # Join the parts in reverse to get the full function name
                 self.function_name = '.'.join(reversed(parts))
+            elif isinstance(node.func, ast.Name):  # Handles simple function names (e.g., functionName)
+                self.function_name = node.func.id
             # No need to visit further
             self.generic_visit(node)
 
