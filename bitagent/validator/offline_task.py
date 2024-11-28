@@ -30,11 +30,11 @@ def delete_model_from_hf_cache(self, model_name: str):
     if os.path.exists(model_cache_dir):
         try:
             shutil.rmtree(model_cache_dir)
-            bt.logging.debug(f"OFFLINE: Model '{model_name}' has been removed from the cache.")
+            bt.logging.debug(f"OFFLINE: Model has been removed from the HF cache.")
         except Exception as e:
-            bt.logging.error(f"OFFLINE: Error deleting model: '{model_name}' from HF cache: {e}")
+            bt.logging.error(f"OFFLINE: Error deleting model: from HF cache: {e}")
     else:
-        bt.logging.debug(f"OFFLINE: Model '{model_name}' not found in the cache: {model_cache_dir}")
+        bt.logging.debug(f"OFFLINE: Model not found in the cache, could not delete")
 
 # ###########################################################
 # OFFLINE TASKING
@@ -66,7 +66,7 @@ async def offline_task(self, wandb_data):
 
     # get all the HF model names from the responses
     miner_hf_model_names = [response.hf_model_name for response in responses]
-    bt.logging.debug(f"OFFLINE: Miner HF model names: {miner_hf_model_names}")
+    bt.logging.debug(f"OFFLINE: Miner HF model names: {len(miner_hf_model_names)}")
 
     try:
         hf_model_name_to_miner_uids = {}
@@ -82,7 +82,7 @@ async def offline_task(self, wandb_data):
             bt.logging.debug(f"OFFLINE: No unique miner HF model names to evaluate in OFFLINE mode")
             for miner_uid in miner_uids:
                 self.offline_scores[self.competition_version][miner_uid] = 0.0
-                self.offline_miners_scored[self.competition_version].append(int(miner_uid))
+                #self.offline_miners_scored[self.competition_version].append(int(miner_uid))
             wandb_data['event_name'] = "No Unique HF Models"
             wandb_data['miners_left_to_score'] = miner_uids
             self.log_event(wandb_data)
@@ -96,7 +96,7 @@ async def offline_task(self, wandb_data):
         wandb_data.pop('error')
         return
 
-    bt.logging.debug(f"OFFLINE: Unique miner HF model names: {unique_miner_hf_model_names}")
+    bt.logging.debug(f"OFFLINE: Unique miner HF model names: {len(unique_miner_hf_model_names)}")
     wandb_data['event_name'] = "Unique HF Model Fetched"
     wandb_data['num_unique_hf_models'] = len(unique_miner_hf_model_names)
     self.log_event(wandb_data)
@@ -111,9 +111,9 @@ async def offline_task(self, wandb_data):
         self.log_event(wandb_data)
         tasks = []
         for i,_ in enumerate(range(0, num_tasks, batch_size)):
-            #bt.logging.debug(f"OFFLINE: Generating tasks batch {i} of {num_tasks // batch_size}")
+            #bt.logging.debug(f"OFFLINE: Generating tasks batch {i+1} of {num_tasks // batch_size}")
             tasks.extend(await asyncio.gather(*[asyncio.to_thread(get_random_task, self, offline=True) for _ in range(batch_size)]))
-            #bt.logging.debug(f"OFFLINE: Generated tasks batch {i} of {num_tasks // batch_size}")
+            #bt.logging.debug(f"OFFLINE: Generated tasks batch {i+1} of {num_tasks // batch_size}")
         bt.logging.debug(f"OFFLINE: Generated {len(tasks)} tasks of {num_tasks} total")
         wandb_data['event_name'] = "Generated Tasks"
         wandb_data['num_tasks'] = len(tasks)
@@ -121,7 +121,7 @@ async def offline_task(self, wandb_data):
         wandb_data.pop('num_tasks')
 
     for i,hf_model_name in enumerate(unique_miner_hf_model_names):
-        bt.logging.debug(f"OFFLINE: Running tasks for model {hf_model_name}")
+        bt.logging.debug(f"OFFLINE: Running tasks for model {i+1} of {len(unique_miner_hf_model_names)}")
         wandb_data['event_name'] = "Running HF Model"
         wandb_data['num_hf_model'] = i
         wandb_data['miner_uids'] = hf_model_name_to_miner_uids[hf_model_name]
@@ -132,7 +132,7 @@ async def offline_task(self, wandb_data):
             bt.logging.debug(f"OFFLINE: Miner returned empty HF model name ... skipping")
             for miner_uid in hf_model_name_to_miner_uids[hf_model_name]:
                 self.offline_scores[self.competition_version][miner_uid] = 0.0
-                self.offline_miners_scored[self.competition_version].append(int(miner_uid))
+                #self.offline_miners_scored[self.competition_version].append(int(miner_uid))
             wandb_data['event_name'] = "Skipping Empty HF Model"
             wandb_data['miner_uids'] = hf_model_name_to_miner_uids[hf_model_name]
             self.log_event(wandb_data)
@@ -147,10 +147,10 @@ async def offline_task(self, wandb_data):
         # confirm model license is apache-2.0 or nc-by-nc-4.0 or mit
         # TODO eventually ONLY accept apache-2.0
         if license not in ["apache-2.0", "cc-by-nc-4.0", "mit"]:
-            bt.logging.debug(f"OFFLINE: Skipping model {hf_model_name} due to license: {license}")
+            bt.logging.debug(f"OFFLINE: Skipping model {i+1} of {len(unique_miner_hf_model_names)} due to license: {license}")
             for miner_uid in hf_model_name_to_miner_uids[hf_model_name]:
                 self.offline_scores[self.competition_version][miner_uid] = 0.0
-                self.offline_miners_scored[self.competition_version].append(int(miner_uid))
+                #self.offline_miners_scored[self.competition_version].append(int(miner_uid))
             wandb_data['event_name'] = "Skipping Model Due to License"
             wandb_data['miner_uids'] = hf_model_name_to_miner_uids[hf_model_name]
             self.log_event(wandb_data)
@@ -159,17 +159,17 @@ async def offline_task(self, wandb_data):
 
         # confirm model size is less than 10B params (want 8B or less models)
         if total_size > 10000000000:
-            bt.logging.debug(f"OFFLINE: Skipping model {hf_model_name} due to size: {total_size}")
+            bt.logging.debug(f"OFFLINE: Skipping model {i+1} of {len(unique_miner_hf_model_names)} due to size: {total_size}")
             for miner_uid in hf_model_name_to_miner_uids[hf_model_name]:
                 self.offline_scores[self.competition_version][miner_uid] = 0.0
-                self.offline_miners_scored[self.competition_version].append(int(miner_uid))
+                #self.offline_miners_scored[self.competition_version].append(int(miner_uid))
             wandb_data['event_name'] = "Skipping Model Due to Size"
             wandb_data['miner_uids'] = hf_model_name_to_miner_uids[hf_model_name]
             self.log_event(wandb_data)
             wandb_data.pop('miner_uids')
             continue
 
-        bt.logging.debug(f"OFFLINE: Starting server for model {hf_model_name}")
+        bt.logging.debug(f"OFFLINE: Starting server for model {i+1} of {len(unique_miner_hf_model_names)}")
         wandb_data['event_name'] = "HF Model Eval Server Starting"
         self.log_event(wandb_data)
         try:
@@ -182,18 +182,18 @@ async def offline_task(self, wandb_data):
             """
             )
 
-            bt.logging.debug(f"OFFLINE: Started server for model {hf_model_name}, waiting for it to start on port {self.config.validator_hf_server_port} (could take several minutes)")
+            bt.logging.debug(f"OFFLINE: Started server for model {i+1} of {len(unique_miner_hf_model_names)}, waiting for it to start on port {self.config.validator_hf_server_port} (could take several minutes)")
             try:
                 await asyncio.wait_for(
                     asyncio.to_thread(wait_for_server, f"http://localhost:{self.config.validator_hf_server_port}"), 
                     timeout=60*10 # wait up to 10 minutes
                 )
-                bt.logging.debug(f"OFFLINE: Server for model {hf_model_name} started")
+                bt.logging.debug(f"OFFLINE: Server for model {i+1} of {len(unique_miner_hf_model_names)} started")
                 wandb_data['event_name'] = "HF Model Eval Server Started"
                 self.log_event(wandb_data)
             except asyncio.TimeoutError:
                 # likely a validator error
-                bt.logging.error(f"OFFLINE: Timeout waiting for server for model {hf_model_name} to start")
+                bt.logging.error(f"OFFLINE: Timeout waiting for server for model {i+1} of {len(unique_miner_hf_model_names)} to start")
                 wandb_data['event_name'] = "Timeout Waiting for HF Model Eval Server"
                 wandb_data['miner_uids'] = hf_model_name_to_miner_uids[hf_model_name]
                 self.log_event(wandb_data)
@@ -214,7 +214,7 @@ async def offline_task(self, wandb_data):
 
         except Exception as e:
             # likely a validator error
-            bt.logging.error(f"OFFLINE: Error starting sglang server for model: {hf_model_name}: {e}")
+            bt.logging.error(f"OFFLINE: Error starting sglang server for model: {i+1} of {len(unique_miner_hf_model_names)}: {e}")
             wandb_data['event_name'] = "Error Starting HF Model Eval Server"
             wandb_data['error'] = e
             wandb_data['miner_uids'] = hf_model_name_to_miner_uids[hf_model_name]
@@ -227,36 +227,35 @@ async def offline_task(self, wandb_data):
             continue
 
         # get LLM responses
-        bt.logging.debug(f"OFFLINE: Getting LLM responses for model {hf_model_name}")
+        bt.logging.debug(f"OFFLINE: Getting LLM responses for model {i+1} of {len(unique_miner_hf_model_names)}")
         wandb_data['event_name'] = "Getting LLM Responses"
         self.log_event(wandb_data)
         llm_responses = await asyncio.gather(
             *[asyncio.to_thread(llm, self, task.synapse.messages, task.synapse.tools, hf_model_name, hugging_face=True)
               for task in tasks]
         )
-        bt.logging.debug(f"OFFLINE: Got {len(llm_responses)} LLM responses for model: {hf_model_name}")
+        bt.logging.debug(f"OFFLINE: Got {len(llm_responses)} LLM responses for model: {i+1} of {len(unique_miner_hf_model_names)}")
         wandb_data['event_name'] = "Got LLM Responses"
         self.log_event(wandb_data)
 
         # terminate the server after getting all the responses
-        bt.logging.debug(f"OFFLINE: Terminating server for model: {hf_model_name}")
+        bt.logging.debug(f"OFFLINE: Terminating server for model: {i+1} of {len(unique_miner_hf_model_names)}")
         wandb_data['event_name'] = "HF Model Eval Server Terminating"
         self.log_event(wandb_data)
         await asyncio.to_thread(terminate_process, server_process)
-        bt.logging.debug(f"OFFLINE: Terminated server for model: {hf_model_name}")
+        bt.logging.debug(f"OFFLINE: Terminated server for model: {i+1} of {len(unique_miner_hf_model_names)}")
         wandb_data['event_name'] = "HF Model Eval Server Terminated"
         self.log_event(wandb_data)
 
         these_miner_uids = hf_model_name_to_miner_uids[hf_model_name]
         responses = []
-        for i, llm_response in enumerate(llm_responses):
-            task = tasks[i]
+        for j, llm_response in enumerate(llm_responses):
+            task = tasks[j]
             response = task.synapse.model_copy()
             response.response = llm_response.strip()
             response.dendrite.process_time = 5.0 # TODO may be useful to test performance of the model itself
             response.dendrite.status_code = 200 
             response.axon.status_code = 200
-            response.hf_run_model_name = hf_model_name
             response.competition_version = self.competition_version
             responses.append(response)
 
@@ -264,13 +263,13 @@ async def offline_task(self, wandb_data):
         # TODO need to see if this SCORE is higher than the all-time top score
         # TODO if so, update the all-time top score and model name and reward TOP miners
         # TODO if not, then temporal decay of scores
-        bt.logging.debug(f"OFFLINE: Processing rewards for model: {hf_model_name}, for miners: {these_miner_uids}")
+        bt.logging.debug(f"OFFLINE: Processing rewards for model: {i+1} of {len(unique_miner_hf_model_names)}, for miners: {these_miner_uids}")
         wandb_data['event_name'] = "Processing Rewards"
         self.log_event(wandb_data)
         await process_rewards_update_scores_for_many_tasks_and_many_miners(self, tasks=tasks, responses=responses, miner_uids=these_miner_uids, wandb_data=wandb_data)
     
         # remove old files from HF cache
-        bt.logging.debug(f"OFFLINE: Deleting model from HF cache: {hf_model_name}")
+        bt.logging.debug(f"OFFLINE: Deleting model from HF cache: {i+1} of {len(unique_miner_hf_model_names)}")
         wandb_data['event_name'] = "Deleting HF Model from Cache"
         self.log_event(wandb_data)
         await asyncio.to_thread(delete_model_from_hf_cache, self, hf_model_name)
