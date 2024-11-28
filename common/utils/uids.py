@@ -32,8 +32,8 @@ def check_uid_availability(
     # Available otherwise.
     return True
 
-# Create a cache with a maximum size of 256 items and a TTL of 1 hour (3600 seconds)
-cache = TTLCache(maxsize=256, ttl=3600)
+# Create a cache with a maximum size of 256 items and a TTL of 5 minutes (300 seconds)
+cache = TTLCache(maxsize=256, ttl=300)
 
 @cached(cache)
 def get_alive_uids(self):
