@@ -499,6 +499,13 @@ class BaseValidatorNeuron(BaseNeuron):
                 self.offline_miners_scored[self.competition_version] = []
 
             self.miners_left_to_score = []
+
+            # if an offline_score is 0 (we should try again), we need to add the miner to the list of miners left to score
+            # so clear out the offline_miners_scored for this competition, for those miners
+            for uid in self.offline_miners_scored[self.competition_version]:
+                if self.offline_scores[self.competition_version][uid] <= 0.01: # little wiggle room
+                    self.offline_miners_scored[self.competition_version].remove(uid)
+
             for uid in get_alive_uids(self):
                 if uid not in [int(x) for x in self.offline_miners_scored[self.competition_version]]:
                     self.miners_left_to_score.append(int(uid))
