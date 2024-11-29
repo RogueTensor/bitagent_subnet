@@ -43,7 +43,7 @@ class ToolCallTask(Task):
     ):
         super().__init__(name=name, desc=desc)
         self.validator = validator
-        self.timeout = 12.0
+        self.timeout = 15.0
         self.name += " - Tool Call"
         self.weight = TASK_WEIGHTS["tool_call"]
 
