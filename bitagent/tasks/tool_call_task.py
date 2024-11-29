@@ -83,7 +83,7 @@ class ToolCallTask(Task):
                 break
 
             except Exception as e:
-                #bt.logging.debug(f'Exception getting new task - {e}')
+                bt.logging.debug(f'Exception getting new task - {e} - you may need to CHECK YOUR vLLM docker instance')
                 pass
         if not messages:
             raise Exception(f"Failed to generate task data 10 times")
@@ -99,7 +99,7 @@ class ToolCallTask(Task):
             raise Exception(f"Skipping - no tool call in the messages: {data.messages}")
 
         # increase number of tools
-        for _ in range(random.randint(2,6)):
+        for _ in range(random.randint(2,4)):
             # filter out the tools by name that are already in the data.tools
             new_tools = [t for t in next(self.validator.tool_dataset).tools if t.name not in [dt.name for dt in data.tools]]
             data.tools = data.tools + new_tools
@@ -148,7 +148,7 @@ class ToolCallTask(Task):
                     #            raise Exception('The rewritten tool call is not valid')
                     #bt.logging.debug(f'finished validating tool call: {tool_call_dict}')
                 except Exception as e:
-                    #bt.logging.error(f'An error occured while rewriting the tool call {e}')
+                    bt.logging.error(f'An error occured while rewriting the tool call {e} - you may need to CHECK YOUR vLLM docker instance')
                     count = 11
                     continue
 
