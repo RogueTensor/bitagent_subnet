@@ -66,8 +66,12 @@ def llm(self, messages, tools, model_name, hugging_face=False,max_new_tokens = 1
             model=model_name,
             temperature=temperature
         )
+
     except Exception as e:
         bt.logging.error(f"Error calling to LLM: {e}")
         return ""
 
-    return response.choices[0].message.content.strip()
+    if hugging_face:
+        return response.choices[0].message.content.strip(), response.choices[0].finish_reason
+    else:
+        return response.choices[0].message.content.strip()
