@@ -59,12 +59,15 @@ class BaseValidatorNeuron(BaseNeuron):
         self.scores = np.zeros(self.metagraph.n, dtype=np.float32)
         self.offline_scores = {}
         self.offline_miners_scored = {}
+        self.offline_model_names = {}
         self.running_offline_mode = False
         self.offline_status = None
         self.update_competition_numbers()
+
+        self.state_file_name = "ft_state.npz"
         # Init sync with the network. Updates the metagraph.
         
-        if os.path.exists(self.config.neuron.full_path + "/ft_state.npz"):
+        if os.path.exists(self.config.neuron.full_path + f"/{self.state_file_name}"):
             # if we are booting up and have this file, then we'll want to load it
             # otherwise, if we save state, it will overwrite from the sync
             self.sync(save_state=False)
@@ -331,22 +334,23 @@ class BaseValidatorNeuron(BaseNeuron):
             if previous_metagraph.axons == self.metagraph.axons:
                 return
 
-            bt.logging.info(
-                "Metagraph updated, re-syncing hotkeys, dendrite pool and moving averages"
-            )  
+            bt.logging.info("Metagraph updated, resyncing hotkeys, dendrite pool and moving averages")  
             # Normalize all hotkeys that have been replaced, and zero out all hotkeys that are no longer available
             for uid, hotkey in enumerate(self.hotkeys):
                 if hotkey != self.metagraph.hotkeys[uid]:
+                    bt.logging.debug(f"RESYNC: hotkey changed for uid: {uid}")
                     self.scores[uid] = np.median(self.scores)
                     self.offline_scores[self.previous_competition_version][uid] = 0
                     self.offline_scores[self.competition_version][uid] = 0
-                    self.offline_miners_scored[self.competition_version].remove(uid)
+                    self.offline_miners_scored[self.competition_version][self.spec_version].remove(uid)
+                    self.offline_model_names[self.competition_version][uid] = ""
                 if not check_uid_availability(self.metagraph, uid, self.config.validator.vpermit_tao_limit): 
                     # if validator, set validators scores to 0
                     self.scores[uid] = 0 
                     self.offline_scores[self.previous_competition_version][uid] = 0
                     self.offline_scores[self.competition_version][uid] = 0
-                    self.offline_miners_scored[self.competition_version].append(uid)
+                    self.offline_miners_scored[self.competition_version][self.spec_version].append(uid)
+                    self.offline_model_names[self.competition_version][uid] = ""
             # Check to see if the metagraph has changed size.
             # If so, we need to add new hotkeys and moving averages.
             if len(self.hotkeys) < len(self.metagraph.hotkeys):
@@ -391,7 +395,7 @@ class BaseValidatorNeuron(BaseNeuron):
         bt.logging.debug(f"OFFLINE Scattered rewards: {rewards}")
 
         self.offline_scores[self.competition_version]: np.ndarray = scattered_rewards # type: ignore
-        self.offline_miners_scored[self.competition_version].extend([int(x) for x in uids_array])
+        self.offline_miners_scored[self.competition_version][self.spec_version].extend([int(x) for x in uids_array])
         bt.logging.debug(f"Updated moving avg OFFLINE scores for Competition {self.competition_version}: {self.offline_scores[self.competition_version]}")
         self.save_state()
 
@@ -421,16 +425,18 @@ class BaseValidatorNeuron(BaseNeuron):
     
     def save_state(self):
         """Saves the state of the validator to a file."""
-        bt.logging.debug(f"Saving validator state - {self.config.neuron.full_path}/ft_state.npz.")
+        bt.logging.debug(f"Saving validator state - {self.config.neuron.full_path}/{self.state_file_name}.")
 
         # Save the state of the validator to file.
         try:
             np.savez(
-                self.config.neuron.full_path + "/ft_state.npz",
+                self.config.neuron.full_path + f"/{self.state_file_name}",
                 step=self.step,
                 scores=self.scores,
                 offline_scores=self.offline_scores,
                 offline_miners_scored=np.array(list(self.offline_miners_scored.items()), dtype=object),
+                offline_model_names=self.offline_model_names,
+                hotkeys=self.hotkeys,
                 allow_pickle=True,
             )
         except Exception as e:
@@ -439,27 +445,41 @@ class BaseValidatorNeuron(BaseNeuron):
     def load_state(self):
         """Loads the state of the validator from a file."""
         bt.logging.info("Loading validator state.")
-        state = np.load(self.config.neuron.full_path + "/ft_state.npz",allow_pickle=True)
+        state = np.load(self.config.neuron.full_path + f"/{self.state_file_name}",allow_pickle=True)
         bt.logging.debug(f"OFFLINE: LOADING STATE: {state}")
 
         self.step = state["step"]
+        if 'hotkeys' in state:
+            self.hotkeys = state["hotkeys"]
+
         if 'scores' in state:
             loaded_scores = state["scores"]
             self.scores[:len(loaded_scores)] = loaded_scores
+
         if 'offline_scores' in state:
             loaded_offline_scores = state["offline_scores"]
             if isinstance(loaded_offline_scores, dict):
                 self.offline_scores = loaded_offline_scores
-            #else:
-            #    self.offline_scores = {}
-            #    self.offline_scores[self.previous_competition_version] = loaded_offline_scores
-            #    self.offline_scores[self.competition_version] = np.zeros(self.metagraph.n, dtype=np.float32)
+            elif isinstance(loaded_offline_scores, np.ndarray):
+                self.offline_scores = loaded_offline_scores.item()
+            else:
+                bt.logging.error(f"OFFLINE: loaded_offline_scores is not a dict or array, type: {type(loaded_offline_scores)}")
+
             for uid in self.metagraph.uids:
                 if uid not in self.offline_scores[self.previous_competition_version]:
                     self.offline_scores[self.previous_competition_version][uid] = 0
         if 'offline_miners_scored' in state:
             loaded_offline_miners_scored = state["offline_miners_scored"]
             self.offline_miners_scored = dict(loaded_offline_miners_scored)
+
+        if 'offline_model_names' in state:
+            loaded_offline_model_names = state["offline_model_names"]
+            if isinstance(loaded_offline_model_names, dict):
+                self.offline_model_names = loaded_offline_model_names
+            elif isinstance(loaded_offline_model_names, np.ndarray):
+                self.offline_model_names = loaded_offline_model_names.item()
+            else:
+                bt.logging.error(f"OFFLINE: loaded_offline_model_names is not a dict or array, type: {type(loaded_offline_model_names)}")
 
     def update_competition_numbers(self):
         try:
@@ -495,19 +515,31 @@ class BaseValidatorNeuron(BaseNeuron):
             if self.offline_scores.get(self.competition_version) is None:
                 self.offline_scores[self.competition_version] = np.zeros(self.metagraph.n, dtype=np.float32)
 
+            # SETUP OFFLINE MINERS SCORED
+            if not isinstance(self.offline_miners_scored[self.competition_version], dict):
+                self.offline_miners_scored[self.competition_version] = {}
+
             if self.offline_miners_scored.get(self.competition_version) is None:
-                self.offline_miners_scored[self.competition_version] = []
+                self.offline_miners_scored[self.competition_version] = {}
+
+            if self.offline_miners_scored[self.competition_version].get(self.spec_version) is None:
+                self.offline_miners_scored[self.competition_version][self.spec_version] = []
+
+            # SETUP OFFLINE MODEL NAMES
+            if self.offline_model_names.get(self.competition_version) is None:
+                self.offline_model_names[self.competition_version] = {}
 
             self.miners_left_to_score = []
 
             # if an offline_score is 0 (we should try again), we need to add the miner to the list of miners left to score
             # so clear out the offline_miners_scored for this competition, for those miners
-            for uid in self.offline_miners_scored[self.competition_version]:
+            for uid in self.offline_miners_scored[self.competition_version][self.spec_version]:
                 if self.offline_scores[self.competition_version][uid] <= 0.01: # little wiggle room
-                    self.offline_miners_scored[self.competition_version].remove(uid)
+                    bt.logging.debug(f"OFFLINE: removing miner {uid} from offline_miners_scored for competition {self.competition_version} because score is less than 0.01")
+                    self.offline_miners_scored[self.competition_version][self.spec_version].remove(uid)
 
             for uid in get_alive_uids(self):
-                if uid not in [int(x) for x in self.offline_miners_scored[self.competition_version]]:
+                if uid not in [int(x) for x in self.offline_miners_scored[self.competition_version][self.spec_version]]:
                     self.miners_left_to_score.append(int(uid))
             
             # if number of keys in offline_scores is greater than 5, we need to delete the oldest one
@@ -515,6 +547,6 @@ class BaseValidatorNeuron(BaseNeuron):
                 oldest_key = list(self.offline_scores.keys())[0]
                 del self.offline_scores[oldest_key]
                 del self.offline_miners_scored[oldest_key]
-
+                del self.offline_model_names[oldest_key]
         except Exception as e:
             bt.logging.error(f"Error updating competition numbers: {e}")
