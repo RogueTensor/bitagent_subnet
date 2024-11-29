@@ -168,20 +168,38 @@ async def write_to_wandb(validator: BaseValidatorNeuron, task: Task, responses: 
             bt.logging.warning("Exception in logging to WandB: {}".format(e))
 
 # all of these miners are scored the same way with the same tasks b/c this is scoring offline models
-async def process_rewards_update_scores_for_many_tasks_and_many_miners(validator: BaseValidatorNeuron, tasks: List[Task], responses: List[Any], 
-                miner_uids: List[int], wandb_data: dict) -> None:
-    rewards = await asyncio.gather(*[evaluate_task(validator, tasks[i], responses[i]) for i in range(len(responses))])
+async def process_rewards_update_scores_for_many_tasks_and_many_miners(
+    validator: BaseValidatorNeuron, tasks: List[Task], responses: List[Any], 
+    miner_uids: List[int], wandb_data: dict
+) -> None:
+    # Gather rewards in parallel
+    rewards = await asyncio.gather(*[
+        evaluate_task(validator, tasks[i], responses[i]) for i in range(len(responses))
+    ])
+
     try:
         scores = []
+        miner_tasks = []  # Collect tasks to execute in parallel for each miner
         for i, reward in enumerate(rewards):
             if len(reward[0]) == 4 and reward[0][0] is not None and reward[0][1] is not None:
-                scores.append(reward[0][0]/reward[0][1])
+                scores.append(reward[0][0] / reward[0][1])
+
+                # Create a coroutine chain for each miner_uid
                 for miner_uid in miner_uids:
-                    result = await return_results(validator, tasks[i], miner_uid, reward[0], responses[i])
-                    await write_to_wandb(validator, tasks[i], [responses[i]], [miner_uid], rewards, result)
+                    async def process_miner_task(task_idx, miner_uid, reward, response):
+                        # Get the result for this miner
+                        result = await return_results(validator, tasks[task_idx], miner_uid, reward[0], response)
+                        # Write the result to wandb
+                        await write_to_wandb(validator, tasks[task_idx], [response], [miner_uid], rewards, result)
+                    
+                    # Append the task for execution
+                    miner_tasks.append(process_miner_task(i, miner_uid, reward, responses[i]))
             else:
-                # bad reward, so 0 score
+                # Bad reward, so 0 score
                 scores.append(0.0)
+
+        # Await all miner-specific tasks concurrently
+        await asyncio.gather(*miner_tasks)
 
     except Exception as e:
         bt.logging.warning(f"OFFLINE: Error logging reward data: {e}")
@@ -192,7 +210,7 @@ async def process_rewards_update_scores_for_many_tasks_and_many_miners(validator
         wandb_data.pop('error')
         wandb_data.pop('miner_uids')
 
-
+    # Compute and log the mean score
     score = np.mean(scores)
     wandb_data['event_name'] = "Processing Rewards - Score"
     wandb_data['score'] = score
@@ -201,7 +219,8 @@ async def process_rewards_update_scores_for_many_tasks_and_many_miners(validator
     wandb_data.pop('score')
     wandb_data.pop('miner_uids')
 
-    validator.update_offline_scores([score]*len(miner_uids), miner_uids)
+    # Update scores
+    validator.update_offline_scores([score] * len(miner_uids), miner_uids)
 
     return score
 
