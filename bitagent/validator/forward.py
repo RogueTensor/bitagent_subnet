@@ -60,8 +60,10 @@ async def forward(self, synapse: QueryTask=None) -> QueryTask:
         if self.offline_status != "complete":
             self.offline_status = "complete"
             wandb_data['offline_status'] = self.offline_status
+            wandb_data['num_miners_left_to_score'] = len(self.miners_left_to_score)
             self.log_event(wandb_data)
             wandb_data.pop('offline_status')
+            wandb_data.pop('num_miners_left_to_score')
         self.running_offline_mode = False
         #bt.logging.debug(f"OFFLINE: No miners left to score for competition {self.competition_version}")
         pass
@@ -85,7 +87,9 @@ async def forward(self, synapse: QueryTask=None) -> QueryTask:
         if self.offline_status != "running":
             self.offline_status = "running"
             wandb_data['offline_status'] = self.offline_status
+            wandb_data['num_miners_left_to_score'] = len(self.miners_left_to_score)
             self.log_event(wandb_data)
+            wandb_data.pop('num_miners_left_to_score')
             wandb_data.pop('offline_status')
         pass
 
