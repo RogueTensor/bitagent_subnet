@@ -65,8 +65,8 @@ class BaseValidatorNeuron(BaseNeuron):
         self.update_competition_numbers()
 
         self.state_file_name = "ft_state.npz"
+
         # Init sync with the network. Updates the metagraph.
-        
         if os.path.exists(self.config.neuron.full_path + f"/{self.state_file_name}"):
             # if we are booting up and have this file, then we'll want to load it
             # otherwise, if we save state, it will overwrite from the sync
@@ -516,10 +516,10 @@ class BaseValidatorNeuron(BaseNeuron):
                 self.offline_scores[self.competition_version] = np.zeros(self.metagraph.n, dtype=np.float32)
 
             # SETUP OFFLINE MINERS SCORED
-            if not isinstance(self.offline_miners_scored[self.competition_version], dict):
+            if self.offline_miners_scored.get(self.competition_version) is None:
                 self.offline_miners_scored[self.competition_version] = {}
 
-            if self.offline_miners_scored.get(self.competition_version) is None:
+            if not isinstance(self.offline_miners_scored[self.competition_version], dict):
                 self.offline_miners_scored[self.competition_version] = {}
 
             if self.offline_miners_scored[self.competition_version].get(self.spec_version) is None:
