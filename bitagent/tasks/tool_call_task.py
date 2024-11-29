@@ -55,6 +55,9 @@ class ToolCallTask(Task):
                 messages, tools, data = self.generate_task_data()
                 expected_messages = messages_to_list(data.messages)
                 expected_tool_call_messages = [em for em in expected_messages if em['role'] == 'tool call']
+                if messages[0].role == 'system':
+                    # try again - skip tasks with system prompts
+                    continue
                 if len(expected_tool_call_messages) > 0:
                     expected_tool_call_message = expected_tool_call_messages[0]['content']
                 else:
