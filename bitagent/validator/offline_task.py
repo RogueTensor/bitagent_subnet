@@ -71,6 +71,7 @@ async def offline_task(self, wandb_data):
     try:
         hf_model_name_to_miner_uids = {}
         for i,miner_uid in enumerate(miner_uids):
+            self.offline_model_names[self.competition_version][miner_uid] = responses[i].hf_model_name
             if responses[i].hf_model_name is not None:
                 if responses[i].hf_model_name not in hf_model_name_to_miner_uids:
                     hf_model_name_to_miner_uids[responses[i].hf_model_name] = []
