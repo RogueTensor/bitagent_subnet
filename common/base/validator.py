@@ -332,6 +332,7 @@ class BaseValidatorNeuron(BaseNeuron):
 
             # Check if the metagraph axon info has changed.
             if previous_metagraph.axons == self.metagraph.axons:
+                bt.logging.debug("Metagraph axons are the same, skipping resync")
                 return
 
             bt.logging.info("Metagraph updated, resyncing hotkeys, dendrite pool and moving averages")  
@@ -344,7 +345,7 @@ class BaseValidatorNeuron(BaseNeuron):
                     self.offline_scores[self.competition_version][uid] = 0
                     self.offline_miners_scored[self.competition_version][self.spec_version].remove(uid)
                     self.offline_model_names[self.competition_version][uid] = ""
-                if not check_uid_availability(self.metagraph, uid, self.config.validator.vpermit_tao_limit): 
+                if not check_uid_availability(self.metagraph, uid, self.config.neuron.vpermit_tao_limit): 
                     # if validator, set validators scores to 0
                     self.scores[uid] = 0 
                     self.offline_scores[self.previous_competition_version][uid] = 0
@@ -375,7 +376,7 @@ class BaseValidatorNeuron(BaseNeuron):
             # Update the hotkeys.
             self.hotkeys = copy.deepcopy(self.metagraph.hotkeys)
         except Exception as e:
-            bt.logging.error(f"Could not sync with metagraph right now, will try later. Error: {e}")
+            bt.logging.error(f"Could not resync with metagraph right now, will try later. Error: {e}")
 
     def update_offline_scores(self, rewards: np.ndarray, uids: List[int]):
         """Performs exponential moving average on the scores based on the rewards received from the miners."""
