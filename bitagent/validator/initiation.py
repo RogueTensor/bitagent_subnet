@@ -15,9 +15,10 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-
+import os
 import copy
 import wandb
+import shutil
 import bittensor as bt
 from datetime import datetime
 from bitagent.datasources import ToolDataset
@@ -80,6 +81,7 @@ def initiate_validator(self):
             return
 
         if not getattr(self, "wandb", None):
+            clear_wandb_dir(self)
             init_wandb(self)
 
         if self.wandb == "errored":
@@ -92,6 +94,23 @@ def initiate_validator(self):
     self.log_event = log_event
 
     initiate_validator_local(self)
+
+def clear_wandb_dir(self):
+    wandb_path = os.path.join(self.config.neuron.full_path, "wandb")
+    if os.path.exists(wandb_path):
+        bt.logging.info(f"Clearing WandB directory of old runs in: {self.config.neuron.full_path}")
+        for item in os.listdir(wandb_path):
+            item_path = os.path.join(wandb_path, item)
+            try:
+                if os.path.islink(item_path):  # If it's a symbolic link
+                    os.unlink(item_path)  # Remove the symlink
+                elif os.path.isfile(item_path):  # If it's a regular file
+                    os.remove(item_path)
+                elif os.path.isdir(item_path):  # If it's a directory
+                    shutil.rmtree(item_path)
+            except Exception as e:
+                bt.logging.warning(f"Failed to remove {item_path}: {e}")
+        bt.logging.info(f"Cleared WandB directory of old runs in: {self.config.neuron.full_path}")
 
 # provide some capabilities to the task API (LLM, cossim)
 def initiate_validator_local(self):
