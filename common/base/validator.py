@@ -343,7 +343,8 @@ class BaseValidatorNeuron(BaseNeuron):
                     self.scores[uid] = np.median(self.scores)
                     self.offline_scores[self.previous_competition_version][uid] = 0
                     self.offline_scores[self.competition_version][uid] = 0
-                    self.offline_miners_scored[self.competition_version][self.spec_version].remove(uid)
+                    if uid in self.offline_miners_scored[self.competition_version][self.spec_version]:
+                        self.offline_miners_scored[self.competition_version][self.spec_version].remove(uid)
                     self.offline_model_names[self.competition_version][uid] = ""
                 if not check_uid_availability(self.metagraph, uid, self.config.neuron.vpermit_tao_limit): 
                     # if validator, set validators scores to 0
@@ -539,7 +540,8 @@ class BaseValidatorNeuron(BaseNeuron):
             for uid in self.offline_miners_scored[self.competition_version][self.spec_version]:
                 if self.offline_scores[self.competition_version][uid] <= 0.01: # little wiggle room
                     bt.logging.debug(f"OFFLINE: removing miner {uid} from offline_miners_scored for competition {self.competition_version} because score is less than 0.01")
-                    self.offline_miners_scored[self.competition_version][self.spec_version].remove(uid)
+                    if uid in self.offline_miners_scored[self.competition_version][self.spec_version]:
+                        self.offline_miners_scored[self.competition_version][self.spec_version].remove(uid)
 
             for uid in get_alive_uids(self):
                 if uid not in [int(x) for x in self.offline_miners_scored[self.competition_version][self.spec_version]]:
