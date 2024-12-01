@@ -5,14 +5,14 @@ import psutil
 import asyncio
 import requests
 
-from sglang.utils import ( # type: ignore
-    execute_shell_command,
+from sglang.utils import (
     terminate_process)
 
 import bittensor as bt
 from bitagent.helpers.llms import llm
 from huggingface_hub import model_info
 from common.utils.uids import get_alive_uids
+from common.utils.shell import execute_shell_command
 from bitagent.tasks.task import get_random_task
 from bitagent.protocol import GetHFModelName
 from bitagent.validator.reward import process_rewards_update_scores_for_many_tasks_and_many_miners
