@@ -251,7 +251,7 @@ async def offline_task(self, wandb_data):
                 # TODO if the latest snapshot is older than a week, delete it and download a new one
 
             except Exception as e:
-                bt.logging.error(f"OFFLINE: Error getting latest snapshot")
+                bt.logging.debug(f"OFFLINE: Error getting latest snapshot")
                 latest_snapshot = None
             
             # either load an existing snapshot or download the model
