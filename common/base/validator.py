@@ -466,6 +466,8 @@ class BaseValidatorNeuron(BaseNeuron):
             else:
                 bt.logging.error(f"OFFLINE: loaded_offline_scores is not a dict or array, type: {type(loaded_offline_scores)}")
 
+            if self.offline_scores.get(self.previous_competition_version) is None:
+                self.offline_scores[self.previous_competition_version] = np.zeros(self.metagraph.n, dtype=np.float32)
             for uid in self.metagraph.uids:
                 if uid not in self.offline_scores[self.previous_competition_version]:
                     self.offline_scores[self.previous_competition_version][uid] = 0
