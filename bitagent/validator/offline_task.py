@@ -254,12 +254,12 @@ async def offline_task(self, wandb_data):
                 bt.logging.debug(f"OFFLINE: Error getting latest snapshot")
                 latest_snapshot = None
             
-            # either load an existing snapshot or download the model
-            if os.path.exists(snapshot_dir) and latest_snapshot:    
-                model_path = latest_snapshot
-            else:
-                # need to download from hugging face
-                model_path = hf_model_name
+            # # either load an existing snapshot or download the model
+            # if os.path.exists(snapshot_dir) and latest_snapshot:    
+            #     model_path = latest_snapshot
+            # else:
+            #     # need to download from hugging face
+            model_path = hf_model_name
 
             server_process = await asyncio.to_thread(execute_shell_command,
                 f"""
