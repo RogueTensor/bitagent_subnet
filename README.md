@@ -136,7 +136,7 @@ python3 -m venv .venvsglang
 
 **Test that it's working with:**
 ```
-.venvsglang/bin/python -m sglang.launch_server --model-path Salesforce/xLAM-7b-r --port 8028 --host 0.0.0.0 --mem-fraction-static 0.55
+.venvsglang/bin/python -m sglang.launch_server --model-path Salesforce/xLAM-7b-r --port 8028 --host 0.0.0.0 --mem-fraction-static 0.40
 ```
 
 You should not run out of memory and it should eventually show that the Salesforce model loaded correclty.

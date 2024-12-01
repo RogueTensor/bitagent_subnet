@@ -135,7 +135,7 @@ async def write_to_wandb(validator: BaseValidatorNeuron, task: Task, responses: 
                 "incentive": validator.metagraph.I[miner_uid],
                 "consensus": validator.metagraph.C[miner_uid],
                 "dividends": validator.metagraph.D[miner_uid],
-                "results": "\n".join(results[i]),
+                "results": "\n".join(str(item) for item in results[i]) if results[i] else "None",
                 "dendrite_process_time": response.dendrite.process_time,
                 "dendrite_status_code": response.dendrite.status_code,
                 "axon_status_code": response.axon.status_code,
