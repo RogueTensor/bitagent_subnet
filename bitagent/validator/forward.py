@@ -56,42 +56,45 @@ async def forward(self, synapse: QueryTask=None) -> QueryTask:
         "competition_version": self.competition_version,
     }
 
-    if len(self.miners_left_to_score) == 0:
-        if self.offline_status != "complete":
-            self.offline_status = "complete"
+    if self.config.subtensor.network != "test":
+        if len(self.miners_left_to_score) == 0:
+            if self.offline_status != "complete":
+                self.offline_status = "complete"
+                wandb_data['offline_status'] = self.offline_status
+                wandb_data['num_miners_left_to_score'] = len(self.miners_left_to_score)
+                self.log_event(wandb_data)
+                wandb_data.pop('offline_status')
+                wandb_data.pop('num_miners_left_to_score')
+            self.running_offline_mode = False
+            #bt.logging.debug(f"OFFLINE: No miners left to score for competition {self.competition_version}")
+            pass
+        elif not self.running_offline_mode:
+            bt.logging.debug(f"OFFLINE: Starting offline mode for competition {self.competition_version}")
+            #bt.logging.debug(f"OFFLINE: Miners left to score: {self.miners_left_to_score}")
+            self.running_offline_mode = True
+            self.offline_status = "starting"
             wandb_data['offline_status'] = self.offline_status
             wandb_data['num_miners_left_to_score'] = len(self.miners_left_to_score)
-            self.log_event(wandb_data)
-            wandb_data.pop('offline_status')
-            wandb_data.pop('num_miners_left_to_score')
-        self.running_offline_mode = False
-        #bt.logging.debug(f"OFFLINE: No miners left to score for competition {self.competition_version}")
-        pass
-    elif not self.running_offline_mode:
-        bt.logging.debug(f"OFFLINE: Starting offline mode for competition {self.competition_version}")
-        #bt.logging.debug(f"OFFLINE: Miners left to score: {self.miners_left_to_score}")
-        self.running_offline_mode = True
-        self.offline_status = "starting"
-        wandb_data['offline_status'] = self.offline_status
-        wandb_data['num_miners_left_to_score'] = len(self.miners_left_to_score)
-        wandb_data['miners_left_to_score'] = self.miners_left_to_score
-        self.log_event(wandb_data)
-        wandb_data.pop('num_miners_left_to_score')
-        wandb_data.pop('miners_left_to_score')
-        wandb_data.pop('offline_status')
-        asyncio.create_task(offline_task(self, wandb_data))
-        self.running_offline_mode = False
-    elif self.running_offline_mode:
-        #bt.logging.debug(f"OFFLINE: Already running offline mode for competition {self.competition_version}")
-        #bt.logging.debug(f"OFFLINE: Miners left to score: {self.miners_left_to_score}")
-        if self.offline_status != "running":
-            self.offline_status = "running"
-            wandb_data['offline_status'] = self.offline_status
-            wandb_data['num_miners_left_to_score'] = len(self.miners_left_to_score)
+            wandb_data['miners_left_to_score'] = self.miners_left_to_score
             self.log_event(wandb_data)
             wandb_data.pop('num_miners_left_to_score')
+            wandb_data.pop('miners_left_to_score')
             wandb_data.pop('offline_status')
-        pass
+            asyncio.create_task(offline_task(self, wandb_data))
+            self.running_offline_mode = False
+        elif self.running_offline_mode:
+            #bt.logging.debug(f"OFFLINE: Already running offline mode for competition {self.competition_version}")
+            #bt.logging.debug(f"OFFLINE: Miners left to score: {self.miners_left_to_score}")
+            if self.offline_status != "running":
+                self.offline_status = "running"
+                wandb_data['offline_status'] = self.offline_status
+                wandb_data['num_miners_left_to_score'] = len(self.miners_left_to_score)
+                self.log_event(wandb_data)
+                wandb_data.pop('num_miners_left_to_score')
+                wandb_data.pop('offline_status')
+            pass
+    else:
+        bt.logging.debug("OFFLINE: Skipping offline for testnet")
 
     # ###########################################################
     # ONLINE TASKING
