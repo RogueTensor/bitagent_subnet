@@ -268,7 +268,8 @@ async def offline_task(self, wandb_data):
                 --port {self.config.validator_hf_server_port} \ 
                 --host 0.0.0.0 \
                 --mem-fraction-static {self.config.validator_hf_server_mem_fraction_static}
-                """
+                """, 
+                hf_model_name
             )
 
             bt.logging.debug(f"OFFLINE: Started server for model {i+1} of {len(unique_miner_hf_model_names)}, waiting for it to start on port {self.config.validator_hf_server_port} (could take several minutes)")

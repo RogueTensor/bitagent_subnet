@@ -1,7 +1,9 @@
 import subprocess
 import shlex
+import re
+from threading import Thread
 
-def execute_shell_command(command: str) -> subprocess.Popen:
+def execute_shell_command(command: str, model_name: str) -> subprocess.Popen:
     """
     Execute a shell command and stream the output to the caller in real-time.
 
@@ -12,7 +14,7 @@ def execute_shell_command(command: str) -> subprocess.Popen:
     """
     # Replace \ newline with space and split using shlex
     command = command.replace("\\\n", " ").replace("\\", " ")
-    parts = shlex.split(command)  # Handles quoted strings correctly
+    parts = shlex.split(command)  # Handles quoted strings correct
 
     try:
         # Run the process
@@ -20,14 +22,22 @@ def execute_shell_command(command: str) -> subprocess.Popen:
             parts, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
 
-        # Stream the output in real-time
         def stream_output(stream, stream_name):
             for line in iter(stream.readline, ''):
-                print(f"{stream_name}: {line.strip()}")
+                line = line.rstrip('\n')
+                if stream_name == "STDERR":
+
+                    redacted_line = line.replace(model_name, "[REDACTED]")
+
+                    print(f"{stream_name}: {redacted_line}")
+
+                # Uncomment this if you want STDOUT logging as well:
+                # else:
+                #     print(f"{stream_name}: {line}")
+
             stream.close()
 
         # Stream both stdout and stderr
-        from threading import Thread
         Thread(target=stream_output, args=(process.stdout, "STDOUT")).start()
         Thread(target=stream_output, args=(process.stderr, "STDERR")).start()
 

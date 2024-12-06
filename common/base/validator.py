@@ -469,9 +469,9 @@ class BaseValidatorNeuron(BaseNeuron):
 
             if self.offline_scores.get(self.previous_competition_version) is None:
                 self.offline_scores[self.previous_competition_version] = np.zeros(self.metagraph.n, dtype=np.float32)
-            for uid in self.metagraph.uids:
-                if uid not in self.offline_scores[self.previous_competition_version]:
-                    self.offline_scores[self.previous_competition_version][uid] = 0
+            #for uid in self.metagraph.uids:
+            #    if uid not in self.offline_scores[self.previous_competition_version]:
+            #        self.offline_scores[self.previous_competition_version][uid] = 0
         if 'offline_miners_scored' in state:
             loaded_offline_miners_scored = state["offline_miners_scored"]
             self.offline_miners_scored = dict(loaded_offline_miners_scored)
