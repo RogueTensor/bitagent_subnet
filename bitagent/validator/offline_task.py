@@ -144,27 +144,27 @@ async def offline_task(self, wandb_data):
     wandb_data.pop('num_unique_hf_models')
 
     # TODO get this figured out so we can save processing time on the vali side
-    if False:
-        # no need to regrade if score exists for the same model
-        models_to_skip = [] 
-        for hfmn in unique_miner_hf_model_names:
-            uids_with_same_model = []
-            scores_with_same_model = []
-            for k,model_name in self.offline_model_names[self.competition_version].items():
-                if model_name == hfmn:
-                    uids_with_same_model.append(k)
-                    scores_with_same_model.append(self.offline_scores[self.competition_version][k])
-            if len(uids_with_same_model) > 0:
-                models_to_skip.append(hfmn)
-                # the ungraded miners with the same model name
-                the_uids = hf_model_name_to_miner_uids[hfmn]
-                bt.logging.debug(f"OFFLINE: Found miner with same model, using existing score")
-                for uid in the_uids:
-                    self.offline_scores[self.competition_version][uid] = max(scores_with_same_model)
-                self.update_offline_scores([max(scores_with_same_model)] * len(the_uids), the_uids)
-                    
-        # skip the models we already have scores for
-        unique_miner_hf_model_names = [m for m in unique_miner_hf_model_names if m not in models_to_skip]
+    #if False:
+    # no need to regrade if score exists for the same model
+    models_to_skip = [] 
+    for hfmn in unique_miner_hf_model_names:
+        uids_with_same_model = []
+        scores_with_same_model = []
+        for k,model_name in self.offline_model_names[self.competition_version].items():
+            if model_name == hfmn:
+                uids_with_same_model.append(k)
+                scores_with_same_model.append(self.offline_scores[self.competition_version][k])
+        if len(uids_with_same_model) > 0:
+            models_to_skip.append(hfmn)
+            # the ungraded miners with the same model name
+            the_uids = hf_model_name_to_miner_uids[hfmn]
+            bt.logging.debug(f"OFFLINE: Found miner with same model, using existing score")
+            for uid in the_uids:
+                self.offline_scores[self.competition_version][uid] = max(scores_with_same_model)
+            self.update_offline_scores([max(scores_with_same_model)] * len(the_uids), the_uids)
+                
+    # skip the models we already have scores for
+    unique_miner_hf_model_names = [m for m in unique_miner_hf_model_names if m not in models_to_skip]
 
     if len(unique_miner_hf_model_names) > 0:
         bt.logging.debug(f"OFFLINE: Generating tasks")
@@ -375,8 +375,12 @@ async def offline_task(self, wandb_data):
         self.log_event(wandb_data)
 
         # TODO This is blocking the main loop
-        await process_rewards_update_scores_for_many_tasks_and_many_miners(self, tasks=tasks, responses=responses, miner_uids=these_miner_uids, wandb_data=wandb_data)
-    
+        # blocking due to await, attempting to remove await and create a task and move on
+
+        #await process_rewards_update_scores_for_many_tasks_and_many_miners(self, tasks=tasks, responses=responses, miner_uids=these_miner_uids, wandb_data=wandb_data)
+        asyncio.create_task(process_rewards_update_scores_for_many_tasks_and_many_miners(self, tasks=tasks, responses=responses, miner_uids=these_miner_uids, wandb_data=wandb_data))
+                            
+
         # remove newly downloaded files from HF cache if were not already in cache
         if not latest_snapshot:
             bt.logging.debug(f"OFFLINE: Deleting model from HF cache: {i+1} of {len(unique_miner_hf_model_names)}")
