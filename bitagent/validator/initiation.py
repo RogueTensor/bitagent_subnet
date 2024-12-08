@@ -98,7 +98,7 @@ def initiate_validator(self):
 def clear_wandb_dir(self):
     wandb_path = os.path.join(self.config.neuron.full_path, "wandb")
     if os.path.exists(wandb_path):
-        bt.logging.info(f"Clearing WandB directory of old runs in: {self.config.neuron.full_path}")
+        bt.logging.info(f"Clearing WandB directory of old runs")
         for item in os.listdir(wandb_path):
             item_path = os.path.join(wandb_path, item)
             try:
@@ -110,7 +110,7 @@ def clear_wandb_dir(self):
                     shutil.rmtree(item_path)
             except Exception as e:
                 bt.logging.warning(f"Failed to remove {item_path}: {e}")
-        bt.logging.info(f"Cleared WandB directory of old runs in: {self.config.neuron.full_path}")
+        bt.logging.info(f"Cleared WandB directory of old runs")
 
 # provide some capabilities to the task API (LLM, cossim)
 def initiate_validator_local(self):

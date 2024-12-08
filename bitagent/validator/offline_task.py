@@ -203,9 +203,14 @@ async def offline_task(self, wandb_data):
             continue # skip this model
 
         # Extract the model card data for the model from HF
+        import logging
+        # don't log HF output
+        original_level = logging.getLogger().level
+        logging.disable(logging.CRITICAL)
         info = model_info(hf_model_name)
         license = info.card_data['license']
         total_size = info.safetensors.total
+        logging.disable(original_level)
 
         # confirm model license is apache-2.0 or nc-by-nc-4.0 or mit
         # TODO eventually ONLY accept apache-2.0
@@ -267,8 +272,10 @@ async def offline_task(self, wandb_data):
                 --model-path {model_path} \
                 --port {self.config.validator_hf_server_port} \ 
                 --host 0.0.0.0 \
-                --mem-fraction-static {self.config.validator_hf_server_mem_fraction_static}
-                """
+                --mem-fraction-static {self.config.validator_hf_server_mem_fraction_static} \
+                --context-length 25000
+                """, 
+                hf_model_name
             )
 
             bt.logging.debug(f"OFFLINE: Started server for model {i+1} of {len(unique_miner_hf_model_names)}, waiting for it to start on port {self.config.validator_hf_server_port} (could take several minutes)")
