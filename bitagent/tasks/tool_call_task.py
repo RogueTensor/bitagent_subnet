@@ -28,6 +28,7 @@ from bitagent.criteria import default_criteria, tool_call_criteria, irrelevant_t
 REWRITE_TOOL_USER_PROMPT = """You rewrite questions to make sense when paired with a function call. 
 The rewritten question will need to be changed to match the argument parameters and values relative to the function name.
 You should change the phrasing of the question to be different and keeping aligned with the function name and arguments. 
+The capitalization of your user prompt rephrasasl should match the exact case of what is expected in the function call.
 Your response should be the rewritten question only.\n
 Function call:\n`{tool_call}`\n 
 Question: {user}\n 
