@@ -1,6 +1,6 @@
-import subprocess
 import shlex
-import re
+import subprocess
+import bittensor as bt
 from threading import Thread
 
 def execute_shell_command(command: str, model_name: str) -> subprocess.Popen:
@@ -26,10 +26,10 @@ def execute_shell_command(command: str, model_name: str) -> subprocess.Popen:
             for line in iter(stream.readline, ''):
                 line = line.rstrip('\n')
                 if stream_name == "STDERR":
-
-                    redacted_line = line.replace(model_name, "[REDACTED]")
-
-                    print(f"{stream_name}: {redacted_line}")
+                    # only print lines that relate to the model or loading status
+                    if model_name in line or "shard" in line:
+                        redacted_line = line.replace(model_name, "[REDACTED]")
+                        bt.logging.debug(f"{stream_name}: {redacted_line}")
 
                 # Uncomment this if you want STDOUT logging as well:
                 # else:
