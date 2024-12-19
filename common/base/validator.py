@@ -25,12 +25,10 @@ import bittensor as bt
 from datetime import datetime, timezone
 from common.utils.uids import get_alive_uids
 from bitagent.validator.constants import DEPLOYED_DATE, COMPETITION_LENGTH_DAYS, TESTNET_COMPETITION_LENGTH_DAYS, COMPETITION_PREFIX, COMPETITION_PREVIOUS_PREFIX
-
 from common.utils.weight_utils import (
     process_weights_for_netuid,
     convert_weights_and_uids_for_emit,
 )
-
 from typing import List
 from traceback import print_exception
 
@@ -62,7 +60,7 @@ class BaseValidatorNeuron(BaseNeuron):
         self.offline_model_names = {}
         self.running_offline_mode = False
         self.offline_status = None
-        self.regrade_version = 1012
+        self.regrade_version = 1022
         self.update_competition_numbers()
 
         self.state_file_name = "ft_state.npz"
@@ -497,7 +495,7 @@ class BaseValidatorNeuron(BaseNeuron):
                 bt.logging.debug(f"OFFLINE TESTNET: using {TESTNET_COMPETITION_LENGTH_DAYS} days per competition")
                 number_of_competitions_since_start = int(number_of_days_since_start / TESTNET_COMPETITION_LENGTH_DAYS)
 
-            bt.logging.debug(f"OFFLINE: number_of_competitions_since_start: {number_of_competitions_since_start}")
+            #bt.logging.debug(f"OFFLINE: number_of_competitions_since_start: {number_of_competitions_since_start}")
 
             if number_of_competitions_since_start < 1:
                 # we have not completed any competitions with this prefix, so the previous competition number is the last one we completed with the old prefix
@@ -540,14 +538,25 @@ class BaseValidatorNeuron(BaseNeuron):
             # so clear out the offline_miners_scored for this competition, for those miners
             for uid in self.offline_miners_scored[self.competition_version][self.regrade_version]:
                 if self.offline_scores[self.competition_version][uid] <= 0.01: # little wiggle room
-                    bt.logging.debug(f"OFFLINE: removing miner {uid} from offline_miners_scored for competition {self.competition_version} because score is less than 0.01")
-                    if uid in self.offline_miners_scored[self.competition_version][self.regrade_version]:
-                        self.offline_miners_scored[self.competition_version][self.regrade_version].remove(uid)
+                    #bt.logging.debug(f"OFFLINE: removing miner {uid} from offline_miners_scored for competition {self.competition_version} because score is less than 0.01")
+                    self.offline_miners_scored[self.competition_version][self.regrade_version].remove(uid)
 
+            # add all miners that are alive and not already scored to the list of miners left to score
             for uid in get_alive_uids(self):
                 if uid not in [int(x) for x in self.offline_miners_scored[self.competition_version][self.regrade_version]]:
                     self.miners_left_to_score.append(int(uid))
-            
+
+            # if a regrade has been set for the comp, then reset the scores for the miners
+            #bt.logging.debug(f"OFFLINE: regrade version: {self.regrade_version}")
+            #bt.logging.debug(f"OFFLINE: regrade check - offline miners scored: {self.offline_miners_scored[self.competition_version][self.regrade_version]}")
+            #bt.logging.debug(f"OFFLINE: regrade check - offline scores: {self.offline_scores[self.competition_version]}")
+            for uid,score in enumerate(self.offline_scores[self.competition_version]):
+                #bt.logging.debug(f"OFFLINE: regrade check for uid: {uid}")
+                if score > 0.0 and uid not in [int(x) for x in self.offline_miners_scored[self.competition_version][self.regrade_version]]:
+                    #bt.logging.debug(f"OFFLINE: resetting miner {uid}'s score for competition {self.competition_version} for regrade")
+                    self.offline_scores[self.competition_version][uid] = 0.0
+                #bt.logging.debug(f"OFFLINE: regrade check for uid done: {uid}")
+
             # if number of keys in offline_scores is greater than 5, we need to delete the oldest one
             if len(self.offline_scores.keys()) > 6:
                 oldest_key = list(self.offline_scores.keys())[0]
