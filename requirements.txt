@@ -13,8 +13,9 @@ attrs==24.2.0
 backoff==2.2.1
 base58==2.1.1
 -e git+ssh://git@github.com/RogueTensor/bitagent_subnet.git@494c76f1e982ac10166dcd640568225478524f98#egg=bitagent
-bittensor==8.4.5
+bittensor==8.5.1
 bittensor-cli==8.4.1
+bittensor-commit-reveal==0.1.0
 bittensor-wallet==2.1.3
 bt-decode==0.4.0
 cachetools==5.5.0
