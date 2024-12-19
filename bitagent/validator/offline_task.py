@@ -392,8 +392,12 @@ async def offline_task(self, wandb_data):
         self.log_event(wandb_data)
 
         # TODO This is blocking the main loop
-        await process_rewards_update_scores_for_many_tasks_and_many_miners(self, tasks=tasks, responses=responses, miner_uids=these_miner_uids, wandb_data=wandb_data)
-    
+        # blocking due to await, attempting to remove await and create a task and move on
+
+        #await process_rewards_update_scores_for_many_tasks_and_many_miners(self, tasks=tasks, responses=responses, miner_uids=these_miner_uids, wandb_data=wandb_data)
+        asyncio.create_task(process_rewards_update_scores_for_many_tasks_and_many_miners(self, tasks=tasks, responses=responses, miner_uids=these_miner_uids, wandb_data=wandb_data))
+                            
+
         # remove newly downloaded files from HF cache if were not already in cache
         if not latest_snapshot:
             bt.logging.debug(f"OFFLINE: Deleting model from HF cache: {i+1} of {len(unique_miner_hf_model_names)}")
