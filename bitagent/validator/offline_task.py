@@ -4,17 +4,17 @@ import shutil
 import psutil
 import asyncio
 import requests
+import bittensor as bt
 
 from sglang.utils import (
     terminate_process)
-
-import bittensor as bt
 from bitagent.helpers.llms import llm
 from huggingface_hub import model_info
 from common.utils.uids import get_alive_uids
-from common.utils.shell import execute_shell_command
-from bitagent.tasks.task import get_random_task
 from bitagent.protocol import GetHFModelName
+from bitagent.tasks.task import get_random_task
+from common.utils.shell import execute_shell_command
+from bitagent.helpers.logging import temporary_logging_state
 from bitagent.validator.reward import process_rewards_update_scores_for_many_tasks_and_many_miners
 
 # TODO overall for tracking, would be nice to track based on hotkey instead of UID
@@ -74,6 +74,7 @@ def wait_for_server(base_url: str, server_process, timeout: int = None) -> None:
 
         except requests.exceptions.RequestException:
             time.sleep(1)
+
 
 # ###########################################################
 # OFFLINE TASKING
@@ -143,28 +144,35 @@ async def offline_task(self, wandb_data):
     self.log_event(wandb_data)
     wandb_data.pop('num_unique_hf_models')
 
-    # TODO get this figured out so we can save processing time on the vali side
-    if False:
-        # no need to regrade if score exists for the same model
-        models_to_skip = [] 
-        for hfmn in unique_miner_hf_model_names:
-            uids_with_same_model = []
-            scores_with_same_model = []
-            for k,model_name in self.offline_model_names[self.competition_version].items():
-                if model_name == hfmn:
-                    uids_with_same_model.append(k)
-                    scores_with_same_model.append(self.offline_scores[self.competition_version][k])
-            if len(uids_with_same_model) > 0:
-                models_to_skip.append(hfmn)
-                # the ungraded miners with the same model name
-                the_uids = hf_model_name_to_miner_uids[hfmn]
-                bt.logging.debug(f"OFFLINE: Found miner with same model, using existing score")
-                for uid in the_uids:
-                    self.offline_scores[self.competition_version][uid] = max(scores_with_same_model)
-                self.update_offline_scores([max(scores_with_same_model)] * len(the_uids), the_uids)
-                    
-        # skip the models we already have scores for
-        unique_miner_hf_model_names = [m for m in unique_miner_hf_model_names if m not in models_to_skip]
+    # no need to regrade if score exists for the same model
+    models_to_skip = []
+    
+    for hfmn in unique_miner_hf_model_names:
+        uids_with_same_model = []
+        scores_with_same_model = []
+        for k, model_name in self.offline_model_names[self.competition_version].items():
+            if model_name == hfmn:
+                uids_with_same_model.append(k)
+                scores_with_same_model.append(self.offline_scores[self.competition_version][k])
+        
+        if len(uids_with_same_model) > 0:
+            max_score_for_model = max(scores_with_same_model)  # Calculate max score once
+
+            if max_score_for_model <= 0:
+                # Skip adding to models_to_skip if max score is zero
+                continue
+            
+            models_to_skip.append(hfmn)  # Add only if max_score > 0
+            
+            # Process the miners
+            the_uids = hf_model_name_to_miner_uids[hfmn]
+            bt.logging.debug(f"OFFLINE: Found miner with same model, using existing score")
+            for uid in the_uids:
+                self.offline_scores[self.competition_version][uid] = max_score_for_model
+            self.update_offline_scores([max_score_for_model] * len(the_uids), the_uids)
+
+    # skip the models we already have scores for
+    unique_miner_hf_model_names = [m for m in unique_miner_hf_model_names if m not in models_to_skip]
 
     if len(unique_miner_hf_model_names) > 0:
         bt.logging.debug(f"OFFLINE: Generating tasks")
@@ -203,14 +211,16 @@ async def offline_task(self, wandb_data):
             continue # skip this model
 
         # Extract the model card data for the model from HF
-        import logging
-        # don't log HF output
-        original_level = logging.getLogger().level
-        logging.disable(logging.CRITICAL)
-        info = model_info(hf_model_name)
-        license = info.card_data['license']
-        total_size = info.safetensors.total
-        logging.disable(original_level)
+        # ensure logger doesn't print the model name publicly, so restrict to only HF warnings
+        # Temporarily set logging to WARNING within the context manager
+        with temporary_logging_state('Warning'):
+            info = model_info(hf_model_name)
+            total_size = info.safetensors.total
+            try:
+                license = info.card_data['license']
+            except Exception:
+                bt.logging.debug("OFFLINE: No license found for model")
+                license = 'No license available'
 
         # confirm model license is apache-2.0 or nc-by-nc-4.0 or mit
         # TODO eventually ONLY accept apache-2.0
