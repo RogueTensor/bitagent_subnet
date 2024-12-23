@@ -53,6 +53,10 @@ async def forward(self, synapse: QueryTask=None) -> QueryTask:
         "median_score_for_miners_with_this_validator": np.median(self.scores),
         "highest_offline_score_for_miners_with_this_validator": self.offline_scores[self.competition_version].max(),
         "median_offline_score_for_miners_with_this_validator": np.median(self.offline_scores[self.competition_version]),
+        "average_offline_score_for_miners_with_this_validator": np.mean(self.offline_scores[self.competition_version]),
+        "prior_highest_offline_score_for_miners_with_this_validator": self.offline_scores[self.previous_competition_version].max(),
+        "prior_median_offline_score_for_miners_with_this_validator": np.median(self.offline_scores[self.previous_competition_version]),
+        "prior_average_offline_score_for_miners_with_this_validator": np.mean(self.offline_scores[self.previous_competition_version]),
         "competition_version": self.competition_version,
     }
 
