@@ -352,7 +352,7 @@ class BaseValidatorNeuron(BaseNeuron):
                         self.offline_miners_scored[self.competition_version][self.regrade_version].remove(uid)
                     self.offline_model_names[self.competition_version][uid] = ""
                     self.offline_model_names[self.previous_competition_version][uid] = ""
-                    
+
             # Check to see if the metagraph has changed size.
             # If so, we need to add new hotkeys and moving averages.
             if len(self.hotkeys) < len(self.metagraph.hotkeys):
@@ -559,10 +559,10 @@ class BaseValidatorNeuron(BaseNeuron):
                 #bt.logging.debug(f"OFFLINE: regrade check for uid done: {uid}")
 
             # if number of keys in offline_scores is greater than 5, we need to delete the oldest one
-            if len(self.offline_scores.keys()) > 6:
-                oldest_key = list(self.offline_scores.keys())[0]
-                del self.offline_scores[oldest_key]
-                del self.offline_miners_scored[oldest_key]
-                del self.offline_model_names[oldest_key]
+            # if len(self.offline_scores.keys()) > 6:
+            #     oldest_key = list(self.offline_scores.keys())[0]
+            #     del self.offline_scores[oldest_key]
+            #     del self.offline_miners_scored[oldest_key]
+            #     del self.offline_model_names[oldest_key]
         except Exception as e:
             bt.logging.error(f"Error updating competition numbers: {e}")
