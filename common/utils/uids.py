@@ -52,11 +52,11 @@ def get_alive_uids(self):
             finish = len(self.metagraph.axons)  
     alive_uids = [uid for uid, response in zip(range(self.metagraph.n.item()), results) if response.response and response.dendrite.status_code == 200]
 
-    # if not alive for querying, they won't get tasks for an hour, lower their score by 0.5
+    # if not alive for querying, they won't get tasks for an hour, set their score to -0.5
     for uid in self.metagraph.uids:
         if uid not in alive_uids:
-            self.offline_scores[self.competition_version][uid] -= 0.5
-            self.scores[uid] -= 0.5
+            self.offline_scores[self.competition_version][uid] = -0.5
+            self.scores[uid] = -0.5
     #bt.logging.debug(f"Found {len(alive_uids)} alive UIDs, caching for 1 hour")
     return alive_uids
 
