@@ -60,7 +60,7 @@ class BaseValidatorNeuron(BaseNeuron):
         self.offline_model_names = {}
         self.running_offline_mode = False
         self.offline_status = None
-        self.regrade_version = 1022
+        self.regrade_version = 1023
         self.update_competition_numbers()
 
         self.state_file_name = "ft_state.npz"
