@@ -252,12 +252,18 @@ class BaseValidatorNeuron(BaseNeuron):
             bt.logging.warning(
                 f"Scores contain NaN values. This may be due to a lack of responses from miners, or a bug in your reward functions."
             )
-         
-        fit_curve = True
+        # correct validator scores to be 0 
+        for uid, hotkey in enumerate(self.hotkeys):
+            if not check_uid_availability(self.metagraph, uid, self.config.neuron.vpermit_tao_limit): 
+                # if validator, set validators scores to 0
+                self.scores[uid] = 0 
+                self.offline_scores[self.previous_competition_version][uid] = 0
+                self.offline_scores[self.competition_version][uid] = 0
+                self.offline_miners_scored[self.competition_version][self.regrade_version].append(uid)
+                self.offline_model_names[self.competition_version][uid] = ""
 
-        weighted_scores = self.scores.copy()
-        if fit_curve:
-            weighted_scores = self.get_weighted_scores()
+        # always fit scores to weighted curve
+        weighted_scores = self.get_weighted_scores()
 
         # Calculate the average reward for each uid across non-zero values.
         # Replace any NaN values with 0.
@@ -315,7 +321,7 @@ class BaseValidatorNeuron(BaseNeuron):
         # scores are largely based on PREVIOUS competition scores
         scaled_scores = ((0.2 * self.scores) + (0.8 * self.offline_scores[self.previous_competition_version])) * 5
         exp_scores = np.exp(scaled_scores)
-        return exp_scores / np.sum(exp_scores)
+        return exp_scores / np.sum(exp_scores)    
 
     def resync_metagraph(self):
         """Resyncs the metagraph and updates the hotkeys and moving averages based on the new metagraph."""
@@ -345,13 +351,8 @@ class BaseValidatorNeuron(BaseNeuron):
                     if uid in self.offline_miners_scored[self.competition_version][self.regrade_version]:
                         self.offline_miners_scored[self.competition_version][self.regrade_version].remove(uid)
                     self.offline_model_names[self.competition_version][uid] = ""
-                if not check_uid_availability(self.metagraph, uid, self.config.neuron.vpermit_tao_limit): 
-                    # if validator, set validators scores to 0
-                    self.scores[uid] = 0 
-                    self.offline_scores[self.previous_competition_version][uid] = 0
-                    self.offline_scores[self.competition_version][uid] = 0
-                    self.offline_miners_scored[self.competition_version][self.regrade_version].append(uid)
-                    self.offline_model_names[self.competition_version][uid] = ""
+                    self.offline_model_names[self.previous_competition_version][uid] = ""
+                    
             # Check to see if the metagraph has changed size.
             # If so, we need to add new hotkeys and moving averages.
             if len(self.hotkeys) < len(self.metagraph.hotkeys):
