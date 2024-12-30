@@ -274,7 +274,7 @@ The Bi-weekly challenge is to finetune an 8B model (or less) to perform well on 
 Due to the delayed incentive mechanism of finetuned model evaluation, miners are not recommended to register during the middle of a competition. This is because miners registering mid-competition will not have a score from the prior competition, making them unable to benefit from the 80% incentive calculation.
 - It is recommended that miners register on the day a competition ends (prior to the actual time of competition close). The competitions end on the midnight (00:00) UTC between Monday and Tuesday every two weeks starting from 11-5-2024.
 - Registering on the competition end date (within 16 hours of the deadline) ensures that the miner's 16-hour immunity will be used for model submission grading and scoring in the current competition. Additionally, while the miner is still immune, the competition will roll over into the next cycle, and the miner's score will be finalized for the incentive calculation for the entire next competition cycle.
-
+- On the day of the competition's end, registration slots are expected to be extremely competitive. Due to substrate constraints, at most three miners can register per hour. If you're receiving error messages while registering, this is why and you will need to keep trying.
 
 #### Miner Configuration Considerations
 The default miner is all you need, just make sure you update the parameters described in [Default Miner](#default-miner).  
