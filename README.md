@@ -254,7 +254,7 @@ The default miner is all you need with these modifications:
 3) `--openai-api-base` - this sets the vLLM endpoint that's running your local model. \
    Example: `--openai-api-base http://localhost:8000/v1`
 
-See [Miner Considerations](#miner-considerations) for common areas miners should look to improve.
+See [Miner Configuration Considerations](#miner-configuration-considerations) for common areas miners should look to improve.
 
 #### Miner Emissions
 
