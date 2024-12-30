@@ -259,8 +259,8 @@ See [Miner Considerations](#miner-considerations) for common areas miners should
 #### Miner Emissions
 
 Miner emissions are composed of both MINER-HOSTED and FINETUNED SUBMISSION evaluation:
-- 20% of the miner's score is determined by the model miners persistently run to handle on-demand queries.  This is MINER-HOSTED evaluation of the miner.
-- 80% is determined by bi-weekly challenges in which the miner submits their latest huggingface model and Validators load the model on their machine to evaluate.  This is FINETUNED SUBMISSION evaluation.
+- 20% of the miner's score is determined by the persistent availability of the miners and their response to on-demand queries  This is MINER-HOSTED evaluation of the miner.
+- 80% is determined by bi-weekly challenges in which the miner submits their latest huggingface model and Validators load the model on their machine to evaluate. This is FINETUNED SUBMISSION evaluation. This 80% portion serves as a delayed incentive mechanism, meaning it is always based on miner/model performance from the PREVIOUS competition.
 
 Both MINER-HOSTED and FINETUNED SUBMISSION tasks are evaluated against modifications of these datasets:
 - Berkeley Function Calling tasks
@@ -269,7 +269,14 @@ Both MINER-HOSTED and FINETUNED SUBMISSION tasks are evaluated against modificat
 
 The Bi-weekly challenge is to finetune an 8B model (or less) to perform well on the tool calling tasks and perform well on the [BFCL Leaderboard](https://gorilla.cs.berkeley.edu/leaderboard.html). Miners must publish their model to HuggingFace and update their `--miner-hf-model-name-to-subnet` parameter when starting/restarting their miner - see [Default Miner](#default-miner)
 
-#### Miner Considerations
+#### Miner Registration Considerations
+
+Due to the delayed incentive mechanism of finetuned model evaluation, miners are not recommended to register during the middle of a competition. This is because miners registering mid-competition will not have a score from the prior competition, making them unable to benefit from the 80% incentive calculation.
+- It is recommended that miners register on the day a competition ends (prior to the actual time of competition close). The competitions end on the midnight (00:00) UTC between Monday and Tuesday every two weeks starting from 11-5-2024.
+- Registering on the competition end date (within 16 hours of the deadline) ensures that the miner's 16-hour immunity will be used for model submission grading and scoring in the current competition. Additionally, while the miner is still immune, the competition will roll over into the next cycle, and the miner's score will be finalized for the incentive calculation for the entire next competition cycle.
+
+
+#### Miner Configuration Considerations
 The default miner is all you need, just make sure you update the parameters described in [Default Miner](#default-miner).  
 For your consideration:
 1) Use vLLM as a fast inference runner for your tool calling LLM. Check [this](https://docs.vllm.ai/en/v0.6.0/getting_started/quickstart.html#openai-compatible-server) out to stand up an openAI compliant vLLM instance.
