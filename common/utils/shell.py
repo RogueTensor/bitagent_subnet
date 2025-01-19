@@ -26,8 +26,8 @@ def execute_shell_command(command: str, model_name: str) -> subprocess.Popen:
             for line in iter(stream.readline, ''):
                 line = line.rstrip('\n')
                 if stream_name == "STDERR":
-                    # only print lines that relate to the model or loading status
-                    if model_name in line or "shard" in line:
+                    # log everything except for token generation metrics
+                    if "#new-token" not in line and "Decode batch." not in line:
                         redacted_line = line.replace(model_name, "[REDACTED]")
                         bt.logging.debug(f"{stream_name}: {redacted_line}")
 
