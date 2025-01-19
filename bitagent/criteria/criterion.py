@@ -38,10 +38,6 @@ class Criterion():
     def clean_response(self,response):
         # TODO check multiple functions for parallel, when the response is a list [fx1(), fx2()]
         response = response.strip()
-        if response == "":
-            return response
-        if "\n" in response:
-            response = response.split("\n")[-1]
         if "[" in response[0] and "]" in response[-1]:
             response = response[1:-1]
 
