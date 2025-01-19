@@ -23,6 +23,7 @@ import threading
 import numpy as np
 import bittensor as bt
 from datetime import datetime, timezone
+from scoring_utils import score_spreading
 from common.utils.uids import get_alive_uids
 from bitagent.validator.constants import DEPLOYED_DATE, COMPETITION_LENGTH_DAYS, TESTNET_COMPETITION_LENGTH_DAYS, COMPETITION_PREFIX, COMPETITION_PREVIOUS_PREFIX
 from common.utils.weight_utils import (
@@ -34,7 +35,7 @@ from traceback import print_exception
 
 from common.base.neuron import BaseNeuron
 from common.utils.uids import check_uid_availability
-
+    
 class BaseValidatorNeuron(BaseNeuron):
     """
     Base class for Bittensor validators. Your validator should inherit from this class.
@@ -60,9 +61,10 @@ class BaseValidatorNeuron(BaseNeuron):
         self.offline_model_names = {}
         self.running_offline_mode = False
         self.offline_status = None
-        self.regrade_version = 1023
+        self.regrade_version = 1025
         self.update_competition_numbers()
-
+        self.max_div = 0.0006
+        self.min_div = 0.0002
         self.state_file_name = "ft_state.npz"
 
         # Init sync with the network. Updates the metagraph.
@@ -244,8 +246,12 @@ class BaseValidatorNeuron(BaseNeuron):
         """
         Sets the validator weights to the metagraph hotkeys based on the scores it has received from the miners. The weights determine the trust and incentive level the validator assigns to miner nodes on the network.
         """
+        bt.logging.debug(f"set_weights()")
         if self.config.subtensor.network == "test":
             return # Don't set weights on testnet.
+
+        self.divisions = int(np.floor(self.block / 1000))
+        current_odds = (0.2 * self.scores) + (0.8 * self.offline_scores[self.previous_competition_version])
 
         # Check if self.scores contains any NaN values and log a warning if it does.
         if np.isnan(self.scores).any():
@@ -263,7 +269,9 @@ class BaseValidatorNeuron(BaseNeuron):
                 self.offline_model_names[self.competition_version][uid] = ""
 
         # always fit scores to weighted curve
-        weighted_scores = self.get_weighted_scores()
+        weighted_scores = score_spreading(current_odds,self.divisions,self.min_div,self.max_div)
+
+        #bt.logging.info(f"weighted_scores: {weighted_scores}")
 
         # Calculate the average reward for each uid across non-zero values.
         # Replace any NaN values with 0.
@@ -272,10 +280,10 @@ class BaseValidatorNeuron(BaseNeuron):
             norm = np.ones_like(norm)
         raw_weights = weighted_scores/norm
 
-        bt.logging.debug("raw_weights: ")
-        bt.logging.debug(raw_weights)
-        bt.logging.debug("raw_weight_uids: ")
-        bt.logging.debug(self.metagraph.uids)
+        # bt.logging.debug("raw_weights: ")
+        # bt.logging.debug(raw_weights)
+        # bt.logging.debug("raw_weight_uids: ")
+        # bt.logging.debug(self.metagraph.uids)
 
         # Process the raw weights to final_weights via subtensor limitations.
         (
@@ -288,10 +296,10 @@ class BaseValidatorNeuron(BaseNeuron):
             subtensor=self.subtensor,
             metagraph=self.metagraph,
         )
-        bt.logging.debug("processed_weights: ")
-        bt.logging.debug(processed_weights)
-        bt.logging.debug("processed_weight_uids: ")
-        bt.logging.debug(processed_weight_uids)
+        # bt.logging.debug("processed_weights: ")
+        # bt.logging.debug(processed_weights)
+        # bt.logging.debug("processed_weight_uids: ")
+        # bt.logging.debug(processed_weight_uids)
 
         # Convert to uint16 weights and uids.
         (
