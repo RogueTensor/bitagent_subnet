@@ -105,38 +105,52 @@ async def offline_task(self, wandb_data):
     self.log_event(wandb_data)
 
     # get all the HF model names from the responses
-    miner_hf_model_names = [response.hf_model_name for response in responses]
+    #miner_hf_model_names = [response.hf_model_name for response in responses]
+    miner_hf_model_names = []
     bt.logging.debug(f"OFFLINE: Miner HF model names: {len(miner_hf_model_names)}")
 
-    try:
-        hf_model_name_to_miner_uids = {}
-        for i,miner_uid in enumerate(miner_uids):
-            self.offline_model_names[self.competition_version][miner_uid] = responses[i].hf_model_name
-            if responses[i].hf_model_name is not None:
-                if responses[i].hf_model_name not in hf_model_name_to_miner_uids:
-                    hf_model_name_to_miner_uids[responses[i].hf_model_name] = []
-                hf_model_name_to_miner_uids[responses[i].hf_model_name].append(int(miner_uid))
+    with temporary_logging_state('Warning'):
+        try:
+            hf_model_name_to_miner_uids = {}
+            for i,miner_uid in enumerate(miner_uids):
+                # safely access the offline_model_names in case it's not yet initialized
+                if responses[i].hf_model_name is not None:
+                    existing_model_name = self.offline_model_names[self.competition_version].get(miner_uid, "")
+                    hf_model_name = responses[i].hf_model_name
+                    # 
+                    if ('@' not in existing_model_name and '/' in hf_model_name) or (existing_model_name == "" and '/' in hf_model_name):
+                        info = model_info(hf_model_name)
+                        hf_model_name_hash = hf_model_name + "@" + info.sha
+                        miner_hf_model_names.append(hf_model_name_hash)
+                        self.offline_model_names[self.competition_version][miner_uid] = hf_model_name_hash
 
-        # Group all the models together uniquely and share the same inference server
-        unique_miner_hf_model_names = [m for m in list(set(miner_hf_model_names)) if m not in [None, ""]]
-        if len(unique_miner_hf_model_names) == 0:
-            bt.logging.debug(f"OFFLINE: No unique miner HF model names to evaluate in OFFLINE mode")
-            for miner_uid in miner_uids:
-                self.offline_scores[self.competition_version][miner_uid] = 0.0
-            wandb_data['event_name'] = "No Unique HF Models"
-            wandb_data['miners_left_to_score'] = miner_uids
+                        if hf_model_name_hash not in hf_model_name_to_miner_uids:
+                            hf_model_name_to_miner_uids[hf_model_name_hash] = []
+                        hf_model_name_to_miner_uids[hf_model_name_hash].append(int(miner_uid))
+                    else: self.offline_model_names[self.competition_version][miner_uid] = ''
+                else: self.offline_model_names[self.competition_version][miner_uid] = ''
+
+            # Group all the models together uniquely and share the same inference server
+            unique_miner_hf_model_names = [m for m in list(set(miner_hf_model_names)) if m not in [None, ""]]
+            if len(unique_miner_hf_model_names) == 0:
+                bt.logging.info(f"OFFLINE: No unique miner HF model names to evaluate in OFFLINE mode")
+                for miner_uid in miner_uids:
+                    self.offline_scores[self.competition_version][miner_uid] = 0.0
+                wandb_data['event_name'] = "No Unique HF Models"
+                wandb_data['miners_left_to_score'] = miner_uids
+                self.log_event(wandb_data)
+                wandb_data.pop('miners_left_to_score')
+                self.running_offline_mode = False
+                return
+        except Exception as e:
+            bt.logging.error(f"OFFLINE: Error getting unique miner HF model names: {e}")
+            wandb_data['event_name'] = "Error Getting Unique HF Models"
+            wandb_data['error'] = f"{e}"
             self.log_event(wandb_data)
-            wandb_data.pop('miners_left_to_score')
+            wandb_data.pop('error')
             self.running_offline_mode = False
             return
-    except Exception as e:
-        bt.logging.error(f"OFFLINE: Error getting unique miner HF model names: {e}")
-        wandb_data['event_name'] = "Error Getting Unique HF Models"
-        wandb_data['error'] = f"{e}"
-        self.log_event(wandb_data)
-        wandb_data.pop('error')
-        self.running_offline_mode = False
-        return
+
 
     bt.logging.debug(f"OFFLINE: Unique miner HF model names: {len(unique_miner_hf_model_names)}")
     wandb_data['event_name'] = "Unique HF Model Fetched"
@@ -214,7 +228,7 @@ async def offline_task(self, wandb_data):
         # ensure logger doesn't print the model name publicly, so restrict to only HF warnings
         # Temporarily set logging to WARNING within the context manager
         with temporary_logging_state('Warning'):
-            info = model_info(hf_model_name)
+            info = model_info(hf_model_name.split("@")[0])
             total_size = info.safetensors.total
             try:
                 license = info.card_data['license']
@@ -274,19 +288,22 @@ async def offline_task(self, wandb_data):
             #     model_path = latest_snapshot
             # else:
             #     # need to download from hugging face
-            model_path = hf_model_name
-
+            model_path = hf_model_name.split("@")[0]
+            model_commit = hf_model_name.split("@")[1]
             server_process = await asyncio.to_thread(execute_shell_command,
                 f"""
                 {os.getcwd()}/.venvsglang/bin/python -m sglang.launch_server \
                 --model-path {model_path} \
                 --port {self.config.validator_hf_server_port} \ 
+                --revision {model_commit} \
                 --host 0.0.0.0 \
                 --mem-fraction-static {self.config.validator_hf_server_mem_fraction_static} \
                 --context-length 25000
+                --disable-cuda-graph
                 """, 
-                hf_model_name
+                model_path
             )
+
 
             bt.logging.debug(f"OFFLINE: Started server for model {i+1} of {len(unique_miner_hf_model_names)}, waiting for it to start on port {self.config.validator_hf_server_port} (could take several minutes)")
             try:
@@ -403,7 +420,7 @@ async def offline_task(self, wandb_data):
             bt.logging.debug(f"OFFLINE: Deleting model from HF cache: {i+1} of {len(unique_miner_hf_model_names)}")
             wandb_data['event_name'] = "Deleting HF Model from Cache"
             self.log_event(wandb_data)
-            await asyncio.to_thread(delete_model_from_hf_cache, self, hf_model_name)
+            await asyncio.to_thread(delete_model_from_hf_cache, self, hf_model_name.split("@")[0])
         else:
             bt.logging.debug(f"OFFLINE: NOT Deleting model from HF cache: {i+1} of {len(unique_miner_hf_model_names)}")
             wandb_data['event_name'] = "NOT Deleting HF Model from Cache - snapshot found, so no new download to revert"
