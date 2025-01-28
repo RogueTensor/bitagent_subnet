@@ -23,6 +23,7 @@ import threading
 import numpy as np
 import bittensor as bt
 from datetime import datetime, timezone
+from huggingface_hub import dataset_info
 from scoring_utils import score_spreading
 from common.utils.uids import get_alive_uids
 from bitagent.validator.constants import DEPLOYED_DATE, COMPETITION_LENGTH_DAYS, TESTNET_COMPETITION_LENGTH_DAYS, COMPETITION_PREFIX, COMPETITION_PREVIOUS_PREFIX
@@ -61,7 +62,7 @@ class BaseValidatorNeuron(BaseNeuron):
         self.offline_model_names = {}
         self.running_offline_mode = False
         self.offline_status = None
-        self.regrade_version = 1025
+        self.regrade_version = dataset_info("BitAgent/tool_calling_shuffle").last_modified.strftime("%Y%m%d")
         self.update_competition_numbers()
         self.max_div = 0.0006
         self.min_div = 0.0002
@@ -251,7 +252,7 @@ class BaseValidatorNeuron(BaseNeuron):
             return # Don't set weights on testnet.
 
         self.divisions = int(np.floor(self.block / 1000))
-        current_odds = (0.2 * self.scores) + (0.8 * self.offline_scores[self.previous_competition_version])
+        current_odds = (0.2 * self.scores) + (0.8 * self.offline_scores[self.competition_version])
 
         # Check if self.scores contains any NaN values and log a warning if it does.
         if np.isnan(self.scores).any():
@@ -263,13 +264,13 @@ class BaseValidatorNeuron(BaseNeuron):
             if not check_uid_availability(self.metagraph, uid, self.config.neuron.vpermit_tao_limit): 
                 # if validator, set validators scores to 0
                 self.scores[uid] = 0 
-                self.offline_scores[self.previous_competition_version][uid] = 0
+                #self.offline_scores[self.previous_competition_version][uid] = 0
                 self.offline_scores[self.competition_version][uid] = 0
                 self.offline_miners_scored[self.competition_version][self.regrade_version].append(uid)
                 self.offline_model_names[self.competition_version][uid] = ""
 
         # always fit scores to weighted curve
-        weighted_scores = score_spreading(current_odds,self.divisions,self.min_div,self.max_div)
+        weighted_scores = score_spreading(current_odds,self.divisions,self.min_div,self.max_div, kurtosis_factor=0.5, divisions=np.random.randint(2,7))
 
         #bt.logging.info(f"weighted_scores: {weighted_scores}")
 
@@ -325,12 +326,6 @@ class BaseValidatorNeuron(BaseNeuron):
         else:
             bt.logging.error(f"set_weights failed: {msg}")
 
-    def get_weighted_scores(self):
-        # scores are largely based on PREVIOUS competition scores
-        scaled_scores = ((0.2 * self.scores) + (0.8 * self.offline_scores[self.previous_competition_version])) * 5
-        exp_scores = np.exp(scaled_scores)
-        return exp_scores / np.sum(exp_scores)    
-
     def resync_metagraph(self):
         """Resyncs the metagraph and updates the hotkeys and moving averages based on the new metagraph."""
         bt.logging.info("resync_metagraph()")
@@ -354,12 +349,12 @@ class BaseValidatorNeuron(BaseNeuron):
                 if hotkey != self.metagraph.hotkeys[uid]:
                     bt.logging.debug(f"RESYNC: hotkey changed for uid: {uid}")
                     self.scores[uid] = np.median(self.scores)
-                    self.offline_scores[self.previous_competition_version][uid] = 0
+                    #self.offline_scores[self.previous_competition_version][uid] = 0
                     self.offline_scores[self.competition_version][uid] = 0
                     if uid in self.offline_miners_scored[self.competition_version][self.regrade_version]:
                         self.offline_miners_scored[self.competition_version][self.regrade_version].remove(uid)
                     self.offline_model_names[self.competition_version][uid] = ""
-                    self.offline_model_names[self.previous_competition_version][uid] = ""
+                    #self.offline_model_names[self.previous_competition_version][uid] = ""
 
             # Check to see if the metagraph has changed size.
             # If so, we need to add new hotkeys and moving averages.
@@ -371,10 +366,10 @@ class BaseValidatorNeuron(BaseNeuron):
                 self.scores = new_moving_average
 
                 # previous offline scores
-                new_moving_average = np.zeros((self.metagraph.n))
-                min_len = min(len(self.hotkeys), len(self.offline_scores[self.previous_competition_version]))
-                new_moving_average[:min_len] = self.offline_scores[self.previous_competition_version][:min_len]
-                self.offline_scores[self.previous_competition_version] = new_moving_average
+                # new_moving_average = np.zeros((self.metagraph.n))
+                # min_len = min(len(self.hotkeys), len(self.offline_scores[self.previous_competition_version]))
+                # new_moving_average[:min_len] = self.offline_scores[self.previous_competition_version][:min_len]
+                # self.offline_scores[self.previous_competition_version] = new_moving_average
 
                 # current offline scores
                 new_moving_average = np.zeros((self.metagraph.n))
@@ -475,8 +470,8 @@ class BaseValidatorNeuron(BaseNeuron):
             else:
                 bt.logging.error(f"OFFLINE: loaded_offline_scores is not a dict or array, type: {type(loaded_offline_scores)}")
 
-            if self.offline_scores.get(self.previous_competition_version) is None:
-                self.offline_scores[self.previous_competition_version] = np.zeros(self.metagraph.n, dtype=np.float32)
+            # if self.offline_scores.get(self.previous_competition_version) is None:
+            #     self.offline_scores[self.previous_competition_version] = np.zeros(self.metagraph.n, dtype=np.float32)
             #for uid in self.metagraph.uids:
             #    if uid not in self.offline_scores[self.previous_competition_version]:
             #        self.offline_scores[self.previous_competition_version][uid] = 0
@@ -496,33 +491,33 @@ class BaseValidatorNeuron(BaseNeuron):
     def update_competition_numbers(self):
         try:
             # get competition details
-            competition_start_date = datetime.strptime(DEPLOYED_DATE, "%Y-%m-%d").replace(tzinfo=timezone.utc)
-            delta = datetime.now(timezone.utc) - competition_start_date  
-            number_of_days_since_start = delta.days + (delta.seconds / (24*3600))
-            number_of_competitions_since_start = int(number_of_days_since_start / COMPETITION_LENGTH_DAYS)
-            if self.config.subtensor.network == "test":
-                bt.logging.debug(f"OFFLINE TESTNET: using {TESTNET_COMPETITION_LENGTH_DAYS} days per competition")
-                number_of_competitions_since_start = int(number_of_days_since_start / TESTNET_COMPETITION_LENGTH_DAYS)
+            # competition_start_date = datetime.strptime(DEPLOYED_DATE, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+            # delta = datetime.now(timezone.utc) - competition_start_date  
+            # number_of_days_since_start = delta.days + (delta.seconds / (24*3600))
+            # number_of_competitions_since_start = int(number_of_days_since_start / COMPETITION_LENGTH_DAYS)
+            # if self.config.subtensor.network == "test":
+            #     bt.logging.debug(f"OFFLINE TESTNET: using {TESTNET_COMPETITION_LENGTH_DAYS} days per competition")
+            #     number_of_competitions_since_start = int(number_of_days_since_start / TESTNET_COMPETITION_LENGTH_DAYS)
 
             #bt.logging.debug(f"OFFLINE: number_of_competitions_since_start: {number_of_competitions_since_start}")
 
-            if number_of_competitions_since_start < 1:
-                # we have not completed any competitions with this prefix, so the previous competition number is the last one we completed with the old prefix
-                largest_previous_competition_number = 0
-                # search through all the previous competition numbers to find the largest (most recent) one
-                for k,_ in self.offline_scores.items():
-                    if k.startswith(f"{COMPETITION_PREVIOUS_PREFIX}-"):
-                        if int(k.split("-")[1]) > largest_previous_competition_number:
-                            largest_previous_competition_number = int(k.split("-")[1])
-                self.previous_competition_version = f"{COMPETITION_PREVIOUS_PREFIX}-{largest_previous_competition_number}"
-            else:
-                # we have completed at least one competition with this prefix, so the previous competition number is the last one we completed
-                self.previous_competition_version = f"{COMPETITION_PREFIX}-{int(number_of_competitions_since_start-1)}"
+            # if number_of_competitions_since_start < 1:
+            #     # we have not completed any competitions with this prefix, so the previous competition number is the last one we completed with the old prefix
+            #     largest_previous_competition_number = 0
+            #     # search through all the previous competition numbers to find the largest (most recent) one
+            #     for k,_ in self.offline_scores.items():
+            #         if k.startswith(f"{COMPETITION_PREVIOUS_PREFIX}-"):
+            #             if int(k.split("-")[1]) > largest_previous_competition_number:
+            #                 largest_previous_competition_number = int(k.split("-")[1])
+            #     self.previous_competition_version = f"{COMPETITION_PREVIOUS_PREFIX}-{largest_previous_competition_number}"
+            # else:
+            #     # we have completed at least one competition with this prefix, so the previous competition number is the last one we completed
+            #     self.previous_competition_version = f"{COMPETITION_PREFIX}-{int(number_of_competitions_since_start-1)}"
 
-            if self.offline_scores.get(self.previous_competition_version) is None:
-                self.offline_scores[self.previous_competition_version] = np.zeros(self.metagraph.n, dtype=np.float32)
+            # if self.offline_scores.get(self.previous_competition_version) is None:
+            #     self.offline_scores[self.previous_competition_version] = np.zeros(self.metagraph.n, dtype=np.float32)
 
-            self.competition_version = f"{COMPETITION_PREFIX}-{int(number_of_competitions_since_start)}"
+            self.competition_version = f"{COMPETITION_PREFIX}-0"
 
             if self.offline_scores.get(self.competition_version) is None:
                 self.offline_scores[self.competition_version] = np.zeros(self.metagraph.n, dtype=np.float32)
