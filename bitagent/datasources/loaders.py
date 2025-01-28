@@ -47,7 +47,7 @@ class ShuffledJSONDatasetIterator:
 def huggingface_loader(dataset_name, root_data_dir="bitagent.data", split="train", name=None):
     bt.logging.debug(f"Loading {dataset_name}")
     dataset_dir = f"{root_data_dir}/{dataset_name.replace('/','_')}"
-    if os.path.exists(f"{dataset_dir}/state.json"):
+    if os.path.exists(f"{dataset_dir}/state.json") and dataset_name != "BitAgent/tool_calling_shuffle":
         bt.logging.debug(f"Loading from disk ({dataset_dir}) ...")
         ds = load_from_disk(dataset_dir)
     else:
