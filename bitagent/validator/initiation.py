@@ -116,6 +116,7 @@ def clear_wandb_dir(self):
 def initiate_validator_local(self):
     #bt.logging.info("Initializing Validator - this may take a while (downloading data and models).")
     self.tool_dataset = ToolDataset()
+    self.check_date = ""
     #bt.logging.debug("Initializing Validator - this may take a while (downloading data and models) - loading model ...")
     self.sentence_transformer = CachedSentenceTransformer('BAAI/bge-small-en-v1.5')
 
