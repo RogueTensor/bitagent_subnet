@@ -71,7 +71,6 @@ Stats with this validator:
 Your Average Score: {validator.scores[miner_uid]}
 Highest Score across all miners: {validator.scores.max()}
 Median Score across all miners: {np.median(validator.scores)}
-Your Offline Model Score for Competition {validator.previous_competition_version}: {validator.offline_scores[validator.previous_competition_version][miner_uid]}
 Your Offline Model Score for Competition {validator.competition_version}: {validator.offline_scores[validator.competition_version][miner_uid]}"""
 # TODO need to add BFCL scores when we do them
             # send results
@@ -147,9 +146,6 @@ async def write_to_wandb(validator: BaseValidatorNeuron, task: Task, responses: 
                 "highest_offline_score_for_miners_with_this_validator": validator.offline_scores[validator.competition_version].max(),
                 "median_offline_score_for_miners_with_this_validator": np.median(validator.offline_scores[validator.competition_version]),
                 "average_offline_score_for_miners_with_this_validator": np.mean(validator.offline_scores[validator.competition_version]),
-                "prior_highest_offline_score_for_miners_with_this_validator": validator.offline_scores[validator.previous_competition_version].max(),
-                "prior_median_offline_score_for_miners_with_this_validator": np.median(validator.offline_scores[validator.previous_competition_version]),
-                "prior_average_offline_score_for_miners_with_this_validator": np.mean(validator.offline_scores[validator.previous_competition_version]),
                 "competition_version": validator.competition_version,
                 # TODO add BFCL scores
                 #"correct_answer": correct_answer, # TODO best way to send this without lookup attack?
