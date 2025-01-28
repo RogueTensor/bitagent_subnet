@@ -115,7 +115,7 @@ class ToolDataset(Iterator):
         super().__init__()
         seed = random.randint(0, 10000)
         glaive_ds = huggingface_loader("glaiveai/glaive-function-calling-v2")
-        bitagent_ds = huggingface_loader("BitAgent/tool_calling")
+        bitagent_ds = huggingface_loader("BitAgent/tool_calling_shuffle")
         bfcl_ds = load_bfcl_dataset("gorilla-llm/Berkeley-Function-Calling-Leaderboard")
 
         self.datasets = {
@@ -130,7 +130,7 @@ class ToolDataset(Iterator):
         while count < 25:
             count += 1
             try:
-                dname, ds = random.choices(list(self.datasets.items()), [5, 5, 10])[0]
+                dname, ds = random.choices(list(self.datasets.items()), [1, 20, 5])[0]
                 data = next(ds)
                 if dname == "glaive":
                     system_prompt = data["system"].replace("SYSTEM: ", "")
