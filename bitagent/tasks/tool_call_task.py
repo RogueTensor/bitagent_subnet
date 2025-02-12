@@ -94,24 +94,9 @@ class ToolCallTask(Task):
         self.messages = messages
         self.synapse = QueryTask(messages=messages, tools=tools)
 
-    def tool_dataset_regen(self):
-        today = datetime.date.today().strftime("%Y%m%d")
-
-        if self.validator.check_date != today:
-            self.validator.check_date = today
-            mod_date = dataset_info("BitAgent/tool_calling_shuffle").last_modified.strftime("%Y%m%d")
-            bt.logging.debug("Checked for dataset regen, data has not been updated.")
-            if mod_date != self.validator.regrade_version:
-                self.validator.tool_dataset = ToolDataset()
-                self.validator.regrade_version = mod_date
-                bt.logging.debug("Data regenerated.")
-        else:
-            return
 
 
     def generate_task_data(self) -> ToolCallData:
-        
-        self.tool_dataset_regen()
 
         data: ToolCallData = next(self.validator.tool_dataset)
         
