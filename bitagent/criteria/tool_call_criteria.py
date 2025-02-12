@@ -36,6 +36,22 @@ def correct_tool_call_function_format(task, validator, synapse: bt.Synapse) -> T
     feedback = good_message(f"Your response was in the correct format.")
     return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
 
+# Helper to figure out which arguments are required vs. optional.  
+def get_required_and_optional_args(task, expected_response: dict) -> Tuple[set[str], set[str]]:
+    expected_args = set(expected_response['arguments'].keys())
+    
+    if "is_ground_truth" in expected_response:
+        # For ground truth, treat any argument whose value != [""] as required.
+        required_args = {arg for arg in expected_args if expected_response['arguments'][arg] != [""]}
+    else:
+        # Otherwise, look up the expected tool (assuming task.synapse.tools is a list of tool objects).
+        expected_tool = next(tool for tool in task.synapse.tools if tool.name == expected_response['name'])
+        required_args = {arg for arg, arg_info in expected_tool.arguments.items() 
+                         if arg_info.get('required', False)}
+
+    optional_args = expected_args - required_args
+    return required_args, optional_args
+
 def extract_function_name_and_params(response: str):
     if response == "":
         return "", [], {}
@@ -100,80 +116,115 @@ def correct_tool_call_function_name(task, validator, synapse: bt.Synapse, expect
 # looking for required arguments and that they are present
 def correct_tool_argument_names(task, validator, synapse: bt.Synapse, expected_response: dict) -> Tuple[float, float, str]:
     max_reward = 3.0
-    reward = 0.0        
 
     function_name, function_args, _ = extract_function_name_and_params(synapse.response)
-    expected_args = expected_response['arguments'].keys()
+    provided_args = set(function_args)
+    expected_args = set(expected_response['arguments'].keys())
 
-    if len(expected_args) == 0 and len(function_args) == 0 and function_name != "":
-        reward = max_reward
-        feedback = good_message("Function has no arguments, good job")
-        return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
-
-    # they returned arguments but the function expects none
-    if len(expected_args) == 0:
-        reward = 0
-        feedback = bad_message(f"Function expects no arguments, but you returned arguments: {function_args}")
-        return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
-
-    if "is_ground_truth" in expected_response.keys():
-        required_args = [arg for arg in expected_args if expected_response['arguments'][arg] != [""]]
-    else:
-        expected_tool = [tool for tool in task.synapse.tools if tool.name == expected_response['name']][0]
-        required_args = [k for k in expected_tool.arguments.keys() if 'required' in expected_tool.arguments[k].keys() and expected_tool.arguments[k]['required']]
-
-    feedback = "" 
-
-    for arg in required_args:
-        if arg in function_args:
-            # excessive args will be penalized
-            reward += max_reward/max(len(function_args),len(expected_args))
-            feedback += good_message(f"Your function has the required argument: {arg}") + "\n"
+    # no-argument case
+    if not expected_args:
+        if not provided_args and function_name != "":
+            feedback = good_message("Function expects no arguments, and you provided none. Good job!")
+            return max_reward, max_reward, feedback + received_reward_template.format(max_reward, max_reward)
         else:
-            reward -= max_reward/len(required_args)
-            feedback += bad_message(f"Your function is missing the required argument: {arg}") + "\n"
+            # If they provided extra arguments, penalize -1 per extra
+            extra_args = provided_args
+            penalty = len(extra_args)
+            score = max_reward - penalty
+            score = max(score, 0.0)  # clamp at 0
+            feedback = bad_message(f"Function expects no arguments, but you provided: {sorted(extra_args)}")
+            return score, max_reward, feedback + received_reward_template.format(score, max_reward)
 
-    return reward, max_reward, feedback[:-1]+received_reward_template.format(reward, max_reward)
+
+    required_args, optional_args = get_required_and_optional_args(task, expected_response)
+
+    # Check missing required
+    missing_required = required_args - provided_args
+    if missing_required:
+        feedback = bad_message(f"Missing required argument(s): {sorted(missing_required)}")
+        # Immediately 0 if any required param is missing
+        return 0.0, max_reward, feedback + received_reward_template.format(0.0, max_reward)
+
+    # At this point, all required args are present, so we only do partial penalties for extras/missing optional
+    score = max_reward
+
+    extra_args = provided_args - expected_args
+    penalty_extra = len(extra_args)
+    # missing optional → -1 for each
+    missing_optional = optional_args - provided_args
+    penalty_missing_optional = len(missing_optional)
+
+    total_penalty = penalty_extra + penalty_missing_optional
+    score -= total_penalty
+    score = max(score, 0.0)  # clamp at 0
+
+    feedback_parts = []
+    if penalty_extra > 0:
+        feedback_parts.append(bad_message(f"Extra argument(s): {sorted(extra_args)}"))
+    if penalty_missing_optional > 0:
+        feedback_parts.append(bad_message(f"Missing optional argument(s): {sorted(missing_optional)}"))
+    if not feedback_parts:
+        feedback_parts.append(good_message("All required and optional arguments are present, and no extras. Good job!"))
+
+    feedback = "\n".join(feedback_parts)
+    return score, max_reward, feedback + received_reward_template.format(score, max_reward)
 
 def correct_tool_argument_values(task, validator, synapse: bt.Synapse, expected_response: dict) -> Tuple[float, float, str]:
     max_reward = 3.0
-    reward = 0.0        
 
-    feedback = "" 
-
-    # MINER response
     function_name, function_args, function_values = extract_function_name_and_params(synapse.response)
-    expected_args = expected_response['arguments'].keys()
+    provided_args = set(function_args)
+    expected_args = set(expected_response['arguments'].keys())
+    required_args, optional_args = get_required_and_optional_args(task, expected_response)
 
-    # no args
-    if len(expected_args) == 0 and len(function_args) == 0 and function_name != "":
-        reward = max_reward
-        feedback = good_message("Function has no arguments, good job")
-        return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
+    feedback_lines = []
+    correct_count = 0
 
-    if "is_ground_truth" in expected_response.keys():
-        required_args = [arg for arg in expected_args if expected_response['arguments'][arg] != [""]]
-    else:
-        expected_tool = [tool for tool in task.synapse.tools if tool.name == expected_response['name']][0]
-        required_args = [k for k in expected_tool.arguments.keys() if 'required' in expected_tool.arguments[k].keys() and expected_tool.arguments[k]['required']]
+    def is_value_correct(arg: str) -> bool:
+        expected_val = expected_response['arguments'][arg]
+        provided_val = function_values.get(arg)
 
-    for arg in required_args:
-        if arg in function_args:
-            correct_values = expected_response['arguments'][arg]
-            if "is_ground_truth" in expected_response.keys() and function_values[arg] in correct_values:
-                reward += max_reward/max(len(function_args),len(expected_args))
-                feedback += good_message(f"Your function has the required value for argument: {arg}") + "\n"
-            elif function_values[arg] == correct_values:
-                reward += max_reward/max(len(function_args),len(expected_args))
-                feedback += good_message(f"Your function has the required value for argument: {arg}") + "\n"
-            else:
-                reward -= 0 # max_reward/len(required_args)
-                feedback += bad_message(f"Your function has the incorrect value for argument: {arg}") + "\n"
+        if provided_val is None:
+            # Should not happen if names-check is done first, but let's be safe:
+            return False
+
+        prov_str = str(provided_val)
+        if "is_ground_truth" in expected_response:
+            acceptable = [str(v) for v in expected_val] if isinstance(expected_val, list) else [str(expected_val)]
+            return prov_str in acceptable
         else:
-            reward -= max_reward/len(required_args)
-            feedback += bad_message(f"Your function is missing the required argument: {arg}") + "\n"
+            if isinstance(expected_val, list):
+                expected_strs = [str(v) for v in expected_val]
+                return prov_str in expected_strs
+            else:
+                return prov_str == str(expected_val)
 
-    return reward, max_reward, feedback[:-1]+received_reward_template.format(reward, max_reward)
+
+    for arg in expected_args:
+        if arg in provided_args:
+            if is_value_correct(arg):
+                correct_count += 1
+                feedback_lines.append(good_message(f"Correct value for '{arg}'."))
+            else:
+                if arg in required_args:
+                    feedback_lines.append(bad_message(
+                        f"Incorrect value for required argument: {arg}. "
+                        f"Expected: {expected_response['arguments'][arg]}, got: {function_values.get(arg)}"
+                    ))
+                    feedback = "\n".join(feedback_lines)
+                    return 0.0, max_reward, feedback + received_reward_template.format(0.0, max_reward)
+                else:
+                    # optional arg is incorrect, just note it; we don't zero out the score
+                    feedback_lines.append(bad_message(
+                        f"Incorrect value for optional argument: {arg}. "
+                        f"Expected: {expected_response['arguments'][arg]}, got: {function_values.get(arg)}"
+                    ))
+        else:
+            feedback_lines.append(bad_message(f"Optional argument not provided: {arg}"))
+
+    score = max_reward * (correct_count / len(expected_args))
+    feedback = "\n".join(feedback_lines)
+    return score, max_reward, feedback + received_reward_template.format(score, max_reward)
 
 def correct_irrelevant_tool_call(task, validator, synapse: bt.Synapse) -> Tuple[float, float, str]:
     max_reward = 3.0
