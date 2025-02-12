@@ -15,6 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import json
 import bittensor as bt
 from openai import OpenAI
 
@@ -45,28 +46,47 @@ def system_prompt(tools):
     return prompt.format(functions=tools)
 
 
-def llm(self, messages, tools, model_name, hugging_face=False,max_new_tokens = 160, temperature=0.7):
-    prompt = system_prompt(tools)
+def llm(self, messages, tools, model_name, hugging_face=False, max_new_tokens=160, temperature=0):
+    
+    if not isinstance(tools, str):
+        if isinstance(tools, list):
+            tools_jsonable = []
+            for t in tools:
+                if isinstance(t, dict):
+                    tools_jsonable.append(t)
+                else:
+                    tool_data = {
+                        "name": t.name,
+                        "description": getattr(t, "description", ""),
+                        "arguments": getattr(t, "arguments", {}),
+                    }
+                    tools_jsonable.append(tool_data)
+            tools_str = json.dumps(tools_jsonable, indent=2)
+        else:
+            tools_str = json.dumps(tools, indent=2)
+    else:
+        tools_str = tools
 
+    prompt_str = system_prompt(tools_str)
+
+    if len(messages) == 0:
+        bt.logging.error("No messages found. Returning empty response.")
+        return ""
+    original_content = messages[0].content
+    messages[0].content = prompt_str + "\n\n" + str(original_content)
+
+    # for idx, m in enumerate(messages):
+    #     print(f"Msg {idx} (role={m.role}): {m.content}")
+    # print("\n")
+
+    
     try:
-        #try:
-        #    new_messages = [{"role":"system", "content":prompt}] + messages
-        #    response = get_openai_llm(self, hugging_face).chat.completions.create(
-        #        messages=new_messages,
-        #        max_tokens=max_new_tokens,
-        #        model=model_name,
-        #        temperature=temperature
-        #    )
-        #except Exception as e:
-            # errored b/c the model does not allow system prompts
-        messages[0].content = prompt + "\n\n" + messages[0].content
         response = get_openai_llm(self, hugging_face).chat.completions.create(
-            messages=messages,
+            messages=[{"role": m.role, "content": m.content} for m in messages],
             max_tokens=max_new_tokens,
             model=model_name,
-            temperature=temperature
+            temperature=0
         )
-
     except Exception as e:
         bt.logging.error(f"Error calling to LLM: {e}")
         return ""
