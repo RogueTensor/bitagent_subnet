@@ -113,7 +113,7 @@ def add_extra_arguments(tool_call: Dict[str, Any], tools: List[Tool]):
 class ToolDataset(Iterator):
     def __init__(self):
         super().__init__()
-        seed = random.randint(0, 10000)
+        seed = 572343
         glaive_ds = huggingface_loader("glaiveai/glaive-function-calling-v2")
         bitagent_ds = huggingface_loader("BitAgent/tool_calling_shuffle")
         bfcl_ds = load_bfcl_dataset("gorilla-llm/Berkeley-Function-Calling-Leaderboard")
@@ -130,7 +130,7 @@ class ToolDataset(Iterator):
         while count < 25:
             count += 1
             try:
-                dname, ds = random.choices(list(self.datasets.items()), [1, 20, 5])[0]
+                dname, ds = random.choices(list(self.datasets.items()), [0, 1, 0])[0]
                 data = next(ds)
                 if dname == "glaive":
                     system_prompt = data["system"].replace("SYSTEM: ", "")
