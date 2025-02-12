@@ -18,14 +18,17 @@
 
 import os
 import copy
+import time
 import asyncio
 import threading
 import numpy as np
 import bittensor as bt
-from datetime import datetime, timezone
+
+from datetime import datetime, timezone, date
 from huggingface_hub import dataset_info
 from scoring_utils import score_spreading
 from common.utils.uids import get_alive_uids
+from bitagent.datasources.tools import ToolDataset
 from bitagent.validator.constants import DEPLOYED_DATE, COMPETITION_LENGTH_DAYS, TESTNET_COMPETITION_LENGTH_DAYS, COMPETITION_PREFIX, COMPETITION_PREVIOUS_PREFIX
 from common.utils.weight_utils import (
     process_weights_for_netuid,
@@ -61,6 +64,7 @@ class BaseValidatorNeuron(BaseNeuron):
         self.offline_miners_scored = {}
         self.offline_model_names = {}
         self.running_offline_mode = False
+        self.running_online_mode = False
         self.offline_status = None
         self.regrade_version = dataset_info("BitAgent/tool_calling_shuffle").last_modified.strftime("%Y%m%d")
         self.update_competition_numbers()
@@ -125,7 +129,28 @@ class BaseValidatorNeuron(BaseNeuron):
         ]
         await asyncio.gather(*coroutines,return_exceptions=True)
 
-    def run(self):
+    def tool_dataset_regen(self):
+        today = date.today().strftime("%Y%m%d")
+        bt.logging.info(f"Current date: {today}")
+
+        if self.check_date != today:
+            self.check_date = today
+            mod_date = dataset_info("BitAgent/tool_calling_shuffle").last_modified.strftime("%Y%m%d")
+            bt.logging.debug("Checked for dataset regen, data has not been updated.")
+            # if mod_date != self.regrade_version:
+            #     self.tool_dataset = ToolDataset()
+            #     self.regrade_version = mod_date
+            #     bt.logging.debug("Data regenerated.")
+        else:
+            bt.logging.info(f"date: {today} is the same as check_date: {self.check_date}")
+            return
+        
+    def _thread_entrypoint(self):
+        """This is the function that the background thread will run.
+           It sets up an event loop and runs the async 'run' method."""
+        asyncio.run(self.run())
+
+    async def run(self):
         """
         Initiates and manages the main loop for the miner on the Bittensor network. The main loop handles graceful shutdown on keyboard interrupts and logs unforeseen errors.
 
@@ -165,9 +190,14 @@ class BaseValidatorNeuron(BaseNeuron):
                     #    self.should_exit = True
                     #    exit()
 
-                # Run multiple forwards concurrently.
-                self.loop.run_until_complete(self.concurrent_forward())
+                if self.step % 100 == 0:
+                    
+                    bt.logging.info(f"step: {self.step}, Current regrade_version:: {self.regrade_version}")
+                    self.tool_dataset_regen()
+                    bt.logging.info(f"step: {self.step}, Post dataset version check regrade_version: {self.regrade_version}")
 
+                # Run multiple forwards concurrently.
+                await self.concurrent_forward()
                 # Check if we should exit.
                 if self.should_exit:
                     break
@@ -177,7 +207,9 @@ class BaseValidatorNeuron(BaseNeuron):
                     self.sync()
                 except Exception as e:
                     bt.logging.error(f"Error syncing metagraph during run loop: {e}")
-
+                
+                bt.logging.info(f"Validator still running... step: {self.step}, no new offline scoring activity")
+                await asyncio.sleep(30)
                 self.step += 1
         except Exception as e:
             bt.logging.error(f"Unexpected error during run: {e}")
@@ -203,7 +235,8 @@ class BaseValidatorNeuron(BaseNeuron):
         if not self.is_running:
             bt.logging.debug("Starting validator in background thread.")
             self.should_exit = False
-            self.thread = threading.Thread(target=self.run, daemon=True)
+            #self.thread = threading.Thread(target=self.run, daemon=True)
+            self.thread = threading.Thread(target=self._thread_entrypoint, daemon=True)
             self.thread.start()
             self.is_running = True
             bt.logging.debug("Started")
@@ -248,12 +281,17 @@ class BaseValidatorNeuron(BaseNeuron):
         Sets the validator weights to the metagraph hotkeys based on the scores it has received from the miners. The weights determine the trust and incentive level the validator assigns to miner nodes on the network.
         """
         bt.logging.debug(f"set_weights()")
+        
         if self.config.subtensor.network == "test":
             return # Don't set weights on testnet.
 
         self.divisions = int(np.floor(self.block / 1000))
-        current_odds = (0.2 * self.scores) + (0.8 * self.offline_scores[self.competition_version])
+        bt.logging.debug(f"scores: {self.scores}")
+        bt.logging.debug(f"offline_scores: {self.offline_scores[self.competition_version]}")
+        current_odds = self.offline_scores[self.competition_version]
+        current_odds[current_odds < 0] = 0
 
+        bt.logging.info(f"current_odds: {current_odds}")
         # Check if self.scores contains any NaN values and log a warning if it does.
         if np.isnan(self.scores).any():
             bt.logging.warning(
@@ -271,8 +309,7 @@ class BaseValidatorNeuron(BaseNeuron):
 
         # always fit scores to weighted curve
         weighted_scores = score_spreading(current_odds,self.divisions,self.min_div,self.max_div, kurtosis_factor=0.5, divisions=np.random.randint(2,7))
-
-        #bt.logging.info(f"weighted_scores: {weighted_scores}")
+        bt.logging.info(f"weighted_scores: {weighted_scores}")
 
         # Calculate the average reward for each uid across non-zero values.
         # Replace any NaN values with 0.
@@ -281,8 +318,8 @@ class BaseValidatorNeuron(BaseNeuron):
             norm = np.ones_like(norm)
         raw_weights = weighted_scores/norm
 
-        # bt.logging.debug("raw_weights: ")
-        # bt.logging.debug(raw_weights)
+        bt.logging.debug("raw_weights: ")
+        bt.logging.debug(raw_weights)
         # bt.logging.debug("raw_weight_uids: ")
         # bt.logging.debug(self.metagraph.uids)
 
@@ -297,10 +334,11 @@ class BaseValidatorNeuron(BaseNeuron):
             subtensor=self.subtensor,
             metagraph=self.metagraph,
         )
-        # bt.logging.debug("processed_weights: ")
-        # bt.logging.debug(processed_weights)
-        # bt.logging.debug("processed_weight_uids: ")
-        # bt.logging.debug(processed_weight_uids)
+        
+        bt.logging.debug("processed_weights: ")
+        bt.logging.debug(processed_weights)
+        bt.logging.debug("processed_weight_uids: ")
+        bt.logging.debug(processed_weight_uids)
 
         # Convert to uint16 weights and uids.
         (
