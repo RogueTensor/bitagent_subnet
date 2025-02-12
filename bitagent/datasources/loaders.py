@@ -28,7 +28,7 @@ class ShuffledJSONDatasetIterator:
         self._shuffle_data()
 
     def _shuffle_data(self):
-        self.shuffled_data = self.all_data.sample(frac=1).reset_index(drop=True)
+        self.shuffled_data = self.all_data.sample(frac=1, random_state=572343).reset_index(drop=True)
         self.index = 0
 
     def __iter__(self):
