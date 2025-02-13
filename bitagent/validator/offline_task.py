@@ -189,17 +189,23 @@ async def offline_task(self, wandb_data):
     unique_miner_hf_model_names = [m for m in unique_miner_hf_model_names if m not in models_to_skip]
 
     if len(unique_miner_hf_model_names) > 0:
-        bt.logging.debug(f"OFFLINE: Generating tasks")
+        bt.logging.debug("OFFLINE: Generating tasks")
         # Generate a set of tasks to run on all the offline models
         num_tasks = 1000
         batch_size = 100
         wandb_data['event_name'] = "Generating Tasks"
         self.log_event(wandb_data)
+
         tasks = []
-        for i,_ in enumerate(range(0, num_tasks, batch_size)):
-            #bt.logging.debug(f"OFFLINE: Generating tasks batch {i+1} of {num_tasks // batch_size}")
-            tasks.extend(await asyncio.gather(*[asyncio.to_thread(get_random_task, self, offline=True) for _ in range(batch_size)]))
-            #bt.logging.debug(f"OFFLINE: Generated tasks batch {i+1} of {num_tasks // batch_size}")
+        # We'll create each batch synchronously in a normal loop
+        for i, _ in enumerate(range(0, num_tasks, batch_size)):
+            # Create a batch of tasks (no async/await)
+            batch_tasks = []
+            for _ in range(batch_size):
+                task = get_random_task(self, offline=True)
+                batch_tasks.append(task)
+            tasks.extend(batch_tasks)
+
         bt.logging.debug(f"OFFLINE: Generated {len(tasks)} tasks of {num_tasks} total")
         wandb_data['event_name'] = "Generated Tasks"
         wandb_data['num_tasks'] = len(tasks)
