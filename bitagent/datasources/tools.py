@@ -110,85 +110,59 @@ def add_extra_arguments(tool_call: Dict[str, Any], tools: List[Tool]):
                     }
             break
 
+
+def cycle_hf_dataset(dataset, seed=572343):
+    while True:
+        ds_shuf = dataset.shuffle(seed=seed)
+        for item in ds_shuf:
+            yield item
+
 class ToolDataset(Iterator):
     def __init__(self):
         super().__init__()
+        # Always load the "BitAgent/tool_shuffle_small" dataset
         seed = 572343
-        glaive_ds = huggingface_loader("glaiveai/glaive-function-calling-v2")
-        bitagent_ds = huggingface_loader("BitAgent/tool_calling_shuffle")
-        bfcl_ds = load_bfcl_dataset("gorilla-llm/Berkeley-Function-Calling-Leaderboard")
-
-        self.datasets = {
-            "glaive": iter(glaive_ds.shuffle(seed=seed)),
-            "bitagent": iter(bitagent_ds.shuffle(seed=seed)),
-            "bfcl": iter(bfcl_ds),
-        }
+        bitagent_ds = huggingface_loader("BitAgent/tool_shuffle_small")
+        # Wrap it in an infinite-cycle generator
+        self.bitagent_iter = cycle_hf_dataset(bitagent_ds, seed=seed)
 
     def __next__(self) -> ToolCallData:
-        #bt.logging.debug("Retrieving function call data from dataset...")
         count = 0
         while count < 25:
             count += 1
             try:
-                dname, ds = random.choices(list(self.datasets.items()), [0, 1, 0])[0]
-                data = next(ds)
-                if dname == "glaive":
-                    system_prompt = data["system"].replace("SYSTEM: ", "")
-                    if "following functions" not in system_prompt:
-                        continue
+                # Always pull from "bitagent"
+                data = next(self.bitagent_iter)
+                bt.logging.debug(f"dname: bitagent")
+                bt.logging.debug(f"data: {data}")
 
-                    chat_history = clean_text(data["chat"])
-                    tools = parse_multiple_space_sep_json(
-                        system_prompt.replace(
-                            "You are a helpful assistant with access to the following functions. Use them if required - ",
-                            "",
-                        )
-                    )
-                    tools = [json_schema_to_pydantic_tool(tool) for tool in tools]
-                    messages = split_dialogue(chat_history)
+                # Convert any string columns with JSON content into Python objects
+                for key, value in data.items():
+                    if isinstance(value, str):
+                        data[key] = json.loads(value)
 
-                    # Add arguments that werent defined in schema to the tool
-                    for msg in messages:
-                        if msg.role == "tool call":
-                            tool_call = None
-                            if isinstance(msg.content, str):
-                                tool_call = json.loads(msg.content)
-                            else:
-                                tool_call = msg.content
-                            
-                            add_extra_arguments(tool_call, tools) 
+                messages = messages_from_list(data["conversation"])
+                if isinstance(data["tools"], str):
+                    tools = [
+                        json_schema_to_pydantic_tool(tool)
+                        for tool in json.loads(data["tools"])
+                    ]
+                elif isinstance(data["tools"], list):
+                    tools = [Tool(**tool) for tool in data["tools"]]
+                else:
+                    raise ValueError(f"Invalid format for tools: {data['tools']}")
 
-                    
-                    return ToolCallData(messages=messages, tools=tools)
-                elif dname == "bitagent":
-                    for key, value in data.items():
-                        if isinstance(value, str):
-                            data[key] = json.loads(value)
-                    messages = messages_from_list(data["conversation"])
-                    if isinstance(data["tools"], str):
-                        tools = [
-                            json_schema_to_pydantic_tool(tool)
-                            for tool in json.loads(data["tools"])
-                        ]
-                    elif isinstance(data["tools"], list):
-                        tools = [Tool(**tool) for tool in data["tools"]]
-                    else:
-                        raise ValueError(f"Invalid format for tools: {data['tools']}")
-                    for tool in tools:
-                        for arg_name, arg_value in tool.arguments.items():
-                            if arg_value["type"] not in TYPES:
-                                raise ValueError(f"Inavlid type used type: {arg_value['type']}")
-                    return ToolCallData(messages=messages, tools=tools)
-                elif dname == "bfcl":
-                    messages = messages_from_list(data["question"][0])
-                    ground_truth = data['ground_truth'][0]
-                    messages.append(ChatMessage(role="tool call", 
-                                                content={"is_ground_truth": True, 
-                                                         "name": list(ground_truth.keys())[0], 
-                                                         "arguments": list(ground_truth.values())[0]}))
-                    tools = [json_schema_to_pydantic_tool(tool) for tool in data["function"]]
-                    return ToolCallData(messages=messages, tools=tools)
-                    
+                # Validate argument types
+                for tool in tools:
+                    for arg_name, arg_value in tool.arguments.items():
+                        if arg_value["type"] not in TYPES:
+                            raise ValueError(f"Inavlid type used type: {arg_value['type']}")
+
+                return ToolCallData(messages=messages, tools=tools)
+
             except Exception as e:
-                #bt.logging.debug(f"Issue getting tool call from dataset ... {e}")
+                bt.logging.debug(f"Issue getting tool call from dataset ... {e}")
                 pass
+
+        # If we tried 25 times and still haven't returned, raise StopIteration
+        raise StopIteration("Unable to retrieve a valid ToolCallData after 25 attempts.")
