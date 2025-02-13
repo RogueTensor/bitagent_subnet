@@ -133,8 +133,6 @@ class ToolDataset(Iterator):
             try:
                 # Always pull from "bitagent"
                 data = next(self.bitagent_iter)
-                bt.logging.debug(f"dname: bitagent")
-                bt.logging.debug(f"data: {data}")
 
                 # Convert any string columns with JSON content into Python objects
                 for key, value in data.items():
