@@ -72,6 +72,8 @@ class BaseValidatorNeuron(BaseNeuron):
         self.min_div = 0.0002
         self.state_file_name = "ft_state.npz"
 
+        bt.logging.info(f"Startup regrade_version: {self.regrade_version}")
+
         # Init sync with the network. Updates the metagraph.
         if os.path.exists(self.config.neuron.full_path + f"/{self.state_file_name}"):
             # if we are booting up and have this file, then we'll want to load it
@@ -137,10 +139,10 @@ class BaseValidatorNeuron(BaseNeuron):
             self.check_date = today
             mod_date = dataset_info("BitAgent/tool_calling_shuffle").last_modified.strftime("%Y%m%d")
             bt.logging.debug("Checked for dataset regen, data has not been updated.")
-            # if mod_date != self.regrade_version:
-            #     self.tool_dataset = ToolDataset()
-            #     self.regrade_version = mod_date
-            #     bt.logging.debug("Data regenerated.")
+            if mod_date != self.regrade_version:
+                self.tool_dataset = ToolDataset()
+                self.regrade_version = mod_date
+                bt.logging.debug("Data regenerated.")
         else:
             bt.logging.info(f"date: {today} is the same as check_date: {self.check_date}")
             return
@@ -194,6 +196,7 @@ class BaseValidatorNeuron(BaseNeuron):
                     
                     bt.logging.info(f"step: {self.step}, Current regrade_version:: {self.regrade_version}")
                     self.tool_dataset_regen()
+                    self.regrade_version = "regrade_dataset"
                     bt.logging.info(f"step: {self.step}, Post dataset version check regrade_version: {self.regrade_version}")
 
                 # Run multiple forwards concurrently.
