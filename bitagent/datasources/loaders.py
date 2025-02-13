@@ -52,7 +52,7 @@ def huggingface_loader(dataset_name, root_data_dir="bitagent.data", split="train
         ds = load_from_disk(dataset_dir)
     else:
         bt.logging.debug("Loading from web ...") 
-        ds = load_dataset(dataset_name, split=split, name=name, token=os.getenv("HF_TOKEN", None))
+        ds = load_dataset(dataset_name, split=split, download_mode="force_redownload", name=name, token=os.getenv("HF_TOKEN", None))
         ds.save_to_disk(dataset_dir)
     bt.logging.debug("Loaded.")
     return ds
