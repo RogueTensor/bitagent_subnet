@@ -40,6 +40,7 @@ class Validator(BaseValidatorNeuron):
     """
 
     def __init__(self, config=None):
+        self.first_forward_pass_completed = False
         super(Validator, self).__init__(config=config)
 
         bt.logging.info("load_state()")
@@ -71,7 +72,9 @@ class Validator(BaseValidatorNeuron):
         - Rewarding the miners
         - Updating the scores
         """
-        return await forward(self, synapse)
+        fwd = await forward(self, synapse)
+        self.first_forward_pass_completed = True
+        return fwd
 
     async def forward_fn(self, synapse: bitagent.protocol.QueryTask=None) -> bitagent.protocol.QueryTask:
         return await self.forward(synapse)
