@@ -142,6 +142,7 @@ class BaseValidatorNeuron(BaseNeuron):
             if mod_date != self.regrade_version:
                 self.tool_dataset = ToolDataset()
                 self.regrade_version = mod_date
+                self.update_competition_numbers()
                 bt.logging.debug("Data regenerated.")
         else:
             bt.logging.info(f"date: {today} is the same as check_date: {self.check_date}")
@@ -529,32 +530,6 @@ class BaseValidatorNeuron(BaseNeuron):
 
     def update_competition_numbers(self):
         try:
-            # get competition details
-            # competition_start_date = datetime.strptime(DEPLOYED_DATE, "%Y-%m-%d").replace(tzinfo=timezone.utc)
-            # delta = datetime.now(timezone.utc) - competition_start_date  
-            # number_of_days_since_start = delta.days + (delta.seconds / (24*3600))
-            # number_of_competitions_since_start = int(number_of_days_since_start / COMPETITION_LENGTH_DAYS)
-            # if self.config.subtensor.network == "test":
-            #     bt.logging.debug(f"OFFLINE TESTNET: using {TESTNET_COMPETITION_LENGTH_DAYS} days per competition")
-            #     number_of_competitions_since_start = int(number_of_days_since_start / TESTNET_COMPETITION_LENGTH_DAYS)
-
-            #bt.logging.debug(f"OFFLINE: number_of_competitions_since_start: {number_of_competitions_since_start}")
-
-            # if number_of_competitions_since_start < 1:
-            #     # we have not completed any competitions with this prefix, so the previous competition number is the last one we completed with the old prefix
-            #     largest_previous_competition_number = 0
-            #     # search through all the previous competition numbers to find the largest (most recent) one
-            #     for k,_ in self.offline_scores.items():
-            #         if k.startswith(f"{COMPETITION_PREVIOUS_PREFIX}-"):
-            #             if int(k.split("-")[1]) > largest_previous_competition_number:
-            #                 largest_previous_competition_number = int(k.split("-")[1])
-            #     self.previous_competition_version = f"{COMPETITION_PREVIOUS_PREFIX}-{largest_previous_competition_number}"
-            # else:
-            #     # we have completed at least one competition with this prefix, so the previous competition number is the last one we completed
-            #     self.previous_competition_version = f"{COMPETITION_PREFIX}-{int(number_of_competitions_since_start-1)}"
-
-            # if self.offline_scores.get(self.previous_competition_version) is None:
-            #     self.offline_scores[self.previous_competition_version] = np.zeros(self.metagraph.n, dtype=np.float32)
 
             self.competition_version = f"{COMPETITION_PREFIX}-0"
 
