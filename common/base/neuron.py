@@ -47,7 +47,7 @@ class BaseNeuron(ABC):
         return config(cls)
 
     subtensor: "bt.subtensor"
-    wallet: "bt.wallet"
+    wallet: "bt.wallet" # type: ignore
     metagraph: "bt.metagraph" # type: ignore
     spec_version: int = spec_version
 
@@ -153,6 +153,10 @@ class BaseNeuron(ABC):
         """
         Check if enough epoch blocks have elapsed since the last checkpoint to sync.
         """
+        # don't sync if first forward pass has not completed yet
+        if not self.first_forward_pass_completed:
+            return False
+
         bt.logging.debug(f"Checking if ready to resync the metagraph at block {self.block}, last sync at {self.last_block_sync} and given epoch size of {self.config.neuron.epoch_length}: ", self.block - self.last_block_sync > self.config.neuron.epoch_length)
         return self.block - self.last_block_sync > self.config.neuron.epoch_length
 
