@@ -10,9 +10,8 @@ from sglang.utils import (
     terminate_process)
 from bitagent.helpers.llms import llm
 from huggingface_hub import model_info
-from common.utils.uids import get_alive_uids
 from bitagent.protocol import GetHFModelName
-from bitagent.tasks.task import get_random_task
+from bitagent.tasks.tool_call_task import ToolCallTask
 from common.utils.shell import execute_shell_command
 from bitagent.helpers.logging import temporary_logging_state
 from bitagent.validator.reward import process_rewards_update_scores_for_many_tasks_and_many_miners
@@ -104,10 +103,7 @@ async def offline_task(self, wandb_data):
     wandb_data['event_name'] = "GetHFModelName Responses Fetched"
     self.log_event(wandb_data)
 
-    # get all the HF model names from the responses
-    #miner_hf_model_names = [response.hf_model_name for response in responses]
     miner_hf_model_names = []
-    bt.logging.debug(f"OFFLINE: Miner HF model names: {len(miner_hf_model_names)}")
 
     with temporary_logging_state('Warning'):
         try:
@@ -191,20 +187,11 @@ async def offline_task(self, wandb_data):
     if len(unique_miner_hf_model_names) > 0:
         bt.logging.debug("OFFLINE: Generating tasks")
         # Generate a set of tasks to run on all the offline models
-        num_tasks = 1000
-        batch_size = 100
+        num_tasks = 333
         wandb_data['event_name'] = "Generating Tasks"
         self.log_event(wandb_data)
 
-        tasks = []
-        # We'll create each batch synchronously in a normal loop
-        for i, _ in enumerate(range(0, num_tasks, batch_size)):
-            # Create a batch of tasks (no async/await)
-            batch_tasks = []
-            for _ in range(batch_size):
-                task = get_random_task(self, offline=True)
-                batch_tasks.append(task)
-            tasks.extend(batch_tasks)
+        tasks = [ToolCallTask(validator=self, name="Responds with correct function call", offline=True) for _ in range(num_tasks)]
 
         bt.logging.debug(f"OFFLINE: Generated {len(tasks)} tasks of {num_tasks} total")
         wandb_data['event_name'] = "Generated Tasks"
