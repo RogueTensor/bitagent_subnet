@@ -74,16 +74,6 @@ class ToolCallTask(Task):
                     expected_tool_call = expected_tool_call_message
                 self.criteria = default_criteria + tool_call_criteria(expected_response=expected_tool_call)
 
-                # 75% of the time do a tool call task with a relevant tool, other times do a tool call with no valid tool option
-                # irrelevant tool call
-                if "is_ground_truth" not in expected_tool_call_message and bool(random.random() < 0.25) and len(tools) > 1:
-                    # remove the real tool
-                    expected_tool_call_message_json = json.loads(expected_tool_call_message)
-                    if isinstance(expected_tool_call_message_json, str):
-                        expected_tool_call_message_json = json.loads(expected_tool_call_message_json)
-                    tools = [t for t in tools if t.name != expected_tool_call_message_json['name']]
-                    self.criteria = default_criteria + irrelevant_tool_call_criteria()
-
                 break
 
             except Exception as e:
