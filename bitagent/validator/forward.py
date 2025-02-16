@@ -36,7 +36,6 @@ async def forward(self, synapse: QueryTask=None) -> QueryTask:
 
     """
     # complete this first so it's cached for both ONLINE and OFFLINE
-    get_alive_uids(self)
 
     # ###########################################################
     # OFFLINE TASKING
@@ -49,16 +48,16 @@ async def forward(self, synapse: QueryTask=None) -> QueryTask:
         "task_mode": "offline",
         "validator_uid": self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address),
         "val_spec_version": self.spec_version,
-        "highest_score_for_miners_with_this_validator": self.scores.max(),
-        "median_score_for_miners_with_this_validator": np.median(self.scores),
         "highest_offline_score_for_miners_with_this_validator": self.offline_scores[self.competition_version].max(),
         "median_offline_score_for_miners_with_this_validator": np.median(self.offline_scores[self.competition_version]),
         "average_offline_score_for_miners_with_this_validator": np.mean(self.offline_scores[self.competition_version]),
-        # "prior_highest_offline_score_for_miners_with_this_validator": self.offline_scores[self.previous_competition_version].max(),
-        # "prior_median_offline_score_for_miners_with_this_validator": np.median(self.offline_scores[self.previous_competition_version]),
-        # "prior_average_offline_score_for_miners_with_this_validator": np.mean(self.offline_scores[self.previous_competition_version]),
         "competition_version": self.competition_version,
     }
+
+    bt.logging.info(f"FORWARD: updating_competition_numbers, num miners left to score: {len(self.miners_left_to_score)}")
+    bt.logging.info(f"FORWARD: miners_left_to_score: {self.miners_left_to_score}")
+    self.update_competition_numbers()
+
 
     if self.config.subtensor.network != "test":
         if len(self.miners_left_to_score) == 0:
@@ -101,32 +100,3 @@ async def forward(self, synapse: QueryTask=None) -> QueryTask:
     else:
         bt.logging.debug("OFFLINE: Skipping offline for testnet")
 
-    # ###########################################################
-    # ONLINE TASKING
-    # ###########################################################
-    #time.sleep(30)
-    if self.running_online_mode:
-        try:
-            bt.logging.debug(f"ONLINE: Starting online run")
-            # check a random sample of miners in online mode
-            bt.logging.debug(f"ONLINE: Getting random miner uids")
-            miner_uids = get_random_uids(self, min(self.config.neuron.sample_size, self.metagraph.n.item()))
-            bt.logging.debug(f"ONLINE: Getting random task")
-            task = get_random_task(self)
-            task.mode = "online"
-
-            # send the task to the miners
-            bt.logging.debug(f"ONLINE: Sending task to miners")
-            responses = self.dendrite.query(
-                axons=[self.metagraph.axons[uid] for uid in miner_uids],
-                synapse=task.synapse,
-                deserialize=False,
-                timeout=task.timeout,
-            )
-
-            bt.logging.debug(f"ONLINE: Evaluating responses")
-            await asyncio.create_task(process_rewards_update_scores_and_send_feedback(self, task=task, responses=responses, miner_uids=miner_uids))
-            bt.logging.debug(f"ONLINE: Evaluation complete")
-
-        except Exception as e:
-            bt.logging.debug(f"Error in forward: {e}")
