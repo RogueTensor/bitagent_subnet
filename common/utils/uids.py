@@ -14,8 +14,8 @@ def check_uid_availability(
         uid (int): uid to be checked
         vpermit_tao_limit (int): Validator permit tao limit
     Returns:
-        bool: True if uid is available, False otherwise
-    """
+        bool: True if uid is available, False otherwise"""
+
     # Filter non serving axons.
     #if not metagraph.axons[uid].is_serving:
     #    return False
@@ -37,28 +37,7 @@ cache = TTLCache(maxsize=256, ttl=3600)
 
 @cached(cache)
 def get_alive_uids(self):
-    start = 0
-    finish = start + 10
-    results = []
-    # query 10 at a time
-    while start < len(self.metagraph.axons):
-        result = self.dendrite.query(
-            axons=self.metagraph.axons[start:finish], synapse=IsAlive(), deserialize=False, timeout=5.0
-        )
-        results.extend(result)
-        start = finish
-        finish = start + 10
-        if finish > len(self.metagraph.axons):
-            finish = len(self.metagraph.axons)  
-    alive_uids = [uid for uid, response in zip(range(self.metagraph.n.item()), results) if response.response and response.dendrite.status_code == 200]
-
-    # if not alive for querying, they won't get tasks for an hour, set their score to -0.5
-    for uid in self.metagraph.uids:
-        if uid not in alive_uids:
-            self.offline_scores[self.competition_version][uid] = -0.5
-            self.scores[uid] = -0.5
-    #bt.logging.debug(f"Found {len(alive_uids)} alive UIDs, caching for 1 hour")
-    return alive_uids
+    return [int(u) for u in self.metagraph.uids if not (self.metagraph.validator_permit[u] and self.metagraph.S[u] > self.config.neuron.vpermit_tao_limit)]
 
 def get_random_uids(
     self, k: int, exclude: List[int] = None
