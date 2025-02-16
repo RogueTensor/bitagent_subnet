@@ -50,27 +50,25 @@ class BaseValidatorNeuron(BaseNeuron):
     def __init__(self, config=None):
         super().__init__(config=config)
 
-        # Save a copy of the hotkeys to local memory.
-        self.hotkeys = copy.deepcopy(self.metagraph.hotkeys)
-
         # Dendrite lets us send messages to other nodes (axons) in the network.
         self.dendrite = bt.dendrite(wallet=self.wallet)
         bt.logging.info(f"Dendrite: {self.dendrite}")
 
         # Set up initial scoring weights for validation
         bt.logging.info("Building validation weights.")
+
         self.scores = np.zeros(self.metagraph.n, dtype=np.float32)
-        self.offline_scores = {}
+        self.offline_scores = {}        
         self.offline_miners_scored = {}
         self.offline_model_names = {}
         self.running_offline_mode = False
-        self.running_online_mode = False
         self.offline_status = None
         self.regrade_version = dataset_info("BitAgent/tool_shuffle_small").last_modified.strftime("%Y%m%d")
         self.update_competition_numbers()
         self.max_div = 0.0006
         self.min_div = 0.00015
         self.state_file_name = "ft_state.npz"
+        
 
         bt.logging.info(f"Startup regrade_version: {self.regrade_version}")
 
@@ -88,9 +86,6 @@ class BaseValidatorNeuron(BaseNeuron):
             pass
         else:
             bt.logging.warning("axon off, not serving ip to chain.")
-
-        # Create asyncio event loop to manage async tasks.
-        self.loop = asyncio.get_event_loop()
 
         # Instantiate runners
         self.should_exit: bool = False
@@ -287,7 +282,6 @@ class BaseValidatorNeuron(BaseNeuron):
             return # Don't set weights on testnet.
 
         self.divisions = int(np.floor(self.block / 1000))
-        bt.logging.debug(f"scores: {self.scores}")
         bt.logging.debug(f"offline_scores: {self.offline_scores[self.competition_version]}")
         current_odds = self.offline_scores[self.competition_version]
         current_odds[current_odds < 0] = 0
@@ -378,8 +372,8 @@ class BaseValidatorNeuron(BaseNeuron):
             self.last_block_sync = self.block
 
             # Check if the metagraph axon info has changed.
-            if previous_metagraph.axons == self.metagraph.axons:
-                bt.logging.debug("Metagraph axons are the same, skipping resync")
+            if self.hotkeys == self.metagraph.hotkeys:
+                bt.logging.debug("Metagraph hotkeys are the same, skipping resync")
                 return
 
             bt.logging.info("Metagraph updated, resyncing hotkeys, dendrite pool and moving averages")  
@@ -494,7 +488,9 @@ class BaseValidatorNeuron(BaseNeuron):
 
         self.step = state["step"]
         if 'hotkeys' in state:
-            self.hotkeys = state["hotkeys"]
+            self.hotkeys = list(state["hotkeys"])
+        else:
+            self.hotkeys = copy.deepcopy(self.metagraph.hotkeys)
 
         if 'scores' in state:
             loaded_scores = state["scores"]
@@ -529,32 +525,6 @@ class BaseValidatorNeuron(BaseNeuron):
 
     def update_competition_numbers(self):
         try:
-            # get competition details
-            # competition_start_date = datetime.strptime(DEPLOYED_DATE, "%Y-%m-%d").replace(tzinfo=timezone.utc)
-            # delta = datetime.now(timezone.utc) - competition_start_date  
-            # number_of_days_since_start = delta.days + (delta.seconds / (24*3600))
-            # number_of_competitions_since_start = int(number_of_days_since_start / COMPETITION_LENGTH_DAYS)
-            # if self.config.subtensor.network == "test":
-            #     bt.logging.debug(f"OFFLINE TESTNET: using {TESTNET_COMPETITION_LENGTH_DAYS} days per competition")
-            #     number_of_competitions_since_start = int(number_of_days_since_start / TESTNET_COMPETITION_LENGTH_DAYS)
-
-            #bt.logging.debug(f"OFFLINE: number_of_competitions_since_start: {number_of_competitions_since_start}")
-
-            # if number_of_competitions_since_start < 1:
-            #     # we have not completed any competitions with this prefix, so the previous competition number is the last one we completed with the old prefix
-            #     largest_previous_competition_number = 0
-            #     # search through all the previous competition numbers to find the largest (most recent) one
-            #     for k,_ in self.offline_scores.items():
-            #         if k.startswith(f"{COMPETITION_PREVIOUS_PREFIX}-"):
-            #             if int(k.split("-")[1]) > largest_previous_competition_number:
-            #                 largest_previous_competition_number = int(k.split("-")[1])
-            #     self.previous_competition_version = f"{COMPETITION_PREVIOUS_PREFIX}-{largest_previous_competition_number}"
-            # else:
-            #     # we have completed at least one competition with this prefix, so the previous competition number is the last one we completed
-            #     self.previous_competition_version = f"{COMPETITION_PREFIX}-{int(number_of_competitions_since_start-1)}"
-
-            # if self.offline_scores.get(self.previous_competition_version) is None:
-            #     self.offline_scores[self.previous_competition_version] = np.zeros(self.metagraph.n, dtype=np.float32)
 
             self.competition_version = f"{COMPETITION_PREFIX}-0"
 
@@ -600,11 +570,5 @@ class BaseValidatorNeuron(BaseNeuron):
                     self.offline_scores[self.competition_version][uid] = 0.0
                 #bt.logging.debug(f"OFFLINE: regrade check for uid done: {uid}")
 
-            # if number of keys in offline_scores is greater than 5, we need to delete the oldest one
-            # if len(self.offline_scores.keys()) > 6:
-            #     oldest_key = list(self.offline_scores.keys())[0]
-            #     del self.offline_scores[oldest_key]
-            #     del self.offline_miners_scored[oldest_key]
-            #     del self.offline_model_names[oldest_key]
         except Exception as e:
             bt.logging.error(f"Error updating competition numbers: {e}")
