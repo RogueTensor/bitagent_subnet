@@ -137,6 +137,7 @@ class BaseValidatorNeuron(BaseNeuron):
             if mod_date != self.regrade_version:
                 self.tool_dataset = ToolDataset()
                 self.regrade_version = mod_date
+                self.update_competition_numbers()
                 bt.logging.debug("Data regenerated.")
         else:
             bt.logging.info(f"date: {today} is the same as check_date: {self.check_date}")
