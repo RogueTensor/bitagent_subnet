@@ -38,6 +38,8 @@ class BaseMinerNeuron(BaseNeuron):
     def __init__(self, config=None):
         super().__init__(config=config)
 
+        # always true for miners
+        self.first_forward_pass_completed = True
         # Warn if allowing incoming requests from anyone.
         if not self.config.blacklist.force_validator_permit:
             bt.logging.warning(
