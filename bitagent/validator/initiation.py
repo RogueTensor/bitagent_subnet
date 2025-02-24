@@ -24,7 +24,6 @@ from datetime import datetime
 from bitagent.datasources import ToolDataset
 from langchain_openai import ChatOpenAI
 from sentence_transformers import util
-from bitagent.helpers.sbert import CachedSentenceTransformer
 
 # setup validator with wandb
 # clear out the old wandb dirs if possible
@@ -118,7 +117,6 @@ def initiate_validator_local(self):
     self.tool_dataset = ToolDataset()
     self.check_date = ""
     #bt.logging.debug("Initializing Validator - this may take a while (downloading data and models) - loading model ...")
-    self.sentence_transformer = CachedSentenceTransformer('BAAI/bge-small-en-v1.5')
 
     def llm(messages, max_new_tokens = 160, temperature=0.7):
         if isinstance(messages, str):
@@ -136,17 +134,3 @@ def initiate_validator_local(self):
     
     #bt.logging.debug("Initializing Validator - this may take a while (downloading data and models) - finished loading model")
 
-    # code to measure the relevance of the response to the question
-    def measure_relevance_of_texts(text1, text2): 
-        # Encode the texts to get the embeddings
-        if type(text2) == list:
-            embeddings = self.sentence_transformer.encode([text1,*text2], convert_to_tensor=True, show_progress_bar=False)
-        else:
-            embeddings = self.sentence_transformer.encode([text1,text2], convert_to_tensor=True, show_progress_bar=False)
-        # Compute the cosine similarity between the embeddings
-        if type(text2) == list:
-            return util.pytorch_cos_sim(embeddings[0], embeddings[1:])[0]
-        else:
-            return float(util.pytorch_cos_sim(embeddings[0], embeddings[1:])[0][0])
-
-    self.measure_relevance_of_texts = measure_relevance_of_texts
