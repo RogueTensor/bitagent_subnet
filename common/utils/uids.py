@@ -37,7 +37,7 @@ cache = TTLCache(maxsize=256, ttl=3600)
 
 @cached(cache)
 def get_alive_uids(self):
-    return [int(u) for u in self.metagraph.uids if not (self.metagraph.validator_permit[u] and self.metagraph.S[u] > self.config.neuron.vpermit_tao_limit)]
+    return [int(u) for u in self.metagraph.uids if int(u) != 20 and not (self.metagraph.validator_permit[u] and self.metagraph.S[u] > self.config.neuron.vpermit_tao_limit)]
 
 def get_random_uids(
     self, k: int, exclude: List[int] = None
