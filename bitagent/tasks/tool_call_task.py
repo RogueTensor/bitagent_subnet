@@ -89,7 +89,7 @@ class ToolCallTask(Task):
     def generate_task_data(self) -> ToolCallData:
 
         data: ToolCallData = next(self.validator.tool_dataset)
-        
+        random.seed(572343)
         tool_call = find_first_tool_call(data.messages)
         if not tool_call:
             # no tool call in the messages, so skip
@@ -136,23 +136,12 @@ class ToolCallTask(Task):
                         # this usually happens when the json is not valid (single vs double quotes)
                         new_tool_call = json.dumps(ast.literal_eval(tool_call))
                         tool_call_dict = ast.literal_eval(tool_call)
-                    # check through all the tools that will be passed to the miner
-                    # find the tool that is THE tool that is expected to be returned
-                    # since it has been rewritten, validate that the tool call is valid/comparable still
-                    #for tool in data.tools:
-                    #    if tool.name == tool_call_dict['name']:
-                    #        if not validate_tool_call(tool, tool_call_dict):
-                    #            raise Exception('The rewritten tool call is not valid')
-                    #bt.logging.debug(f'finished validating tool call: {tool_call_dict}')
+
                 except Exception as e:
                     bt.logging.error(f'An error occured while rewriting the tool call {e} - you may need to CHECK YOUR vLLM docker instance')
                     count = 11
                     continue
 
-                # rw_prompt = REWRITE_TOOL_USER_PROMPT.format(tool_call=new_tool_call, user=user)
-                # new_user = self.validator.llm([{"role": "user", "content": rw_prompt}], max_new_tokens=1000, temperature=1)
-                # if not self.check_rewrite_alignment(new_user, user):
-                #     raise Exception(f"User rewrite is not in alignment\nOriginal: {user}\n Rewrite: {new_user}")
                 
                 data.messages[0].content = user
 
@@ -168,20 +157,3 @@ class ToolCallTask(Task):
             return messages_before_call, all_tools, data
         
         raise Exception("Skipping - while loop ended without a tool call task")
-
-    def check_rewrite_alignment(self, original: str, rewrite: str) -> bool:
-        score = self.validator.measure_relevance_of_texts(original, rewrite)
-        
-        if score > 0.98:
-            return False
-        
-        if score < 0.2:
-            return False
-
-        if len(rewrite) > 2 * len(rewrite):
-            return False
-        
-        if len(rewrite) < 0.25 * len(rewrite):
-            return False
-        
-        return True
