@@ -206,8 +206,6 @@ async def offline_task(self, wandb_data):
     # skip the models we already have scores for
     unique_miner_hf_model_names = [m for m in unique_miner_hf_model_names if m not in models_to_skip]
 
-
-
     if len(unique_miner_hf_model_names) > 0:
         bt.logging.debug("OFFLINE: Generating tasks")
         # Generate a set of tasks to run on all the offline models
