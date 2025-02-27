@@ -81,7 +81,6 @@ def wait_for_server(base_url: str, server_process, timeout: int = None) -> None:
 
 # TODO also run the bfcl suite on the validator - but skip the API calls, don't use those at first
 # TODO store TOP score from last round and all-time in validator state
-
 async def offline_task(self, wandb_data):
     bt.logging.debug("OFFLINE: Starting offline task")
     self.running_offline_mode = True
@@ -91,68 +90,91 @@ async def offline_task(self, wandb_data):
     # get all alive miner UIDs to compare against the top scores from the last round
     miner_uids = self.miners_left_to_score
 
-    # TODO potentially fetch prompt template from miner too
-    # Grab all the models that the miners submitted
-    responses = await self.dendrite.forward(
-        axons=[self.metagraph.axons[miner_uid] for miner_uid in miner_uids],
-        synapse=GetHFModelName(),
-        deserialize=False,
-        timeout=15.0,
-    )
+    # -------------------------------------------------------------------------
+    # First Pass: Call GetHFModelName only for miners with an empty string
+    #             i.e., those who have never locked a model or who were reset.
+    # -------------------------------------------------------------------------
+    miners_needing_model_lookup = [
+        uid for uid in miner_uids
+        if not self.offline_model_names[self.competition_version].get(uid, "")
+    ]
 
-    wandb_data['event_name'] = "GetHFModelName Responses Fetched"
-    self.log_event(wandb_data)
-
-    miner_hf_model_names = []
-
+    bt.logging.debug(f"OFFLINE: Miners needing model lookup: {miners_needing_model_lookup}")
     with temporary_logging_state('Warning'):
-        try:
-            hf_model_name_to_miner_uids = {}
-            for i,miner_uid in enumerate(miner_uids):
-                # safely access the offline_model_names in case it's not yet initialized
-                if responses[i].hf_model_name is not None:
-                    existing_model_name = self.offline_model_names[self.competition_version].get(miner_uid, "")
-                    hf_model_name = responses[i].hf_model_name
-                    # 
-                    if ('@' not in existing_model_name and '/' in hf_model_name) or (existing_model_name == "" and '/' in hf_model_name):
+        if miners_needing_model_lookup:
+
+            responses = await self.dendrite.forward(
+                axons=[self.metagraph.axons[uid] for uid in miners_needing_model_lookup],
+                synapse=GetHFModelName(),
+                deserialize=False,
+                timeout=15.0,
+            )
+
+            wandb_data['event_name'] = "GetHFModelName Responses Fetched"
+            self.log_event(wandb_data)
+
+            # Assign any valid HF model to the miner, with the commit hash
+            for i, uid in enumerate(miners_needing_model_lookup):
+                try:
+                    hf_model_name = responses[i].hf_model_name or ""
+                except:
+                    hf_model_name = ""
+
+                # If the response has "/", we assume it's a valid HF model name
+                if "/" in hf_model_name:
+                    try:
                         info = model_info(hf_model_name)
                         hf_model_name_hash = hf_model_name + "@" + info.sha
-                        miner_hf_model_names.append(hf_model_name_hash)
-                        self.offline_model_names[self.competition_version][miner_uid] = hf_model_name_hash
+                        self.offline_model_names[self.competition_version][uid] = hf_model_name_hash
+                    except Exception as e:
+                        bt.logging.error(f"OFFLINE: Error getting model info for {hf_model_name}: {e}")
+                        # Keep them at "" if we can't validate or retrieve a commit
+                        self.offline_model_names[self.competition_version][uid] = ""
+                else:
+                    # No valid model => remain empty
+                    self.offline_model_names[self.competition_version][uid] = ""
 
-                        if hf_model_name_hash not in hf_model_name_to_miner_uids:
-                            hf_model_name_to_miner_uids[hf_model_name_hash] = []
-                        hf_model_name_to_miner_uids[hf_model_name_hash].append(int(miner_uid))
-                    else: self.offline_model_names[self.competition_version][miner_uid] = ''
-                else: self.offline_model_names[self.competition_version][miner_uid] = ''
+        else:
+            bt.logging.debug("OFFLINE: No miners need model lookup.")
 
-            # Group all the models together uniquely and share the same inference server
-            unique_miner_hf_model_names = [m for m in list(set(miner_hf_model_names)) if m not in [None, ""]]
-            if len(unique_miner_hf_model_names) == 0:
-                bt.logging.info(f"OFFLINE: No unique miner HF model names to evaluate in OFFLINE mode")
-                for miner_uid in miner_uids:
-                    self.offline_scores[self.competition_version][miner_uid] = 0.0
-                wandb_data['event_name'] = "No Unique HF Models"
-                wandb_data['miners_left_to_score'] = miner_uids
-                self.log_event(wandb_data)
-                wandb_data.pop('miners_left_to_score')
-                self.running_offline_mode = False
-                return
-        except Exception as e:
-            bt.logging.error(f"OFFLINE: Error getting unique miner HF model names: {e}")
-            wandb_data['event_name'] = "Error Getting Unique HF Models"
-            wandb_data['error'] = f"{e}"
-            self.log_event(wandb_data)
-            wandb_data.pop('error')
-            self.running_offline_mode = False
-            return
+    # -------------------------------------------------------------------------
+    # Second Pass: Gather all miners' locked model names (including newly set).
+    # Build 'hf_model_name_to_miner_uids' for the scoring phase.
+    # -------------------------------------------------------------------------
+    hf_model_name_to_miner_uids = {}
+    for uid in miner_uids:
+        existing_model_name = self.offline_model_names[self.competition_version].get(uid, "")
+        if "@" in existing_model_name:
+            # Group these miners by their 'model@commit'
+            if existing_model_name not in hf_model_name_to_miner_uids:
+                hf_model_name_to_miner_uids[existing_model_name] = []
+            hf_model_name_to_miner_uids[existing_model_name].append(uid)
+        else:
+            # This miner has no valid model => will end up with 0.0 score or skip
+            pass
 
+    # Convert to a list of unique locked models
+    miner_hf_model_names = list(hf_model_name_to_miner_uids.keys())
+
+    # If none have valid models, skip out with 0.0 for everyone
+    if not miner_hf_model_names:
+        bt.logging.info(f"OFFLINE: No unique miner HF model names to evaluate in OFFLINE mode")
+        for miner_uid in miner_uids:
+            self.offline_scores[self.competition_version][miner_uid] = 0.0
+        wandb_data['event_name'] = "No Unique HF Models"
+        wandb_data['miners_left_to_score'] = miner_uids
+        self.log_event(wandb_data)
+        wandb_data.pop('miners_left_to_score', None)
+        self.running_offline_mode = False
+        return
+
+    unique_miner_hf_model_names = [m for m in miner_hf_model_names if m not in [None, ""]]
 
     bt.logging.debug(f"OFFLINE: Unique miner HF model names: {len(unique_miner_hf_model_names)}")
     wandb_data['event_name'] = "Unique HF Model Fetched"
     wandb_data['num_unique_hf_models'] = len(unique_miner_hf_model_names)
     self.log_event(wandb_data)
-    wandb_data.pop('num_unique_hf_models')
+    wandb_data.pop('num_unique_hf_models', None)
 
     # no need to regrade if score exists for the same model
     models_to_skip = []
@@ -183,6 +205,8 @@ async def offline_task(self, wandb_data):
 
     # skip the models we already have scores for
     unique_miner_hf_model_names = [m for m in unique_miner_hf_model_names if m not in models_to_skip]
+
+
 
     if len(unique_miner_hf_model_names) > 0:
         bt.logging.debug("OFFLINE: Generating tasks")
