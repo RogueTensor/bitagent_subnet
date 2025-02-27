@@ -81,14 +81,17 @@ def llm(self, messages, tools, model_name, hugging_face=False, max_new_tokens=16
 
     
     try:
-        response = get_openai_llm(self, hugging_face).chat.completions.create(
-            messages=[{"role": m.role, "content": m.content} for m in messages],
-            max_tokens=max_new_tokens,
-            model=model_name,
-            temperature=0
-        )
+        if "@" in model_name::
+            bt.logging.error("Parsing issue with model name, commit still present. Passing...")
+        else:
+            response = get_openai_llm(self, hugging_face).chat.completions.create(
+                messages=[{"role": m.role, "content": m.content} for m in messages],
+                max_tokens=max_new_tokens,
+                model=model_name,
+                temperature=0
+            )
     except Exception as e:
-        bt.logging.error(f"Error calling to LLM: {e}")
+        bt.logging.error(f"Error calling to LLM")
         return ""
 
     if hugging_face:
