@@ -81,7 +81,7 @@ def llm(self, messages, tools, model_name, hugging_face=False, max_new_tokens=16
 
     
     try:
-        if "@" in model_name::
+        if "@" in model_name:
             bt.logging.error("Parsing issue with model name, commit still present. Passing...")
         else:
             response = get_openai_llm(self, hugging_face).chat.completions.create(
