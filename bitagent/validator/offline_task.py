@@ -100,15 +100,16 @@ async def offline_task(self, wandb_data):
     ]
 
     bt.logging.debug(f"OFFLINE: Miners needing model lookup: {miners_needing_model_lookup}")
+    responses = await self.dendrite.forward(
+        axons=[self.metagraph.axons[uid] for uid in miners_needing_model_lookup],
+        synapse=GetHFModelName(),
+        deserialize=False,
+        timeout=15.0,
+    )
     with temporary_logging_state('Warning'):
         if miners_needing_model_lookup:
 
-            responses = await self.dendrite.forward(
-                axons=[self.metagraph.axons[uid] for uid in miners_needing_model_lookup],
-                synapse=GetHFModelName(),
-                deserialize=False,
-                timeout=15.0,
-            )
+
 
             wandb_data['event_name'] = "GetHFModelName Responses Fetched"
             self.log_event(wandb_data)
@@ -375,7 +376,7 @@ async def offline_task(self, wandb_data):
         async def call_llm_with_semaphore(task):
             async with sem:
                 return await asyncio.to_thread(
-                    llm, self, task.synapse.messages, task.synapse.tools, hf_model_name, hugging_face=True
+                    llm, self, task.synapse.messages, task.synapse.tools, model_path, hugging_face=True
                 )
 
         llm_responses_and_finishes = await asyncio.gather(
