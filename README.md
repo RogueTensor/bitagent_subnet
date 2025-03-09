@@ -38,7 +38,7 @@
 
 ## Introduction
 
-**Quick Pitch**: BitAgent revolutionizes how you manage tasks and workflows across platforms, merging the capabilities of large language models (LLMs) with the convenience of your favorite apps such as web browsers, Discord, and custom integrations. BitAgent empowers users to seamlessly integrate intelligent agents, providing personalized assistance and integrated task automation.
+**Quick Pitch**: BitAgent revolutionizes how you manage tasks and workflows across platforms, merging the capabilities of large language models (LLMs) with the convenience of your favorite apps such as web browsers, Discord, and custom integrations, including other Bittensor subnets. BitAgent empowers users to seamlessly integrate intelligent agents, providing personalized assistance and integrated task automation.
 
 **Key Objective** - provide intelligent agency to simplify and automate tasks in your day-to-day
 
@@ -50,8 +50,6 @@
 - No API / subscription requirements
 - Run light models (8B parameter) for huge impact
 - FINETUNED MODEL evaluation of tool calling language model fine tunes
-- MINER HOSTED evaluation of miners running tool calling language models allowing applications to scale on top of SN20
-- Miner's receive [transparent feedback](#miner-feedback)
 - And a BONUS for getting this far - are you tired of waiting for registration slots?  Check out [register.sh](./scripts/register.sh)
 
 ---
@@ -59,12 +57,12 @@
 ## Get Running
 
 - BitAgent is a competitive subnet, meaning miners succeed and fail based on how well they perform on tasks.
-- **Make sure to test your miner on Testnet 76 before ever considering registering for Subnet 20.**
-- Newly registered miners will start at the median score per validator and go up or down depending on their performance.
+- **Make sure to test your miner locally before ever considering registering for Subnet 20.**
+- Newly registered miners will have their model evaluarted by every validator first before any incentive is received - this can take many hours.
 - Before getting too far, please make sure you've looked over the [Bittensor documentation](https://docs.bittensor.com/) for your needs.
 - The min compute requirements are [noted below for Validators](#hardware-requirements).
 - See [FAQ](#faq) for a few more details related to computing requirements for validators and miners.
-- The minimum requirements for a miner are determined by the resources needed to run a competitive and performant tool calling LLM.
+- The minimum requirements for a miner are determined by the resources needed to train/fine-tune a competitive and performant tool calling LLM.
 
 ### BitAgent
 This repository requires python 3.10 or higher. 
@@ -89,7 +87,7 @@ btcli subnet register --wallet.path <YOUR PATH: e.g., ~/.bittensor/wallets> --wa
 
 You must have the following things:
 
-- System with at least 48gb of VRAM
+- System with at least 60GB of VRAM
 - Python >=3.10
 - Docker with [gpu support](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
 
@@ -224,71 +222,54 @@ Validators have hardware requirements. Two LLMS are needed to be run simultaneou
 ### Miner
 If you just want to run the miner without the [script](./scripts/setup_and_run.sh) or are connecting to mainnet:
 ```bash
-# for testing (use testnet 76)
-python3 neurons/miner.py --netuid 76 --subtensor.network test --wallet.path <YOUR PATH: e.g., ~/.bittensor/wallets> --wallet.name <COLDKEY> --wallet.hotkey <HOTKEY>
+# for testing, run a local validator
+python3 neurons/miner.py --netuid <local netuid> --wallet.path <YOUR PATH: e.g., ~/.bittensor/wallets> --wallet.name <COLDKEY> --wallet.hotkey <HOTKEY>
+# or run your model against [BFCL's evaluations](https://github.com/ShishirPatil/gorilla/tree/main/berkeley-function-call-leaderboard#running-evaluations) - 
 # for mainnet
 pm2 start neurons/miner.py --interpreter python3 --
     --netuid 20
     --subtensor.network <finney/local/test>
-    --neuron.device cuda # could be cuda:0, cuda:1 depending on which GPU device
     --wallet.path <YOUR PATH: e.g., ~/.bittensor/wallets> # 8.2.0 has a bug that requires wallet path to be provided
     --wallet.name <your wallet> # Must be created using the bittensor-cli
     --wallet.hotkey <your hotkey> # Must be created using the bittensor-cli
     --miner-hf-model-name-to-submit Salesforce/xLAM-7b-r # submit your own fine tune with this param
-    --hf-model-name-to-run Salesforce/xLAM-7b-r # run the best tool calling LLM you can
-    --openai-api-base http://localhost:8000/v1 # point to your vllm instance of the model you are running
     --logging.debug # Run in debug mode, alternatively --logging.trace for trace mode
     --log_level trace # for trace logs
     --axon.port # VERY IMPORTANT: set the port to be one of the open TCP ports on your machine
 
 ```
 #### Miner Hardware Requirements
-Miners will need to run a top tool calling LLM or a fine-tune of their own, needing a GPU with 20GB to 30GB of VRAM. 
+Miners will only need to submit a top tool calling LLM or a fine-tune of their own, needing GPU with adequqate VRAM (GBs) to build their model.
+There is no longer inference on SN20, so no model needs to run 24/7.
 
 #### Default Miner
-The default miner is all you need with these modifications:
+The default miner is all you need with this modification:
 1) `--miner-hf-model-name-to-submit` - set this to the HF model path and repo name from Hugging Face (HF).  \
    Example: `--miner-hf-model-name-to-submit Salesforce/xLAM-7b-r`
-2) `--hf-model-name-to-run` - this is the model the miner is running to respond to queries that are sent to the miner. \
-   Example: `--hf-model-name-to-run Salesforce/xLAM-7b-r`
-3) `--openai-api-base` - this sets the vLLM endpoint that's running your local model. \
-   Example: `--openai-api-base http://localhost:8000/v1`
 
 See [Miner Configuration Considerations](#miner-configuration-considerations) for common areas miners should look to improve.
 
 #### Miner Emissions
 
-Miner emissions are composed of both MINER-HOSTED and FINETUNED SUBMISSION evaluation:
-- 20% of the miner's score is determined by the persistent availability of the miners and their response to on-demand queries  This is MINER-HOSTED evaluation of the miner.
-- 80% is determined by bi-weekly challenges in which the miner submits their latest huggingface model and Validators load the model on their machine to evaluate. This is FINETUNED SUBMISSION evaluation. This 80% portion serves as a delayed incentive mechanism, meaning it is always based on miner/model performance from the PREVIOUS competition.
-
-Both MINER-HOSTED and FINETUNED SUBMISSION tasks are evaluated against modifications of these datasets:
-- Berkeley Function Calling tasks
-- Glaive Function Calling tasks
-- BitAgent Function calling tasks
-
-The Bi-weekly challenge is to finetune an 8B model (or less) to perform well on the tool calling tasks and perform well on the [BFCL Leaderboard](https://gorilla.cs.berkeley.edu/leaderboard.html). Miners must publish their model to HuggingFace and update their `--miner-hf-model-name-to-subnet` parameter when starting/restarting their miner - see [Default Miner](#default-miner)
-
-#### Miner Registration Considerations
-
-Due to the delayed incentive mechanism of finetuned model evaluation, miners are not recommended to register during the middle of a competition. This is because miners registering mid-competition will not have a score from the prior competition, making them unable to benefit from the 80% incentive calculation.
-- It is recommended that miners register on the day a competition ends (prior to the actual time of competition close). The competitions end on the midnight (00:00) UTC between Monday and Tuesday every two weeks starting from 11-5-2024.
-- Registering on the competition end date (within 16 hours of the deadline) ensures that the miner's 16-hour immunity will be used for model submission grading and scoring in the current competition. Additionally, while the miner is still immune, the competition will roll over into the next cycle, and the miner's score will be finalized for the incentive calculation for the entire next competition cycle.
-- On the day of the competition's end, registration slots are expected to be extremely competitive. Due to substrate constraints, at most three miners can register per hour. If you're receiving error messages while registering, this is why and you will need to keep trying.
+Miner emissions are based soley on FINETUNED SUBMISSION evaluation:
+- 100% of the miner's score is determined by the persistent abilty of their FINETUNED SUBMISSION to be evaluated by the validators on the validators' machines.
+- Miners' submissions are locked in and cannot be changed after submission.  Miners may, of course, register their new model as a new miner.
+- New datasets are pushed out to ensure miners are not overfitting and will be used by the validators to reevaluate the miners' models.
+  
+The miners must finetune an 8B model (or less) to perform well on the tool calling tasks and perform well on tasks similar to [BFCL Leaderboard](https://gorilla.cs.berkeley.edu/leaderboard.html). Miners must publish their model to HuggingFace and update their `--miner-hf-model-name-to-submit` parameter when starting/restarting their miner - see [Default Miner](#default-miner)
 
 #### Miner Configuration Considerations
 The default miner is all you need, just make sure you update the parameters described in [Default Miner](#default-miner).  
 For your consideration:
-1) Use vLLM as a fast inference runner for your tool calling LLM. Check [this](https://docs.vllm.ai/en/v0.6.0/getting_started/quickstart.html#openai-compatible-server) out to stand up an openAI compliant vLLM instance.
-2) Use pm2 to launch your miner for easy management and reconfiguration as needed.
-3) We use [SGLang](https://sgl-project.github.io/start/install.html) to run your hugging face models, please make sure your model loads with SGLang.
-4) Don't make it obvious to other miners where your HuggingFace submission is, manage this discretely.
+1) Use pm2 to launch your miner for easy management and reconfiguration as needed.
+2) We use [SGLang](https://sgl-project.github.io/start/install.html) to run your hugging face models, please make sure your model loads with SGLang.
+3) Don't make it obvious to other miners where your HuggingFace submission is, manage this discretely.
 
 
 #### Example Task
 Here's an example task you can expect your model to see in FINETUNED SUBMISSION mode as well as your local miner to see in MINER-HOSTED mode:
 
-You'll receive messages like this:
+Your submitted model will receive messages like this:
 ```baseh
 [{"content":"What is the discounted price of the jacket, given it was originally $200 and there is a 20% reduction?","role":"user"}]
 ```
@@ -307,17 +288,7 @@ In response your model should return the function call like this:\
 The model is responsible for returning a function call like above with the right function name, the correct function argument names and values, being sure to set any required arguments appropriately.
 
 #### Miner Feedback
-As a miner, you receive tasks, you get rewarded, but on most subnets, you do not know what you're being graded on.
-BitAgent (SN20) offers transparent feedback (in debug logging mode), so you know what you're up against.
-
-Here's an example of a well performed task:
-![miner feedback - good example](./docs/examples/output_to_miner.png)
-
-Here's an example of a poorly performed task:
-![miner feedback - bad example](./docs/examples/bad_output_to_miner.png)
-
-Additionally, we send all queries and results to Wandb:
-- WandB Testnet - https://wandb.ai/bitagentsn20/testnet
+All task evaluations are pushed up to mainnet's wandb:
 - WandB Mainnet - https://wandb.ai/bitagentsn20/mainnet
 
 ### Advanced
@@ -383,7 +354,7 @@ This will skip everything and just launch the already registered and funded vali
 
 ## FAQ
 **Q: How much GPU (VRAM) and RAM do I need to run a validator and/or miner?** \
-A: Validators need a GPU and require a minimum of 48 GBs of VRAM with performant CPU.  Miners are left to their own setup, but should be aware that the more capable tool calling LLMs require a decent amount of VRAM (common configurations: a 3090 (with 24GB VRAM) is capable enough for the smaller (~8B params) models we require).
+A: Validators need a GPU and require a minimum of 60 GBs of VRAM with performant CPU.  Miners are left to their own setup, but should be aware that the more capable tool calling LLMs require a decent amount of VRAM to fine-tune the model to be submitted.  Reminder that miners are not required to host a model for real-time inference.
 
 **Q: Are there any required subscriptions or paid APIs?** \
 A: No - no subs, no external companies, in fact we'd rather the community build amazing AI capabilities than relying on corporations.
