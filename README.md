@@ -87,7 +87,7 @@ btcli subnet register --wallet.path <YOUR PATH: e.g., ~/.bittensor/wallets> --wa
 
 You must have the following things:
 
-- System with at least 60GB of VRAM
+- System with at least 48GB of VRAM
 - Python >=3.10
 - Docker with [gpu support](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
 
@@ -108,19 +108,6 @@ Install [PM2](https://pm2.io/docs/runtime/guide/installation/) and the [`jq` pac
    ```bash
    brew update && brew install jq && brew install npm && sudo npm install pm2 -g && pm2 update
    ```
-
-#### vLLM Setup for Validators
-
-Validators must spin-up their own LLM (specifically mistral 7B).
-Note: Previously we ran the LLM's inside the validator code with the transformer package, however we pivoted away from that due to the inefficiency of running the model using vanilla transformers. Hosting the models using llama.cpp, oobabooga, vllm, TGI, are much better options as they provide additional functionality.  
-
-To run with vLLM you can do the following:
-
-```bash
-sudo docker run -d -p 8000:8000  --gpus all --ipc host --name mistral-instruct docker.io/vllm/vllm-openai:latest --model thesven/Mistral-7B-Instruct-v0.3-GPTQ --max-model-len 8912 --quantization gptq --dtype half --gpu-memory-utilization 0.45
-```
-
-This will run the LLM on port 8000. To change the port, change the host port for this parameter up above `-p <host port>:<container port>`. And use `--openai-api-base http://localhost:<new_port>/v1` in your params to point to the vLLM model for SN20.
 
 #### sglang Setup for Validators
 
@@ -215,9 +202,8 @@ After you've launched and pm2 is running, here's what to expect:\
 
 #### Validator Hardware Requirements
 
-Validators have hardware requirements. Two LLMS are needed to be run simultaneously:
-  - 1st LLM `thesven/Mistral-7B-Instruct-v0.3-GPTQ` can run off of 10GB to 20GB of VRAM - this model is used to alter tasks before going out to miners.
-  - 2nd LLM is each miner's tool calling model fetched from Hugging Face, one at a time to be evaluated OFFLINE for FINETUNED SUBMISSION and takes up 20GB to 30GB of VRAM.
+Validators have hardware requirements. A series of LLMs must be loaded via sglang for evaluation:
+  - Each LLM is a miner's tool calling model fetched from Hugging Face, one at a time to be evaluated OFFLINE for FINETUNED SUBMISSION and takes up 20GB to 30GB of VRAM.
 
 ### Miner
 If you just want to run the miner without the [script](./scripts/setup_and_run.sh) or are connecting to mainnet:
@@ -354,7 +340,7 @@ This will skip everything and just launch the already registered and funded vali
 
 ## FAQ
 **Q: How much GPU (VRAM) and RAM do I need to run a validator and/or miner?** \
-A: Validators need a GPU and require a minimum of 60 GBs of VRAM with performant CPU.  Miners are left to their own setup, but should be aware that the more capable tool calling LLMs require a decent amount of VRAM to fine-tune the model to be submitted.  Reminder that miners are not required to host a model for real-time inference.
+A: Validators need a GPU and require a minimum of 48 GBs of VRAM with performant CPU.  Miners are left to their own setup, but should be aware that the more capable tool calling LLMs require a decent amount of VRAM to fine-tune the model to be submitted.  Reminder that miners are not required to host a model for real-time inference.
 
 **Q: Why is my miner suddenly performing poorly?** \
 A: New datasets are periodically pushed to combat overfitting to any particular dataset.
