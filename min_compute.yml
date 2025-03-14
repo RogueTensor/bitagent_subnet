@@ -19,12 +19,13 @@ compute_spec:
       recommended_cores: 8    # Recommended number of CPU cores
       recommended_speed: 3.5  # Recommended speed per core (GHz)
       architecture: "x86_64"  # Architecture type (e.g., x86_64, arm64)
+      note: "Miners's models are run offline, a miner does not require infrastructure to be running 24/7, just the infrastructure needed for fine tuning."
 
     gpu:
-      required: True                     # Does the application require a GPU?
-      min_vram: 24                       # Minimum GPU VRAM (GB)
-      recommended_vram: 48               # Recommended GPU VRAM (GB)
-      recommended_gpu: "NVIDIA A6000"    # provide a recommended GPU to purchase/rent
+      required: False                     # Does the application require a GPU?
+      min_vram: 0                        # Minimum GPU VRAM (GB)
+      recommended_vram: 0                # Recommended GPU VRAM (GB)
+      recommended_gpu: "Unnecessary for model submission"    # provide a recommended GPU to purchase/rent
 
     memory:
       min_ram: 32          # Minimum RAM (GB)
@@ -51,7 +52,7 @@ compute_spec:
 
     gpu:
       required: True                  # Does the application require a GPU?
-      min_vram: 48                    # Minimum GPU VRAM (GB)
+      min_vram: 60                    # Minimum GPU VRAM (GB)
       recommended_vram: 80            # Recommended GPU VRAM (GB)
       recommended_gpu: "NVIDIA A100"  # provide a recommended GPU to purchase/rent
       notes: "Validators will run two models: a small Mistral 7B model AND another 8B param (at max) model from the miner's HF."
@@ -64,8 +65,8 @@ compute_spec:
       ram_type: "DDR4"     # RAM type (e.g., DDR4, DDR3, etc.)
 
     storage:
-      min_space: 200          # Minimum free storage space (GB)
-      recommended_space: 300  # Recommended free storage space (GB)
+      min_space: 400          # Minimum free storage space (GB)
+      recommended_space: 600  # Recommended free storage space (GB)
       type: "SSD"             # Preferred storage type (e.g., SSD, HDD)
 
     os:
