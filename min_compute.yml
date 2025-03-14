@@ -52,8 +52,8 @@ compute_spec:
 
     gpu:
       required: True                  # Does the application require a GPU?
-      min_vram: 60                    # Minimum GPU VRAM (GB)
-      recommended_vram: 80            # Recommended GPU VRAM (GB)
+      min_vram: 48                    # Minimum GPU VRAM (GB)
+      recommended_vram: 60            # Recommended GPU VRAM (GB)
       recommended_gpu: "NVIDIA A100"  # provide a recommended GPU to purchase/rent
       notes: "Validators will run two models: a small Mistral 7B model AND another 8B param (at max) model from the miner's HF."
 
