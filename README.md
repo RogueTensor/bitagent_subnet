@@ -385,6 +385,9 @@ This will skip everything and just launch the already registered and funded vali
 **Q: How much GPU (VRAM) and RAM do I need to run a validator and/or miner?** \
 A: Validators need a GPU and require a minimum of 48 GBs of VRAM with performant CPU.  Miners are left to their own setup, but should be aware that the more capable tool calling LLMs require a decent amount of VRAM (common configurations: a 3090 (with 24GB VRAM) is capable enough for the smaller (~8B params) models we require).
 
+**Q: Why is my miner suddenly performing poorly?** \
+A: New datasets are periodically pushed to combat overfitting to any particular dataset.
+
 **Q: Are there any required subscriptions or paid APIs?** \
 A: No - no subs, no external companies, in fact we'd rather the community build amazing AI capabilities than relying on corporations.
 
