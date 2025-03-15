@@ -370,12 +370,12 @@ A: Please test your sglang setup - check [here](#sglang-setup-for-validators).
 
 **Q: I'm validating and seeing errors like:**
 - TimeoutError
-- ClientConnectorError \
+- ClientConnectorError 
 
 A: These are responses likely during the GetHFModelName() query, they are just letting you know that the miner is not responding or connecting in time. If these are one-offs, then nothing the validator needs to do.
 
 **Q: My validator is hanging, just printing out "Validator running ..."**\
-A: There are a few things to check:\
+A: There are a few things to check:
 - You may not see much unless you turn on some logging, you can add this to your params to see more details:\
   `--log_level trace --logging.trace --logging.debug`
 - Check your storage, make sure you didn't run out:\
