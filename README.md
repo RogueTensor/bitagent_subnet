@@ -18,8 +18,7 @@
   - [BitAgent](#bitagent)
   - [Validator](#validator)
     - [Dependencies](#dependencies)
-    - [Installation](#installation)
-    - [vLLM Setup for Validators](#vllm-setup-for-validators)
+    - [PM2 Installation](#pm2-installation)
     - [sglang Setup for Validators](#sglang-setup-for-validators)
     - [Recommended Startup](#recommended-startup)
     - [Alternative Startup](#alternative-startup)
@@ -58,9 +57,9 @@
 
 - BitAgent is a competitive subnet, meaning miners succeed and fail based on how well they perform on tasks.
 - **Make sure to test your miner locally before ever considering registering for Subnet 20.**
-- Newly registered miners will have their model evaluarted by every validator first before any incentive is received - this can take many hours.
+- Newly registered miners will have their model evaluated by every validator first before any incentive is received - this can take many hours.
 - Before getting too far, please make sure you've looked over the [Bittensor documentation](https://docs.bittensor.com/) for your needs.
-- The min compute requirements are [noted below for Validators](#hardware-requirements).
+- The min compute requirements are [noted below for Validators](#validator-hardware-requirements).
 - See [FAQ](#faq) for a few more details related to computing requirements for validators and miners.
 - The minimum requirements for a miner are determined by the resources needed to train/fine-tune a competitive and performant tool calling LLM.
 
@@ -89,15 +88,9 @@ You must have the following things:
 
 - System with at least 48GB of VRAM
 - Python >=3.10
-- Docker with [gpu support](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
+- PM2
 
-#### Installation
-
-Ensure that you have Docker with GPU support, you can choose to follow either of the instructions:
-
-- [Official Guide](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) 
-- [Quick and Dirty Stack Overflow Guide](https://stackoverflow.com/questions/75118992/docker-error-response-from-daemon-could-not-select-device-driver-with-capab)
-
+#### PM2 Installation
 
 Install [PM2](https://pm2.io/docs/runtime/guide/installation/) and the [`jq` package](https://jqlang.github.io/jq/) on your system.\
    **On Linux**:
@@ -128,7 +121,7 @@ You should not run out of memory and it should eventually show that the Salesfor
 
 #### Recommended Startup
 
-Make sure you do the [vLLM setup](#vllm-setup-for-validators) above and the [sglang setup](#sglang-setup-for-validators) above.
+First, make sure you do the [sglang setup](#sglang-setup-for-validators) above.
 
 ```bash
 # for mainnet with AUTO UPDATES (recommended)
@@ -139,7 +132,7 @@ Double check everything is working by following [these steps](#verify-validator-
 
 #### Alternative Startup
 
-Make sure you do the [vLLM setup](#vllm-setup-for-validators) above and the [sglang setup](#sglang-setup-for-validators) above.
+First, make sure you do the [sglang setup](#sglang-setup-for-validators) above.
 
 ```bash
 # for testnet
@@ -154,24 +147,7 @@ Double check everything is working by following [these steps](#verify-validator-
 #### Verify Validator is Working
 
 After you've launched and pm2 is running, here's what to expect:\
-- You'll see a LOT (one per mind) of IsAlive() queries like this:\
-  ```bash
-  1|bitagent | 2024-11-17 23:25:59.156 |      TRACE       | bittensor:loggingmachine.py:432 | dendrite | <-- | 3354 B | IsAlive | 5GbnkQJ6zfsWa9iX4ZtwKccXZv4s8MTt2LSQFmS8CMgjkSgx | 213.180.0.45:20019 | 200 | Success
-  1|bitagent | 2024-11-17 23:26:04.135 |      TRACE       | bittensor:loggingmachine.py:432 | dendrite | <-- | 3327 B | IsAlive | 5E7eqUChR4WUnRwNAUXRNUZhhjEzTfdeGAvDyf99aygVGYBJ | 176.55.1.98:8091 | 408 | Request timeout after 5.0 seconds
-  1|bitagent | 2024-11-17 23:26:04.180 |      TRACE       | bittensor:loggingmachine.py:432 | dendrite | <-- | 3331 B | IsAlive | 5EHQoRqwMHG3QVVpsSZBPHJD87SEwGn6FhTSR3LCj8XiHVUC | 109.206.196.130:8888 | 408 | Request timeout after 5.0 seconds
-  ```
-- After the IsAlive() queries, you'll start to see QueryTask queries followed by QueryResult queries, like these:\
-  ```bash
-  1|bitagent | 2024-11-17 23:53:20.322 |      ERROR       | bittensor:loggingmachine.py:457 |  - ContentTypeError#aefadd84-8586-4faa-9206-e048c2b85114: 404, message='Attempt to decode JSON with unexpected mimetype: text/html', url='http://52.220.128.145:32222/QueryTask' - 
-  1|bitagent | 2024-11-17 23:53:20.323 |      TRACE       | bittensor:loggingmachine.py:432 | dendrite | <-- | 27205 B | QueryTask | 5GjGiziPatj7mf4is5JaDPJq4jbPnagoeiSHe4TfFERafM7X | 52.220.128.145:32222 | 422 | Failed to parse response: 404, message='Attempt to decode JSON with unexpected mimetype: text/html', url='http://52.220.128.145:32222/QueryTask'
-  1|bitagent | 2024-11-17 23:53:21.708 |      TRACE       | bittensor:loggingmachine.py:432 | dendrite | <-- | 27522 B | QueryTask | 5GbnkQJ6zfsWa9iX4ZtwKccXZv4s8MTt2LSQFmS8CMgjkSgx | 213.180.0.45:20019 | 500 | Internal Server Error #b36dc761-1035-44d0-b88d-24fe9ccc7e1e
-  1|bitagent | 2024-11-17 23:53:21.806 |      TRACE       | bittensor:loggingmachine.py:432 | dendrite | --> | 5418 B | QueryResult | 5GbnkQJ6zfsWa9iX4ZtwKccXZv4s8MTt2LSQFmS8CMgjkSgx | 213.180.0.45:20019 | 0 | Success
-  1|bitagent | 2024-11-17 23:53:23.200 |      TRACE       | bittensor:loggingmachine.py:432 | dendrite | <-- | 5578 B | QueryResult | 5GbnkQJ6zfsWa9iX4ZtwKccXZv4s8MTt2LSQFmS8CMgjkSgx | 213.180.0.45:20019 | 200 | Success
-
-  ```
-- These logs above let you know that the ONLINE / MINER HOSTED querying is working.
-- Finally, you'll want to check the miners' HF (hugging face) models are being evaluated OFFLINE.
-- You'll want to check your `pm2 log <ID> | grep OFFLINE` output for lines like these (from testnet):\
+- You'll want to make sure miner's HF models are being evaluated - check your `pm2 log <ID> | grep OFFLINE` output for lines like these (from testnet):\
   ```bash
   1|bitagent | 2024-11-17 23:26:07.154 |      DEBUG       | bittensor:loggingmachine.py:437 | OFFLINE: Starting offline mode for competition 1-1
   1|bitagent | 2024-11-17 23:26:08.831 |      DEBUG       | bittensor:loggingmachine.py:437 | OFFLINE: Starting offline task
@@ -203,7 +179,8 @@ After you've launched and pm2 is running, here's what to expect:\
 #### Validator Hardware Requirements
 
 Validators have hardware requirements. A series of LLMs must be loaded via sglang for evaluation:
-  - Each LLM is a miner's tool calling model fetched from Hugging Face, one at a time to be evaluated OFFLINE for FINETUNED SUBMISSION and takes up 20GB to 30GB of VRAM.
+  - Each LLM is a miner's tool calling model fetched from Hugging Face, one at a time to be evaluated OFFLINE for FINETUNED SUBMISSION and takes up 25GB to 32GB of VRAM.
+  - See [min_compute.yml](./min_compute.yml).
 
 ### Miner
 If you just want to run the miner without the [script](./scripts/setup_and_run.sh) or are connecting to mainnet:
@@ -242,21 +219,21 @@ Miner emissions are based soley on FINETUNED SUBMISSION evaluation:
 - Miners' submissions are locked in and cannot be changed after submission.  Miners may, of course, register their new model as a new miner.
 - New datasets are pushed out to ensure miners are not overfitting and will be used by the validators to reevaluate the miners' models.
   
-The miners must finetune an 8B model (or less) to perform well on the tool calling tasks and perform well on tasks similar to [BFCL Leaderboard](https://gorilla.cs.berkeley.edu/leaderboard.html). Miners must publish their model to HuggingFace and update their `--miner-hf-model-name-to-submit` parameter when starting/restarting their miner - see [Default Miner](#default-miner)
+The miners must finetune an 8B model (or less) to perform well on tasks similar to [BFCL Leaderboard](https://gorilla.cs.berkeley.edu/leaderboard.html). Miners must publish their model to HuggingFace and update their `--miner-hf-model-name-to-submit` parameter when starting their miner - see [Default Miner](#default-miner)
 
 #### Miner Configuration Considerations
 The default miner is all you need, just make sure you update the parameters described in [Default Miner](#default-miner).  
 For your consideration:
 1) Use pm2 to launch your miner for easy management and reconfiguration as needed.
 2) We use [SGLang](https://sgl-project.github.io/start/install.html) to run your hugging face models, please make sure your model loads with SGLang.
-3) Don't make it obvious to other miners where your HuggingFace submission is, manage this discretely.
-
+3) See how [we are running sglang](https://github.com/RogueTensor/bitagent_subnet/blob/e0e09470bb10b27779c0c00f9ebaabe016505832/bitagent/validator/offline_task.py#L309) to make sure you run it the same way in your testing.
+4) Don't make it obvious to other miners where your HuggingFace submission is, manage this discretely.
 
 #### Example Task
-Here's an example task you can expect your model to see in FINETUNED SUBMISSION mode as well as your local miner to see in MINER-HOSTED mode:
+Here's an example task you can expect your model to see in FINETUNED SUBMISSION mode:
 
 Your submitted model will receive messages like this:
-```baseh
+```bash
 [{"content":"What is the discounted price of the jacket, given it was originally $200 and there is a 20% reduction?","role":"user"}]
 ```
 and Tools like this:
@@ -268,7 +245,7 @@ and Tools like this:
 "description":"A function to restart a given pod, useful for deployment and testing.","name":"restart_pod"},...]
 ```
 
-In response your model should return the function call like this:\
+In response, your model should return the function call like this (with the parameter values pushed in):\
 `calculate_discount(discount_percentation=..., original_price=...)`
 
 The model is responsible for returning a function call like above with the right function name, the correct function argument names and values, being sure to set any required arguments appropriately.
@@ -340,26 +317,28 @@ This will skip everything and just launch the already registered and funded vali
 
 ## FAQ
 **Q: How much GPU (VRAM) and RAM do I need to run a validator and/or miner?** \
-A: Validators need a GPU and require a minimum of 48 GBs of VRAM with performant CPU.  Miners are left to their own setup, but should be aware that the more capable tool calling LLMs require a decent amount of VRAM to fine-tune the model to be submitted.  Reminder that miners are not required to host a model for real-time inference.
+A: Validators need a GPU and require a minimum of 48 GBs of VRAM with performant CPU.  \
+Miners are left to their own setup, but should be aware that the more capable tool calling LLMs require a decent amount of VRAM to fine-tune the model to be submitted.  Reminder that miners are not required to host a model for real-time inference.
 
 **Q: Why is my miner suddenly performing poorly?** \
-A: New datasets are periodically pushed to combat overfitting to any particular dataset.
+A: New datasets are periodically pushed to combat overfitting to any particular dataset.  \
+Miners' models are locked in upon submission, therefore miners should find and finetune on larger function calling datasets to have the best chance of surviving multiple dataset pushes.\
+The most ideal dataset to target is BFCL's.
 
 **Q: Are there any required subscriptions or paid APIs?** \
-A: No - no subs, no external companies, in fact we'd rather the community build amazing AI capabilities than relying on corporations.
+A: No - no subs, no external companies, in fact we'd prefer the community build amazing AI capabilities rather than relying on corporations.
 
 **Q: What LLM should I use?** \
-A: This is where the miner needs to experiment some and test and fine-tune different LLM models to find what accomplishes the tasks most successfully.  Have a look at models in the Salesforce xLAM family as good starting points.
+A: This is where the miner needs to experiment some and test and fine-tune different LLM models to find what accomplishes the tasks most successfully.  Have a look at models in the Salesforce xLAM family as good starting points.  By this time, we may have a top performing model released on BFCL that you can start from.
 
 **Q: Validators are running miner-submitted HF models, will validators require `trust_remote_code`?** \
 A: No, we require that no setup scripts or any code be necessary for running the models.
 
 **Q: I started my miner and I am not receiving any tasks.** \
 A: There are a few things to check:
-- Is your axon port, as reported on the metagraph correct (you can check taostats or metagraph)?
+- Is your axon port, as reported on the metagraph, correct (you can check taostats or metagraph)?
 - Is your axon port open and reachable from a system in the real world (like where the validators are)?
-- Do you have Trace logging on to see the dendrite requests and Debug logging on to see the task results?
-- Make sure your IsAlive() forward is returning True and wait an hour for that to update in the validator's cache.
+- Do you have TRACE logging on to see the dendrite requests and DEBUG logging on to see the task results?
 - Make sure there isn't a stale process that is preventing your new miner process from starting up on the intended port.
 
 **Q: What about model copying?** \
@@ -369,7 +348,7 @@ A: https://discord.com/channels/799672011265015819/1194736998250975332/130287001
 A: There are a few things to check:
 - Is your model licensed under the apache-2.0 license?
 - Is your model size less than 10B parameters? We are looking for 8B params or less models.
-- Is your model name properly set in the Hugging Face?
+- Is your model name properly set in Hugging Face?
 
 **Q: I'm getting a wallet path error, like: `KeyFileError: Keyfile at: ${HOME}/~/.bittensor/wallets/...`** \
 A: There is a bug in 8.2.0 that is setting the wallet path incorrectly, so you may need to fix this by adding this parameter to your start command: \
@@ -386,10 +365,6 @@ Example usage: To use the 2nd CUDA Device, you would add these to your parameter
 A: You can use this parameter: `--validator-hf-server-mem-fraction-static` to increase or decrease the amount of the GPU VRAM to use.\
 It defaults to 0.55, just over half of the VRAM.
 
-**Q: My vLLM or other inference instance is not served on 8000, how do I change this?**\
-A: We provide a parameter `--openai-api-base`\
-It defaults to this: `http://localhost:8000/v1`, updated as needed by passing the `--openai-api-base` parameter to your start command.
-
 **Q: My vTrust is low and it looks like I'm not setting OFFLINE weights.**\
 A: Please test your sglang setup - check [here](#sglang-setup-for-validators).
 
@@ -397,11 +372,10 @@ A: Please test your sglang setup - check [here](#sglang-setup-for-validators).
 - TimeoutError
 - ClientConnectorError \
 
-A: These are responses likely during the IsAlive() query, they are just letting you know that the miner is not responding or connecting in time.
+A: These are responses likely during the GetHFModelName() query, they are just letting you know that the miner is not responding or connecting in time. If these are one-offs, then nothing the validator needs to do.
 
 **Q: My validator is hanging, just printing out "Validator running ..."**\
 A: There are a few things to check:\
-- Make sure your vLLM is running with the required LLM from [vLLM Setup](#vllm-setup-for-validators)
 - You may not see much unless you turn on some logging, you can add this to your params to see more details:\
   `--log_level trace --logging.trace --logging.debug`
 - Check your storage, make sure you didn't run out:\
