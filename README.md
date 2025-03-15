@@ -363,7 +363,7 @@ Example usage: To use the 2nd CUDA Device, you would add these to your parameter
 
 **Q: My validator is running out of GPU memory when loading OFFLINE models via sglang.** \
 A: You can use this parameter: `--validator-hf-server-mem-fraction-static` to increase or decrease the amount of the GPU VRAM to use.\
-It defaults to 0.55, just over half of the VRAM.
+It defaults to 0.85 of the VRAM.
 
 **Q: My vTrust is low and it looks like I'm not setting OFFLINE weights.**\
 A: Please test your sglang setup - check [here](#sglang-setup-for-validators).
