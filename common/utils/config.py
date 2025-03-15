@@ -158,7 +158,7 @@ def add_args(cls, parser):
         parser.add_argument(
             "--validator-hf-server-mem-fraction-static",
             type=float,
-            default=0.40,
+            default=0.85,
             help="the fraction of the GPU memory to use for the HF server",
         )
 
