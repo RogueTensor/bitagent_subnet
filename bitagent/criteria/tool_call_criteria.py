@@ -180,51 +180,58 @@ def correct_tool_argument_values(task, validator, synapse: bt.Synapse, expected_
     feedback_lines = []
     correct_count = 0
 
-    def is_value_correct(arg: str) -> bool:
-        expected_val = expected_response['arguments'][arg]
-        provided_val = function_values.get(arg)
-
-        if provided_val is None:
-            # Should not happen if names-check is done first, but let's be safe:
+    def is_value_correct(expected_val, provided_val) -> bool:
+        """
+        Compare two values, with special logic for lists (compare as sets)
+        and dictionaries (direct == comparison, ignoring key order).
+        """
+        # If types differ, they're automatically not equal
+        if type(expected_val) != type(provided_val):
             return False
 
-        prov_str = str(provided_val)
-        if "is_ground_truth" in expected_response:
-            acceptable = [str(v) for v in expected_val] if isinstance(expected_val, list) else [str(expected_val)]
-            return prov_str in acceptable
-        else:
-            if isinstance(expected_val, list):
-                expected_strs = [str(v) for v in expected_val]
-                return prov_str in expected_strs
-            else:
-                return prov_str == str(expected_val)
-
+        # Compare lists as sets to ignore order
+        if isinstance(expected_val, list):
+            return set(expected_val) == set(provided_val)
+        
+        # Compare dictionaries by direct equality (Python ignores key order)
+        if isinstance(expected_val, dict):
+            return dict(expected_val) == dict(provided_val)
+        
+        # Fallback to direct equality for everything else
+        return expected_val == provided_val
 
     for arg in expected_args:
         if arg in provided_args:
-            if is_value_correct(arg):
+            exp_val = expected_response['arguments'][arg]
+            prov_val = function_values.get(arg)
+            if is_value_correct(exp_val, prov_val):
                 correct_count += 1
                 feedback_lines.append(good_message(f"Correct value for '{arg}'."))
             else:
                 if arg in required_args:
                     feedback_lines.append(bad_message(
                         f"Incorrect value for required argument: {arg}. "
-                        f"Expected: {expected_response['arguments'][arg]}, got: {function_values.get(arg)}"
+                        f"Expected: {exp_val}, got: {prov_val}"
                     ))
+                    # A single required argument mismatch yields a 0.0 total
                     feedback = "\n".join(feedback_lines)
                     return 0.0, max_reward, feedback + received_reward_template.format(0.0, max_reward)
                 else:
-                    # optional arg is incorrect, just note it; we don't zero out the score
                     feedback_lines.append(bad_message(
                         f"Incorrect value for optional argument: {arg}. "
-                        f"Expected: {expected_response['arguments'][arg]}, got: {function_values.get(arg)}"
+                        f"Expected: {exp_val}, got: {prov_val}"
                     ))
         else:
-            feedback_lines.append(bad_message(f"Optional argument not provided: {arg}"))
+            # If an expected arg is missing, note it (for optional).
+            feedback_lines.append(
+                bad_message(f"Optional argument not provided: {arg}")
+            )
 
-    score = max_reward * (correct_count / len(expected_args))
+    # Score is proportional to number of correctly matched arguments.
+    score = max_reward * (correct_count / len(expected_args)) if expected_args else 0
     feedback = "\n".join(feedback_lines)
     return score, max_reward, feedback + received_reward_template.format(score, max_reward)
+
 
 def correct_irrelevant_tool_call(task, validator, synapse: bt.Synapse) -> Tuple[float, float, str]:
     max_reward = 3.0
