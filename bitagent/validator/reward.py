@@ -118,7 +118,6 @@ async def write_to_wandb(validator: BaseValidatorNeuron, task: Task, responses: 
         try:
             data = {
                 "task_name": task_name,
-                "task_mode": task_mode,
                 "messages": [{'role': m.role, 'content': m.content} for m in messages],
                 "tools": [{'name': t.name, 'description': t.description, 'arguments': t.arguments} for t in tools],
                 "miners_count": len(miner_uids),
@@ -126,9 +125,8 @@ async def write_to_wandb(validator: BaseValidatorNeuron, task: Task, responses: 
                 "tools_count": len(tools),
                 "response": resp,
                 "miner_uid": miner_uids[i],
-                "score": score,
-                "normalized_score": normalized_score,
-                "average_score_for_miner_with_this_validator": validator.scores[miner_uid],
+                "task_score": score,
+                "task_normalized_score": normalized_score,
                 "stake": validator.metagraph.S[miner_uid],
                 "trust": validator.metagraph.T[miner_uid],
                 "incentive": validator.metagraph.I[miner_uid],
@@ -140,8 +138,6 @@ async def write_to_wandb(validator: BaseValidatorNeuron, task: Task, responses: 
                 "axon_status_code": response.axon.status_code,
                 "validator_uid": validator.metagraph.hotkeys.index(validator.wallet.hotkey.ss58_address),
                 "val_spec_version": validator.spec_version,
-                "highest_score_for_miners_with_this_validator": validator.scores.max(),
-                "median_score_for_miners_with_this_validator": np.median(validator.scores),
                 "offline_score_for_miner_with_this_validator": validator.offline_scores[validator.competition_version][miner_uid],
                 "highest_offline_score_for_miners_with_this_validator": validator.offline_scores[validator.competition_version].max(),
                 "median_offline_score_for_miners_with_this_validator": np.median(validator.offline_scores[validator.competition_version]),
@@ -213,10 +209,10 @@ async def process_rewards_update_scores_for_many_tasks_and_many_miners(
     # Compute and log the mean score
     score = np.mean(scores)
     wandb_data['event_name'] = "Processing Rewards - Score"
-    wandb_data['score'] = score
+    wandb_data['model_score'] = score
     wandb_data['miner_uids'] = miner_uids
     validator.log_event(wandb_data)
-    wandb_data.pop('score')
+    wandb_data.pop('model_score')
     wandb_data.pop('miner_uids')
 
     # Update scores
