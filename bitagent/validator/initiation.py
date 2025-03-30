@@ -65,6 +65,9 @@ def initiate_validator(self):
                 dir=self.config.neuron.full_path,
                 tags=tags,
                 resume='allow',
+                settings=wandb.Settings(
+                    console="off",
+                ),
                 name=f"{uid}-{spec_version}-{datetime.today().strftime('%Y-%m-%d')}",
             )
             bt.logging.success(f"Started a new wandb run <blue> {self.wandb.name} </blue>")
