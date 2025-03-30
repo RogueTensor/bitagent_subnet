@@ -4,8 +4,8 @@ import shutil
 import psutil
 import asyncio
 import requests
+import subprocess
 import bittensor as bt
-
 from sglang.utils import (
     terminate_process)
 from bitagent.helpers.llms import llm
@@ -125,6 +125,7 @@ async def offline_task(self, wandb_data):
                 if "/" in hf_model_name:
                     try:
                         info = model_info(hf_model_name)
+                        time.sleep(30)
                         hf_model_name_hash = hf_model_name + "@" + info.sha
                         self.offline_model_names[self.competition_version][uid] = hf_model_name_hash
                     except Exception as e:
@@ -254,7 +255,7 @@ async def offline_task(self, wandb_data):
 
         # confirm model license is apache-2.0 or nc-by-nc-4.0 or mit
         # TODO eventually ONLY accept apache-2.0
-        if license not in ["apache-2.0", "cc-by-nc-4.0", "mit"]:
+        if license not in ["apache-2.0"]:
             bt.logging.debug(f"OFFLINE: Skipping model {i+1} of {len(unique_miner_hf_model_names)} due to license: {license}")
             for miner_uid in hf_model_name_to_miner_uids[hf_model_name]:
                 self.offline_scores[self.competition_version][miner_uid] = 0.0
@@ -306,6 +307,15 @@ async def offline_task(self, wandb_data):
             #     # need to download from hugging face
             model_path = hf_model_name.split("@")[0]
             model_commit = hf_model_name.split("@")[1]
+            
+            # log the vram status prior to sglang launch
+            wandb_data['event_name'] = "Launching sglang server"
+            command = ["nvidia-smi", "--query-gpu=memory.free", "--format=csv,noheader,nounits"]
+            wandb_data['current_vram_utilization'] = subprocess.check_output(command, text=True)
+            self.log_event(wandb_data)
+            wandb_data.pop('current_vram_utilization')
+
+            # launch sglang server
             server_process = await asyncio.to_thread(execute_shell_command,
                 f"""
                 {os.getcwd()}/.venvsglang/bin/python -m sglang.launch_server \
@@ -345,7 +355,9 @@ async def offline_task(self, wandb_data):
                 wandb_data['event_name'] = "Error Waiting for HF Model Eval Server"
                 wandb_data['error'] = f"{e}"
                 wandb_data['miner_uids'] = hf_model_name_to_miner_uids[hf_model_name]
+                wandb_data['current_vram_utilization'] = subprocess.check_output(command, text=True)
                 self.log_event(wandb_data)
+                wandb_data.pop('current_vram_utilization')
                 wandb_data.pop('error')
                 wandb_data.pop('num_hf_model')
                 wandb_data.pop('miner_uids')
@@ -432,6 +444,7 @@ async def offline_task(self, wandb_data):
                             
 
         # remove newly downloaded files from HF cache if were not already in cache
+        # todo re-evaluate how we handle storage of models
         if not latest_snapshot:
             bt.logging.debug(f"OFFLINE: Deleting model from HF cache: {i+1} of {len(unique_miner_hf_model_names)}")
             wandb_data['event_name'] = "Deleting HF Model from Cache"
@@ -449,6 +462,8 @@ async def offline_task(self, wandb_data):
         self.log_event(wandb_data)
         wandb_data.pop('num_hf_model')
         wandb_data.pop('miner_uids')
+
+        time.sleep(30)
 
     bt.logging.debug(f"OFFLINE: Finished processing offline tasks")
     self.running_offline_mode = False
