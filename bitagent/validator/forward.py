@@ -85,6 +85,9 @@ async def forward(self, synapse: QueryTask=None) -> QueryTask:
             wandb_data.pop('offline_status')
             bt.logging.error("Starting Offline Tasking -- Can take up to 30 minutes")
             await asyncio.create_task(offline_task(self, wandb_data))
+            wandb_data['event_name'] = "offline_task_completed"
+            self.log_event(wandb_data)
+            wandb_data.pop('event_name')
             self.running_offline_mode = False
         elif self.running_offline_mode:
             #bt.logging.debug(f"OFFLINE: Already running offline mode for competition {self.competition_version}")
