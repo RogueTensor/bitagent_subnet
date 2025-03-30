@@ -62,7 +62,7 @@ class BaseValidatorNeuron(BaseNeuron):
         self.offline_model_names = {}
         self.running_offline_mode = False
         self.offline_status = None
-        self.regrade_version = dataset_info("BitAgent/tool_shuffle_small").last_modified.strftime("%Y%m%d")
+        self.regrade_version = dataset_info("BitAgent/tool_shuffle_small").last_modified.strftime("%Y%m%d%H")
         self.update_competition_numbers()
         self.max_div = 0.0006
         self.min_div = 0.00015
@@ -78,6 +78,7 @@ class BaseValidatorNeuron(BaseNeuron):
             self.sync(save_state=False)
         else:
             # if no state file then we'll create one on init
+            self.hotkeys=[]
             self.sync()
         # Serve axon to enable external connections.
         if not self.config.neuron.axon_off:
@@ -127,7 +128,7 @@ class BaseValidatorNeuron(BaseNeuron):
 
     def tool_dataset_regen(self):
 
-        mod_date = dataset_info("BitAgent/tool_shuffle_small").last_modified.strftime("%Y%m%d")
+        mod_date = dataset_info("BitAgent/tool_shuffle_small").last_modified.strftime("%Y%m%d%H")
         
         if mod_date != self.regrade_version:
             bt.logging.info(f"Dataset Regeneration: Regrade version{self.regrade_version} has changed, updating to {mod_date}")
@@ -184,7 +185,7 @@ class BaseValidatorNeuron(BaseNeuron):
                     #    self.should_exit = True
                     #    exit()
 
-                if self.step % 200 == 0:
+                if self.step % 500 == 0:
                     self.tool_dataset_regen()
                     
 
