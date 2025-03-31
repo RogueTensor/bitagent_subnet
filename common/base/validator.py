@@ -68,7 +68,8 @@ class BaseValidatorNeuron(BaseNeuron):
         self.min_div = 0.00015
         self.state_file_name = "ft_state.npz"
         # set random seed to be encoded regrade version based later
-        np.random.seed(572343)
+        self.seed = self.spec_version*1000000
+        np.random.seed(self.seed)
         bt.logging.info(f"Startup regrade_version: {self.regrade_version}")
 
         # Init sync with the network. Updates the metagraph.
@@ -132,7 +133,8 @@ class BaseValidatorNeuron(BaseNeuron):
         
         if mod_date != self.regrade_version:
             bt.logging.info(f"Dataset Regeneration: Regrade version{self.regrade_version} has changed, updating to {mod_date}")
-            self.tool_dataset = ToolDataset()
+            self.tool_dataset = ToolDataset(task_dataset_flag=False)
+            self.task_dataset = ToolDataset(task_dataset_flag=True)
             self.regrade_version = mod_date
             self.update_competition_numbers()
             bt.logging.debug("Data regenerated.")
@@ -299,7 +301,7 @@ class BaseValidatorNeuron(BaseNeuron):
 
         # always fit scores to weighted curve
         # to change random seed to be encoded regrade version based later
-        np.random.seed(572343)
+        np.random.seed(self.seed)
         weighted_scores = score_spreading(current_odds,self.divisions,self.min_div,self.max_div, kurtosis_factor=0.5, divisions=np.random.randint(2,7))
         bt.logging.debug(f"weighted_scores: {weighted_scores}")
 
