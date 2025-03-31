@@ -88,8 +88,8 @@ class ToolCallTask(Task):
 
     def generate_task_data(self) -> ToolCallData:
 
-        data: ToolCallData = next(self.validator.tool_dataset)
-        random.seed(572343)
+        data: ToolCallData = next(self.validator.task_dataset)
+        random.seed(self.validator.seed)
         tool_call = find_first_tool_call(data.messages)
         if not tool_call:
             # no tool call in the messages, so skip
