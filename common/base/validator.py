@@ -68,7 +68,7 @@ class BaseValidatorNeuron(BaseNeuron):
         self.min_div = 0.00015
         self.state_file_name = "ft_state.npz"
         # set random seed to be encoded regrade version based later
-        self.seed = self.spec_version*1000000
+        self.seed = int(datetime.strptime(self.regrade_version, "%Y%m%d%H").timestamp())
         np.random.seed(self.seed)
         bt.logging.info(f"Startup regrade_version: {self.regrade_version}")
 
@@ -133,8 +133,8 @@ class BaseValidatorNeuron(BaseNeuron):
         
         if mod_date != self.regrade_version:
             bt.logging.info(f"Dataset Regeneration: Regrade version{self.regrade_version} has changed, updating to {mod_date}")
-            self.tool_dataset = ToolDataset(task_dataset_flag=False)
-            self.task_dataset = ToolDataset(task_dataset_flag=True)
+            self.tool_dataset = ToolDataset(False, self.seed)
+            self.task_dataset = ToolDataset(True, self.seed)
             self.regrade_version = mod_date
             self.update_competition_numbers()
             bt.logging.debug("Data regenerated.")
@@ -540,10 +540,14 @@ class BaseValidatorNeuron(BaseNeuron):
 
             # if an offline_score is 0 (we should try again), we need to add the miner to the list of miners left to score
             # so clear out the offline_miners_scored for this competition, for those miners
+            to_remove = []
             for uid in self.offline_miners_scored[self.competition_version][self.regrade_version]:
-                if self.offline_scores[self.competition_version][uid] <= 0.01: # little wiggle room
-                    #bt.logging.debug(f"OFFLINE: removing miner {uid} from offline_miners_scored for competition {self.competition_version} because score is less than 0.01")
-                    self.offline_miners_scored[self.competition_version][self.regrade_version].remove(uid)
+                if self.offline_scores[self.competition_version][uid] <= 0.01:
+                    to_remove.append(uid)
+
+            for uid in to_remove:
+                self.offline_miners_scored[self.competition_version][self.regrade_version].remove(uid)
+
 
             # add all miners that are alive and not already scored to the list of miners left to score
             for uid in get_alive_uids(self):
