@@ -118,13 +118,16 @@ def cycle_hf_dataset(dataset, seed=572343):
             yield item
 
 class ToolDataset(Iterator):
-    def __init__(self):
+    def __init__(self, task_dataset_flag=False):
         super().__init__()
         # Always load the "BitAgent/tool_shuffle_small" dataset
         seed = 572343
         bitagent_ds = huggingface_loader("BitAgent/tool_shuffle_small")
         # Wrap it in an infinite-cycle generator
-        self.bitagent_iter = cycle_hf_dataset(bitagent_ds, seed=seed)
+        if task_dataset_flag:
+            self.bitagent_iter = iter(bitagent_ds)
+        else:
+            self.bitagent_iter = cycle_hf_dataset(bitagent_ds, seed=seed)
 
     def __next__(self) -> ToolCallData:
         count = 0
