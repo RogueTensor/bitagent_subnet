@@ -117,8 +117,8 @@ def clear_wandb_dir(self):
 # provide some capabilities to the task API (LLM, cossim)
 def initiate_validator_local(self):
     #bt.logging.info("Initializing Validator - this may take a while (downloading data and models).")
-    self.tool_dataset = ToolDataset(task_dataset_flag=False)
-    self.task_dataset = ToolDataset(task_dataset_flag=True)
+    self.tool_dataset = ToolDataset(False, self.seed)
+    self.task_dataset = ToolDataset(True, self.seed)
     self.check_date = ""
     #bt.logging.debug("Initializing Validator - this may take a while (downloading data and models) - loading model ...")
 
