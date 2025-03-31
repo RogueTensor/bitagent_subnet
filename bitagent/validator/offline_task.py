@@ -250,7 +250,7 @@ async def offline_task(self, wandb_data):
                 total_size = info.safetensors.total
                 license = info.card_data['license']
             except Exception:
-                bt.logging.debug("OFFLINE: No license found for model")
+                bt.logging.error("OFFLINE: Issue getting model info, skipping")
                 license = 'No license available'
                 continue
 
