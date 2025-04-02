@@ -28,15 +28,6 @@ from bitagent.datasources.tools import ToolCallData
 from bitagent.helpers.tool_parsing import validate_tool_call, find_msgs_before_tool_call, find_first_tool_call
 from bitagent.criteria import default_criteria, tool_call_criteria, irrelevant_tool_call_criteria
 
-REWRITE_TOOL_USER_PROMPT = """You rewrite questions to make sense when paired with a function call. 
-The rewritten question will need to be changed to match the argument parameters and values relative to the function name.
-You should change the phrasing of the question to be different and keeping aligned with the function name and arguments. 
-The capitalization of your user prompt rephrasasl should match the exact case of what is expected in the function call.
-Your response should be the rewritten question only.\n
-Function call:\n`{tool_call}`\n 
-Question: {user}\n 
-Modified Question: """
-
 class ToolCallTask(Task):
     def __init__(
         self,
@@ -58,102 +49,94 @@ class ToolCallTask(Task):
             try:
                 messages, tools, data = self.generate_task_data()
                 expected_messages = messages_to_list(data.messages)
+                self.prompt = expected_messages[0]
                 expected_tool_call_messages = [em for em in expected_messages if em['role'] == 'tool call']
-                if messages[0].role == 'system':
-                    # try again - skip tasks with system prompts
-                    continue
-                if len(expected_tool_call_messages) > 0:
-                    expected_tool_call_message = expected_tool_call_messages[0]['content']
-                else:
-                    #bt.logging.debug(f"Skipping - no tool call message found in expected messages: {expected_messages}")
-                    continue
 
-                if type(expected_tool_call_message) == str:
-                    expected_tool_call = json.loads(expected_tool_call_message)
+                expected_tool_call = expected_tool_call_messages[0]['content']
+
+                if (not expected_tool_call.get("name")):
+                    self.criteria = irrelevant_tool_call_criteria()
+                    self.correct_answer = "Irrelevant tool call found"
                 else:
-                    expected_tool_call = expected_tool_call_message
-                self.criteria = default_criteria + tool_call_criteria(expected_response=expected_tool_call)
+                    # Otherwise, normal scenario
+                    self.criteria =tool_call_criteria(expected_response=expected_tool_call)
+                    self.correct_answer = expected_tool_call
 
                 break
 
             except Exception as e:
-                bt.logging.debug(f'Exception getting new task - {e} - you may need to CHECK YOUR vLLM docker instance')
+                print(f'Exception getting new task - {e} - you may need to CHECK YOUR vLLM docker instance')
                 pass
+
         if not messages:
             raise Exception(f"Failed to generate task data 10 times")
         self.messages = messages
         self.synapse = QueryTask(messages=messages, tools=tools)
 
-
-
     def generate_task_data(self) -> ToolCallData:
-
-        data: ToolCallData = next(self.validator.task_dataset)
+    
+        data: ToolCallData = next(self.validator.tool_dataset)
         random.seed(self.validator.seed)
-        tool_call = find_first_tool_call(data.messages)
-        if not tool_call:
-            # no tool call in the messages, so skip
-            raise Exception(f"Skipping - no tool call in the messages: {data.messages}")
 
-        # increase number of tools
-        for _ in range(random.randint(2,4)):
-            # filter out the tools by name that are already in the data.tools
-            new_tools = [t for t in next(self.validator.tool_dataset).tools if t.name not in [dt.name for dt in data.tools]]
-            data.tools = data.tools + new_tools
-        
-        # remove all the messages after the first tool call, keeping the assistant
-        # this reduces the number of messages needing rewording
-        messages = data.messages
-        filtered_msgs = []
-        seen_tool_call = False
-        for msg in messages:
-            filtered_msgs.append(msg)
-            if seen_tool_call: # want to do break after to include the assistant response
-                break
-            if msg.role == 'tool call':
-                seen_tool_call = True
-        data.messages = filtered_msgs
+        first_call = find_first_tool_call(data.messages)
+        if first_call.content == {}:
+            # ----------------------------
+            # CASE A: Irrelevance
+            # ----------------------------
 
-        user = data.messages[0].content
+            new_tools = []
+            # We'll keep collecting until we have at least 5 tools
 
-        count = 0
-        while count < 10:
-            count += 1
-            if find_first_tool_call(data.messages):
-                tool_call = find_first_tool_call(data.messages).content
-                try: # check that the tool call can be loaded, and that it's valid
-                    try:
-                        if isinstance(tool_call, str):
-                            new_tool_call = json.dumps(json.loads(tool_call))
-                            tool_call_dict = json.loads(new_tool_call)
-                        elif isinstance(tool_call, dict):
-                            new_tool_call = tool_call
-                            tool_call_dict = tool_call
-                        else:
-                            raise Exception(f'tool call is not a string or dict: {tool_call}')
-
-                    except Exception as e:
-                        # this usually happens when the json is not valid (single vs double quotes)
-                        new_tool_call = json.dumps(ast.literal_eval(tool_call))
-                        tool_call_dict = ast.literal_eval(tool_call)
-
-                except Exception as e:
-                    bt.logging.error(f'An error occured while rewriting the tool call {e} - you may need to CHECK YOUR vLLM docker instance')
-                    count = 11
-                    continue
-
-                
-                data.messages[0].content = user
-
-                data = ToolCallData(messages=data.messages, tools=data.tools)
-                messages_before_call = find_msgs_before_tool_call(data.messages)
-                
+            # handle param irrelevance
+            if len(data.tools) == 1:
+                while len(new_tools) < 4:
+                    extra_data = next(self.validator.tool_dataset)
+                    new_tools.extend(extra_data.tools)
+                new_tools.extend(data.tools)
+            # handle case for func irrelevance and no tool
             else:
-                # no tool call in the messages, so skip
-                raise Exception(f"Skipping - guess there was no tool call in the messages: {data.messages}")
-                
+                while len(new_tools) < 5:
+                    extra_data = next(self.validator.tool_dataset)
+                    new_tools.extend(extra_data.tools)
+            
+            random.shuffle(new_tools)
+            all_tools = new_tools[:5]
+            messages_before_call = find_msgs_before_tool_call(data.messages)
+            data = ToolCallData(messages=data.messages, tools=all_tools)
+            return messages_before_call, data.tools, data
+
+        else:
+            # ----------------------------
+            # CASE B: We do have a tool call
+            # ----------------------------
+
+            for _ in range(4):
+                # filter out any tool with a name already in data.tools
+                new_batch = next(self.validator.tool_dataset)
+                # pick only new tool names that we don't already have
+                new_tools = [
+                    t for t in new_batch.tools
+                    if t.name not in [dt.name for dt in data.tools]
+                ]
+                data.tools.extend(new_tools)
+
+
+            messages = data.messages
+            filtered_msgs = []
+            seen_tool_call = False
+            for msg in messages:
+                filtered_msgs.append(msg)
+                if seen_tool_call:
+                    break
+                if msg.role == 'tool call':
+                    seen_tool_call = True
+            data.messages = filtered_msgs
+
+
+            messages_before_call = find_msgs_before_tool_call(data.messages)
+
             all_tools = data.tools
             random.shuffle(all_tools)
-            return messages_before_call, all_tools, data
-        
-        raise Exception("Skipping - while loop ended without a tool call task")
+            data = ToolCallData(messages=data.messages, tools=all_tools[:5])
+
+            return messages_before_call, data.tools, data
