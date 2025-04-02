@@ -45,21 +45,23 @@ class Criterion():
             ast.parse(response.strip())
         except:
             # if it not a parsable function, then it's potentially an irrelevance call
-            response = ""
+            pass
 
         return response.strip()
 
     def evaluate(self, task, validator, synapse: bt.Synapse) -> Tuple[float, float, str]:
+    
         try:
             # make sure the tool response converts nicely to an ast
-            synapse.response = self.clean_response(synapse.response)
-            try:
-                ast.parse(synapse.response)
-            except:
-                reward = -0.5
-                max_reward = 1.0
-                feedback = bad_message(f"Your response: {synapse.response} was not parsable")
-                return reward, max_reward, feedback
+            if "irrelevant" not in self.name:
+                try:
+                    synapse.response = self.clean_response(synapse.response)
+                    ast.parse(synapse.response)
+                except:
+                    reward = -0.5
+                    max_reward = 1.0
+                    feedback = bad_message(f"Your response: {synapse.response} was not parsable")
+                    return reward, max_reward, feedback
 
             # actually do the evaluation 
             reward, max_reward, feedback = self.eval_fx(task, validator, synapse, *self.eval_args)
