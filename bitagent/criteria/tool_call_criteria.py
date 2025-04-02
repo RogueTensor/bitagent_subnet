@@ -180,40 +180,79 @@ def correct_tool_argument_values(task, validator, synapse: bt.Synapse, expected_
     feedback_lines = []
     correct_count = 0
 
-    def is_value_correct(expected_val, provided_val) -> bool:
+    def values_match(arg_name: str, exp_val, prov_val, all_vals: dict) -> bool:
         """
-        Compare two values, with special logic for lists (compare as sets)
-        and dictionaries (direct == comparison, ignoring key order).
+        Compare exp_val and prov_val with minimal complexity:
+         - Strings: case-insensitive.
+         - Lists: if (arg_name == 'items' and sort_order == 'size_asc') → strict order match ignoring case,
+                  else compare as sets ignoring case.
+         - Dicts: shallow compare keys exactly, string values case-insensitive, everything else direct.
+         - Other types: direct equality.
         """
         # If types differ, they're automatically not equal
-        if type(expected_val) != type(provided_val):
+        if type(exp_val) != type(prov_val):
             return False
 
-        # Compare lists as sets to ignore order
-        if isinstance(expected_val, list):
-            return set(expected_val) == set(provided_val)
-        
-        # Compare dictionaries by direct equality (Python ignores key order)
-        if isinstance(expected_val, dict):
-            return dict(expected_val) == dict(provided_val)
-        
-        # Fallback to direct equality for everything else
-        return expected_val == provided_val
+        # -------- STRINGS (case-insensitive) --------
+        if isinstance(exp_val, str):
+            return exp_val.lower() == prov_val.lower()
 
+        # -------- LISTS --------
+        if isinstance(exp_val, list):
+            # If we need exact ordering for 'items' + 'size_asc'
+            if arg_name == "items" and all_vals.get("sort_order") == "size_asc":
+                # Must have same length & each element matches ignoring case if both strings
+                if len(exp_val) != len(prov_val):
+                    return False
+                for e_item, p_item in zip(exp_val, prov_val):
+                    if isinstance(e_item, str) and isinstance(p_item, str):
+                        if e_item.lower() != p_item.lower():
+                            return False
+                    else:
+                        if e_item != p_item:
+                            return False
+                return True
+            else:
+                # Otherwise, compare as sets, ignoring case for strings
+                def norm_lower(x):
+                    return x.lower() if isinstance(x, str) else x
+                return set(norm_lower(x) for x in exp_val) == set(norm_lower(x) for x in prov_val)
+
+        # -------- DICTS (shallow check) --------
+        if isinstance(exp_val, dict):
+            if len(exp_val) != len(prov_val):
+                return False
+            for k, v in exp_val.items():
+                # Must have the same key exactly
+                if k not in prov_val:
+                    return False
+                # If values are strings, compare case-insensitively, else direct
+                if isinstance(v, str) and isinstance(prov_val[k], str):
+                    if v.lower() != prov_val[k].lower():
+                        return False
+                else:
+                    if v != prov_val[k]:
+                        return False
+            return True
+
+        # -------- ANYTHING ELSE (direct) --------
+        return exp_val == prov_val
+
+    # Compare each expected argument with what the user provided
     for arg in expected_args:
         if arg in provided_args:
             exp_val = expected_response['arguments'][arg]
             prov_val = function_values.get(arg)
-            if is_value_correct(exp_val, prov_val):
+            if values_match(arg, exp_val, prov_val, function_values):
                 correct_count += 1
                 feedback_lines.append(good_message(f"Correct value for '{arg}'."))
             else:
+                # Mismatch on required arg → total failure
                 if arg in required_args:
                     feedback_lines.append(bad_message(
                         f"Incorrect value for required argument: {arg}. "
                         f"Expected: {exp_val}, got: {prov_val}"
                     ))
-                    # A single required argument mismatch yields a 0.0 total
                     feedback = "\n".join(feedback_lines)
                     return 0.0, max_reward, feedback + received_reward_template.format(0.0, max_reward)
                 else:
@@ -222,29 +261,26 @@ def correct_tool_argument_values(task, validator, synapse: bt.Synapse, expected_
                         f"Expected: {exp_val}, got: {prov_val}"
                     ))
         else:
-            # If an expected arg is missing, note it (for optional).
-            feedback_lines.append(
-                bad_message(f"Optional argument not provided: {arg}")
-            )
+            # Not provided, but could be optional
+            feedback_lines.append(bad_message(f"Optional argument not provided: {arg}"))
 
-    # Score is proportional to number of correctly matched arguments.
+    # The final score is the fraction of correctly matched arguments
     score = max_reward * (correct_count / len(expected_args)) if expected_args else 0
     feedback = "\n".join(feedback_lines)
     return score, max_reward, feedback + received_reward_template.format(score, max_reward)
 
-
 def correct_irrelevant_tool_call(task, validator, synapse: bt.Synapse) -> Tuple[float, float, str]:
     max_reward = 3.0
     reward = 3.0
-    
-    if synapse.response.strip() != "":
-        reward = -0.5
-        feedback = bad_message(f"Your response (`{synapse.response}`) was not empty, expected an empty response to be returned.")
+    try:
+        ast.parse(synapse.response)
+    except Exception as e:
+        feedback = good_message(f"You responded with the expected response, no tool call.")
         return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
-
-    feedback = good_message(f"You responded with the expected response.")
+    
+    reward = -1.0
+    feedback = bad_message(f"You responded with the a tool call when you should not have.")
     return reward, max_reward, feedback+received_reward_template.format(reward, max_reward)
-
 
 # Examples:
 synapse_response1 = 'calculate_gpa(grades=["A", "B", "A", "C"], credit_hours=[3, 4, 3, 2])'
