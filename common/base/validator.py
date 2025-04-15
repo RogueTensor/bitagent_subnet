@@ -128,8 +128,12 @@ class BaseValidatorNeuron(BaseNeuron):
         await asyncio.gather(*coroutines,return_exceptions=True)
 
     def tool_dataset_regen(self):
-
-        mod_date = dataset_info("BitAgent/tool_shuffle_small").last_modified.strftime("%Y%m%d%H")
+        
+        try:
+            mod_date = dataset_info("BitAgent/tool_shuffle_small").last_modified.strftime("%Y%m%d%H")
+        except Exception as e:
+            bt.logging.error(f"Error getting dataset info: {e}")
+            return
         
         if mod_date != self.regrade_version:
             bt.logging.info(f"Dataset Regeneration: Regrade version{self.regrade_version} has changed, updating to {mod_date}")
