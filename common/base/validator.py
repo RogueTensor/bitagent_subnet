@@ -544,6 +544,8 @@ class BaseValidatorNeuron(BaseNeuron):
 
             # if an offline_score is 0 (we should try again), we need to add the miner to the list of miners left to score
             # so clear out the offline_miners_scored for this competition, for those miners
+            
+            # TODO: add last regrade block to the state file, and then reference if we need to regrade in offline task
             to_remove = []
             for uid in self.offline_miners_scored[self.competition_version][self.regrade_version]:
                 if self.offline_scores[self.competition_version][uid] <= 0.01:
