@@ -1,5 +1,6 @@
 import os
 import time
+import json
 import shutil
 import psutil
 import asyncio
@@ -9,7 +10,7 @@ import bittensor as bt
 from sglang.utils import (
     terminate_process)
 from bitagent.helpers.llms import llm
-from huggingface_hub import model_info
+from huggingface_hub import model_info, hf_hub_download
 from bitagent.protocol import GetHFModelName
 from bitagent.tasks.tool_call_task import ToolCallTask
 from common.utils.shell import execute_shell_command
@@ -73,6 +74,41 @@ def wait_for_server(base_url: str, server_process, timeout: int = None) -> None:
 
         except requests.exceptions.RequestException:
             time.sleep(1)
+
+
+
+def has_chat_template(model_id: str) -> bool:
+    """
+    Return True if tokenizer_config.json (local dir or hub) contains
+    either 'chat_template' or 'chat_template_name'.
+    Uses the default Hugging Face cache (~/.cache/huggingface) for downloads.
+    """
+    cfg = None
+
+    # 1) local directory
+    if os.path.isdir(model_id):
+        cfg_path = os.path.join(model_id, "tokenizer_config.json")
+        if os.path.isfile(cfg_path):
+            with open(cfg_path, "r", encoding="utf-8") as f:
+                cfg = json.load(f)
+
+    # 2) hub repo
+    else:
+        try:
+            cfg_path = hf_hub_download(
+                repo_id=model_id,
+                filename="tokenizer_config.json",
+                repo_type="model",          # optional, keeps it explicit
+            )
+            with open(cfg_path, "r", encoding="utf-8") as f:
+                cfg = json.load(f)
+        except Exception:
+            print(f"[WARNING] Could not fetch/parse tokenizer_config.json for {model_id}")
+
+    if not cfg:
+        return False
+
+    return bool(cfg.get("chat_template") or cfg.get("chat_template_name"))
 
 
 # ###########################################################
@@ -253,13 +289,23 @@ async def offline_task(self, wandb_data):
                 bt.logging.error("OFFLINE: Issue getting model info, skipping")
                 license = 'No license available'
                 continue
+            # ── chat‑template filter ───────────────────────────────────────
+            if not has_chat_template(hf_model_name.split("@")[0]):
+                wandb_data['event_name'] = "Skipping (no chat_template found)"
+                wandb_data['miner_uids'] = hf_model_name_to_miner_uids[hf_model_name]
+                for miner_uid in hf_model_name_to_miner_uids[hf_model_name]:
+                    self.offline_scores[self.competition_version][miner_uid] = 0.02
+                self.log_event(wandb_data)
+                wandb_data.pop('miner_uids')
+                continue
+
 
         # confirm model license is apache-2.0 or nc-by-nc-4.0 or mit
         # TODO eventually ONLY accept apache-2.0
         if license not in ["apache-2.0"]:
             bt.logging.debug(f"OFFLINE: Skipping model {i+1} of {len(unique_miner_hf_model_names)} due to license: {license}")
             for miner_uid in hf_model_name_to_miner_uids[hf_model_name]:
-                self.offline_scores[self.competition_version][miner_uid] = 0.0
+                self.offline_scores[self.competition_version][miner_uid] = 0.02
             wandb_data['event_name'] = "Skipping Model Due to License"
             wandb_data['miner_uids'] = hf_model_name_to_miner_uids[hf_model_name]
             self.log_event(wandb_data)
@@ -270,12 +316,14 @@ async def offline_task(self, wandb_data):
         if total_size > 10000000000:
             bt.logging.debug(f"OFFLINE: Skipping model {i+1} of {len(unique_miner_hf_model_names)} due to size: {total_size}")
             for miner_uid in hf_model_name_to_miner_uids[hf_model_name]:
-                self.offline_scores[self.competition_version][miner_uid] = 0.0
+                self.offline_scores[self.competition_version][miner_uid] = 0.02
             wandb_data['event_name'] = "Skipping Model Due to Size"
             wandb_data['miner_uids'] = hf_model_name_to_miner_uids[hf_model_name]
             self.log_event(wandb_data)
             wandb_data.pop('miner_uids')
             continue
+
+
 
         bt.logging.debug(f"OFFLINE: Starting server for model {i+1} of {len(unique_miner_hf_model_names)}")
         wandb_data['event_name'] = "HF Model Eval Server Starting"
