@@ -75,7 +75,7 @@ class ToolCallTask(Task):
 
     def generate_task_data(self) -> ToolCallData:
     
-        data: ToolCallData = next(self.validator.tool_dataset)
+        data: ToolCallData = next(self.validator.task_dataset)
         random.seed(self.validator.seed)
 
         first_call = find_first_tool_call(data.messages)
