@@ -247,7 +247,7 @@ async def offline_task(self, wandb_data):
     if len(unique_miner_hf_model_names) > 0:
         bt.logging.debug("OFFLINE: Generating tasks")
         # Generate a set of tasks to run on all the offline models
-        num_tasks = 333
+        num_tasks = 100
         wandb_data['event_name'] = "Generating Tasks"
         self.log_event(wandb_data)
 
@@ -512,7 +512,7 @@ async def offline_task(self, wandb_data):
         wandb_data.pop('num_hf_model')
         wandb_data.pop('miner_uids')
 
-        time.sleep(30)
+        time.sleep(5)
 
     bt.logging.debug(f"OFFLINE: Finished processing offline tasks")
     self.running_offline_mode = False
