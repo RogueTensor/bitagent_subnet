@@ -77,7 +77,7 @@ class BaseValidatorNeuron(BaseNeuron):
         self.seed = 11123421 #int(datetime.strptime(self.regrade_version, "%Y%m%d%H").timestamp())
         np.random.seed(self.seed)
         bt.logging.info(f"Startup regrade_version: {self.regrade_version}")
-
+        #self.update_competition_numbers()
         # State file management
         state_path = self.config.neuron.full_path + f"/{self.state_file_name}"
         if os.path.exists(state_path):
@@ -87,7 +87,6 @@ class BaseValidatorNeuron(BaseNeuron):
             self.hotkeys = []
             self.sync()
 
-        self.update_competition_numbers()
 
         # Axon serve
         if not self.config.neuron.axon_off:
