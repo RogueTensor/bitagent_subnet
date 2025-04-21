@@ -49,50 +49,58 @@ class BaseValidatorNeuron(BaseNeuron):
     def __init__(self, config=None):
         super().__init__(config=config)
 
-        # Dendrite lets us send messages to other nodes (axons) in the network.
+
+        # I/O + persistence parameters 
+        self.state_file_name      = "ft_state.npz"
+        self.dataset_history_len  = 10
+        self.dataset_scores       = {}
+
+        # etwork interfaces
         self.dendrite = bt.dendrite(wallet=self.wallet)
         bt.logging.info(f"Dendrite: {self.dendrite}")
 
-        # Set up initial scoring weights for validation
-        bt.logging.info("Building validation weights.")
-
-        self.scores = np.zeros(self.metagraph.n, dtype=np.float32)
-        self.offline_scores = {}        
+        # Runtime score buffers
+        self.scores                = np.zeros(self.metagraph.n, dtype=np.float32)
+        self.offline_scores        = {}
         self.offline_miners_scored = {}
-        self.offline_model_names = {}
-        self.running_offline_mode = False
-        self.offline_status = None
+        self.offline_model_names   = {}
+        self.hotkeys               = []
+        self.running_offline_mode  = False
+        self.offline_status        = None
+
+        # 3. Dataset / re‑grade bookkeeping
         self.regrade_version = dataset_info("BitAgent/tool_shuffle_small").last_modified.strftime("%Y%m%d%H")
-        self.update_competition_numbers()
         self.max_div = 0.0006
         self.min_div = 0.00015
-        self.state_file_name = "ft_state.npz"
-        # set random seed to be encoded regrade version based later
-        self.seed = int(datetime.strptime(self.regrade_version, "%Y%m%d%H").timestamp())
+
+        # 4. Deterministic RNG seeding
+        self.seed = 11123421 #int(datetime.strptime(self.regrade_version, "%Y%m%d%H").timestamp())
         np.random.seed(self.seed)
         bt.logging.info(f"Startup regrade_version: {self.regrade_version}")
 
-        # Init sync with the network. Updates the metagraph.
-        if os.path.exists(self.config.neuron.full_path + f"/{self.state_file_name}"):
-            # if we are booting up and have this file, then we'll want to load it
-            # otherwise, if we save state, it will overwrite from the sync
+        # State file management
+        state_path = self.config.neuron.full_path + f"/{self.state_file_name}"
+        if os.path.exists(state_path):
+            self.load_state() 
             self.sync(save_state=False)
         else:
-            # if no state file then we'll create one on init
-            self.hotkeys=[]
+            self.hotkeys = []
             self.sync()
-        # Serve axon to enable external connections.
+
+        self.update_competition_numbers()
+
+        # Axon serve
         if not self.config.neuron.axon_off:
-            #self.serve_axon()
+
             pass
         else:
             bt.logging.warning("axon off, not serving ip to chain.")
 
-        # Instantiate runners
-        self.should_exit: bool = False
-        self.is_running: bool = False
-        self.thread: threading.Thread = None
-        self.lock = asyncio.Lock()
+        # Threading helpers
+        self.should_exit = False
+        self.is_running  = False
+        self.thread      = None
+        self.lock        = asyncio.Lock()
 
     def serve_axon(self):
         """Serve axon to enable external connections."""
@@ -275,6 +283,24 @@ class BaseValidatorNeuron(BaseNeuron):
             self.is_running = False
             bt.logging.debug("Stopped")
 
+    def longevity_curve(self, raw_scores: np.ndarray) -> np.ndarray:
+        n = len(raw_scores)
+        order = np.argsort(-raw_scores)                  # descending
+        ranks = np.empty_like(order); ranks[order] = np.arange(n)
+        top_n   = min(25, n)                             # literal 25, or fewer miners exist
+        mid_n   = max(0, n - top_n - n // 4)             # middle ~50 %
+        bot_cut = top_n + mid_n
+
+        w = np.zeros_like(raw_scores, dtype=np.float32)
+        s_top = raw_scores[order[:top_n]].sum()  or 1
+        s_mid = raw_scores[order[top_n:bot_cut]].sum() or 1
+
+        # spread proportionally inside each tranche
+        w[order[:top_n]]          = 0.75 * raw_scores[order[:top_n]] / s_top
+        w[order[top_n:bot_cut]]   = 0.25 * raw_scores[order[top_n:bot_cut]] / s_mid
+        return w
+
+
     def set_weights(self):
         """
         Sets the validator weights to the metagraph hotkeys based on the scores it has received from the miners. The weights determine the trust and incentive level the validator assigns to miner nodes on the network.
@@ -283,11 +309,23 @@ class BaseValidatorNeuron(BaseNeuron):
         if self.config.subtensor.network == "test":
             return # Don't set weights on testnet.
         # with temporary_logging_state(state):
-        self.divisions = int(np.floor(self.block / 1000))
-        current_odds = self.offline_scores[self.competition_version]
-        current_odds[current_odds < 0] = 0
+        # self.divisions = int(np.floor(self.block / 1000))
+        # current_odds = self.offline_scores[self.competition_version]
+        # current_odds[current_odds < 0] = 0
+        bt.logging.info(f"Raw Offline Scores: {self.offline_scores[self.competition_version]}")
+        current_scores = self.offline_scores[self.competition_version].copy()
+        current_scores[current_scores < 0] = 0          # safety
 
-        bt.logging.info(f"Offline Scores: {current_odds}")
+        # handle model longevity, if a miner got a score of 0.80 or higher, they get their 2% credit for that dataset, up to the past 10 datasets
+        current_scores = self.offline_scores[self.competition_version]
+        past_scores = [self.dataset_scores[k] for k in sorted(self.dataset_scores)[-10:]]
+        if past_scores:
+            past = np.stack(past_scores).mean(axis=0)       # mean of up‑to‑10
+            blended = 0.80 * current_scores + 0.20 * past           # each past == 2 %
+        else:
+            blended = current_scores.copy()                         # cold start
+
+        bt.logging.info(f"Blended Scores: {blended}")
         # Check if self.scores contains any NaN values and log a warning if it does.
         if np.isnan(self.scores).any():
             bt.logging.warning(
@@ -306,8 +344,9 @@ class BaseValidatorNeuron(BaseNeuron):
         # always fit scores to weighted curve
         # to change random seed to be encoded regrade version based later
         np.random.seed(self.seed)
-        weighted_scores = score_spreading(current_odds,self.divisions,self.min_div,self.max_div, kurtosis_factor=0.5, divisions=np.random.randint(2,7))
-        bt.logging.debug(f"weighted_scores: {weighted_scores}")
+        #weighted_scores = score_spreading(current_odds,self.divisions,self.min_div,self.max_div, kurtosis_factor=0.5, divisions=np.random.randint(2,7))
+        weighted_scores = self.longevity_curve(blended)
+        bt.logging.debug(f"Final Weighted Scores: {weighted_scores}")
 
         # Calculate the average reward for each uid across non-zero values.
         # Replace any NaN values with 0.
@@ -315,7 +354,7 @@ class BaseValidatorNeuron(BaseNeuron):
         if np.any(norm == 0) or np.isnan(norm).any():
             norm = np.ones_like(norm)
         raw_weights = weighted_scores/norm
-
+        bt.logging.debug(f"Raw Weights: {raw_weights}")
         # Process the raw weights to final_weights via subtensor limitations.
         (
             processed_weight_uids,
@@ -465,6 +504,7 @@ class BaseValidatorNeuron(BaseNeuron):
                 step=self.step,
                 scores=self.scores,
                 offline_scores=self.offline_scores,
+                dataset_scores=self.dataset_scores,
                 regrade_version=self.regrade_version,
                 offline_miners_scored=np.array(list(self.offline_miners_scored.items()), dtype=object),
                 offline_model_names=self.offline_model_names,
@@ -485,6 +525,10 @@ class BaseValidatorNeuron(BaseNeuron):
             self.hotkeys = list(state["hotkeys"])
         else:
             self.hotkeys = copy.deepcopy(self.metagraph.hotkeys)
+
+        if 'dataset_scores' in state:
+            ds = state['dataset_scores']
+            self.dataset_scores = ds.item() if isinstance(ds, np.ndarray) else ds
 
         if 'scores' in state:
             loaded_scores = state["scores"]
@@ -517,6 +561,16 @@ class BaseValidatorNeuron(BaseNeuron):
             else:
                 bt.logging.error(f"OFFLINE: loaded_offline_model_names is not a dict or array, type: {type(loaded_offline_model_names)}")
 
+    def record_dataset_scores(self):
+        self.dataset_scores[self.regrade_version] = self.offline_scores[self.competition_version].copy()
+
+        # trim to last N versions
+        if len(self.dataset_scores) > self.dataset_history_len:
+            for old_key in sorted(self.dataset_scores)[:-self.dataset_history_len]:
+                self.dataset_scores.pop(old_key, None)
+        self.save_state()          # ensure it’s on disk
+
+
     def update_competition_numbers(self):
         try:
 
@@ -532,6 +586,8 @@ class BaseValidatorNeuron(BaseNeuron):
             if not isinstance(self.offline_miners_scored[self.competition_version], dict):
                 self.offline_miners_scored[self.competition_version] = {}
 
+            self.record_dataset_scores()  
+
             if self.offline_miners_scored[self.competition_version].get(self.regrade_version) is None:
                 self.offline_miners_scored[self.competition_version][self.regrade_version] = []
 
@@ -544,7 +600,7 @@ class BaseValidatorNeuron(BaseNeuron):
 
             # if an offline_score is 0 (we should try again), we need to add the miner to the list of miners left to score
             # so clear out the offline_miners_scored for this competition, for those miners
-            
+
             # TODO: add last regrade block to the state file, and then reference if we need to regrade in offline task
             to_remove = []
             for uid in self.offline_miners_scored[self.competition_version][self.regrade_version]:
@@ -570,6 +626,7 @@ class BaseValidatorNeuron(BaseNeuron):
                     #bt.logging.debug(f"OFFLINE: resetting miner {uid}'s score for competition {self.competition_version} for regrade")
                     self.offline_scores[self.competition_version][uid] = 0.0
                 #bt.logging.debug(f"OFFLINE: regrade check for uid done: {uid}")
+        
 
         except Exception as e:
             bt.logging.error(f"Error updating competition numbers: {e}")
