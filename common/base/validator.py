@@ -54,7 +54,8 @@ class BaseValidatorNeuron(BaseNeuron):
         self.state_file_name      = "ft_state.npz"
         self.dataset_history_len  = 10
         self.dataset_scores       = {}
-
+        self.competition_version = f"{COMPETITION_PREFIX}-0"
+        
         # etwork interfaces
         self.dendrite = bt.dendrite(wallet=self.wallet)
         bt.logging.info(f"Dendrite: {self.dendrite}")
@@ -198,7 +199,7 @@ class BaseValidatorNeuron(BaseNeuron):
                     #    self.should_exit = True
                     #    exit()
 
-                if self.step % 500 == 0:
+                if self.step % 250 == 0:
                     self.tool_dataset_regen()
                     
 
@@ -572,8 +573,6 @@ class BaseValidatorNeuron(BaseNeuron):
 
     def update_competition_numbers(self):
         try:
-
-            self.competition_version = f"{COMPETITION_PREFIX}-0"
 
             if self.offline_scores.get(self.competition_version) is None:
                 self.offline_scores[self.competition_version] = np.zeros(self.metagraph.n, dtype=np.float32)
