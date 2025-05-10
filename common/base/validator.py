@@ -28,6 +28,7 @@ from huggingface_hub import dataset_info
 from scoring_utils import score_spreading
 from common.utils.uids import get_alive_uids
 from bitagent.datasources.tools import ToolDataset
+from bitagent.validator.model_longevity_fix import apply_registration_cutoff
 from bitagent.validator.constants import DEPLOYED_DATE, COMPETITION_LENGTH_DAYS, TESTNET_COMPETITION_LENGTH_DAYS, COMPETITION_PREFIX, COMPETITION_PREVIOUS_PREFIX
 from common.utils.weight_utils import (
     process_weights_for_netuid,
@@ -83,9 +84,26 @@ class BaseValidatorNeuron(BaseNeuron):
         state_path = self.config.neuron.full_path + f"/{self.state_file_name}"
         if os.path.exists(state_path):
             self.load_state() 
+            # Apply model longevity fix to correct historical dataset scores
+            if not hasattr(self, 'longevity_fix_applied') or not self.longevity_fix_applied:
+                bt.logging.info("Applying model longevity fix to correct historical dataset scores...")
+                try:
+                    updated_dataset_scores = apply_registration_cutoff(
+                        state_path=state_path,
+                        subtensor=self.subtensor,
+                        repo_id="BitAgent/tool_shuffle_small",
+                        netuid=self.config.netuid,
+                    )
+                    if updated_dataset_scores:
+                        self.dataset_scores = updated_dataset_scores
+                    self.longevity_fix_applied = True
+                    bt.logging.info("Model longevity fix applied successfully.")
+                except Exception as e:
+                    bt.logging.error(f"Error applying model longevity fix: {e}")
             self.sync(save_state=False)
         else:
             self.hotkeys = []
+            self.longevity_fix_applied = True 
             self.sync()
 
 
@@ -413,13 +431,20 @@ class BaseValidatorNeuron(BaseNeuron):
             for uid, hotkey in enumerate(self.hotkeys):
                 if hotkey != self.metagraph.hotkeys[uid]:
                     bt.logging.debug(f"RESYNC: hotkey changed for uid: {uid}")
+
+                    # Clear live-round performance
                     self.scores[uid] = np.median(self.scores)
-                    #self.offline_scores[self.previous_competition_version][uid] = 0
                     self.offline_scores[self.competition_version][uid] = 0
+
+                    # Clear model longevity for UID
+                    for rv, vec in self.dataset_scores.items():
+                        vec[uid] = 0
+
+                    # Remove miner from regrade list
                     if uid in self.offline_miners_scored[self.competition_version][self.regrade_version]:
                         self.offline_miners_scored[self.competition_version][self.regrade_version].remove(uid)
                     self.offline_model_names[self.competition_version][uid] = ""
-                    #self.offline_model_names[self.previous_competition_version][uid] = ""
+
 
             # Check to see if the metagraph has changed size.
             # If so, we need to add new hotkeys and moving averages.
@@ -509,6 +534,7 @@ class BaseValidatorNeuron(BaseNeuron):
                 offline_miners_scored=np.array(list(self.offline_miners_scored.items()), dtype=object),
                 offline_model_names=self.offline_model_names,
                 hotkeys=self.hotkeys,
+                longevity_fix_applied=getattr(self, 'longevity_fix_applied', False),
                 allow_pickle=True,
             )
         except Exception as e:
@@ -542,6 +568,12 @@ class BaseValidatorNeuron(BaseNeuron):
                 self.offline_scores = loaded_offline_scores.item()
             else:
                 bt.logging.error(f"OFFLINE: loaded_offline_scores is not a dict or array, type: {type(loaded_offline_scores)}")
+
+        if 'longevity_fix_applied' in state:
+            self.longevity_fix_applied = bool(state['longevity_fix_applied'])
+        else:
+            self.longevity_fix_applied = False
+            bt.logging.info("No longevity_fix_applied flag found in state, will apply fix")
 
             # if self.offline_scores.get(self.previous_competition_version) is None:
             #     self.offline_scores[self.previous_competition_version] = np.zeros(self.metagraph.n, dtype=np.float32)
