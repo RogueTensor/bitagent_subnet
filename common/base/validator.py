@@ -25,6 +25,7 @@ import numpy as np
 import bittensor as bt
 from datetime import datetime, timezone, date
 from huggingface_hub import dataset_info
+from third_party.patches.bfcl_patch import apply_bfcl_patch
 from scoring_utils import score_spreading
 from common.utils.uids import get_alive_uids
 from bitagent.datasources.tools import ToolDataset
@@ -107,6 +108,9 @@ class BaseValidatorNeuron(BaseNeuron):
             self.sync()
 
 
+        # Apply BFCL patch for changes to the BFCL module
+        apply_bfcl_patch(verbose=True)
+
         # Axon serve
         if not self.config.neuron.axon_off:
 
@@ -154,7 +158,6 @@ class BaseValidatorNeuron(BaseNeuron):
         await asyncio.gather(*coroutines,return_exceptions=True)
 
     def tool_dataset_regen(self):
-        
         try:
             mod_date = dataset_info("BitAgent/tool_shuffle_small").last_modified.strftime("%Y%m%d%H")
         except Exception as e:
@@ -222,7 +225,8 @@ class BaseValidatorNeuron(BaseNeuron):
                     
 
                 # Run multiple forwards concurrently.
-                await self.concurrent_forward()
+                # await self.concurrent_forward()
+                await self.forward()
                 # Check if we should exit.
                 if self.should_exit:
                     break
