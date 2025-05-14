@@ -15,6 +15,7 @@ from bitagent.protocol import GetHFModelName
 from bitagent.tasks.tool_call_task import ToolCallTask
 from common.utils.shell import execute_shell_command
 from bitagent.helpers.logging import temporary_logging_state
+from bitagent.validator.multi_turn_evaluator import BFCLEvaluator
 from bitagent.validator.reward import process_rewards_update_scores_for_many_tasks_and_many_miners
 
 # TODO overall for tracking, would be nice to track based on hotkey instead of UID
@@ -144,9 +145,6 @@ async def offline_task(self, wandb_data):
     )
     with temporary_logging_state('Warning'):
         if miners_needing_model_lookup:
-
-
-
             wandb_data['event_name'] = "GetHFModelName Responses Fetched"
             self.log_event(wandb_data)
 
@@ -165,7 +163,7 @@ async def offline_task(self, wandb_data):
                         hf_model_name_hash = hf_model_name + "@" + info.sha
                         self.offline_model_names[self.competition_version][uid] = hf_model_name_hash
                     except Exception as e:
-                        bt.logging.error(f"OFFLINE: Error getting model info for {hf_model_name}: {e}")
+                        bt.logging.error(f"OFFLINE: Error getting model info for a miner: {e}")
                         # Keep them at "" if we can't validate or retrieve a commit
                         self.offline_model_names[self.competition_version][uid] = ""
                 else:
@@ -301,8 +299,8 @@ async def offline_task(self, wandb_data):
 
 
         # confirm model license is apache-2.0 or nc-by-nc-4.0 or mit
-        # TODO eventually ONLY accept apache-2.0
-        if license not in ["apache-2.0"]:
+        # temporarily including the salesforce xlam license as a jumping off point for performance
+        if license not in ["apache-2.0", "cc-by-nc-4.0", "mit"]:
             bt.logging.debug(f"OFFLINE: Skipping model {i+1} of {len(unique_miner_hf_model_names)} due to license: {license}")
             for miner_uid in hf_model_name_to_miner_uids[hf_model_name]:
                 self.offline_scores[self.competition_version][miner_uid] = 0.02
@@ -322,8 +320,6 @@ async def offline_task(self, wandb_data):
             self.log_event(wandb_data)
             wandb_data.pop('miner_uids')
             continue
-
-
 
         bt.logging.debug(f"OFFLINE: Starting server for model {i+1} of {len(unique_miner_hf_model_names)}")
         wandb_data['event_name'] = "HF Model Eval Server Starting"
@@ -356,7 +352,7 @@ async def offline_task(self, wandb_data):
             #     # need to download from hugging face
             model_path = hf_model_name.split("@")[0]
             model_commit = hf_model_name.split("@")[1]
-            
+            os.environ["ACTUAL_MODEL_PATH"] = model_path  # Store the actual model path in env var for multi turn
             # log the vram status prior to sglang launch
             wandb_data['event_name'] = "Launching sglang server"
             command = ["nvidia-smi", "--query-gpu=memory.free", "--format=csv,noheader,nounits"]
@@ -450,47 +446,100 @@ async def offline_task(self, wandb_data):
             bt.logging.error(f"OFFLINE: Error getting LLM responses: {e}, have to skip this model")
             continue
 
-        # TODO actually use the finishes to provide more detail to the miners in wandb
-
         bt.logging.debug(f"OFFLINE: Got {len(llm_responses)} LLM responses for model: {i+1} of {len(unique_miner_hf_model_names)}")
         wandb_data['event_name'] = "Got LLM Responses"
         self.log_event(wandb_data)
 
-        # terminate the server after getting all the responses
-        bt.logging.debug(f"OFFLINE: Terminating server for model: {i+1} of {len(unique_miner_hf_model_names)}")
-        wandb_data['event_name'] = "HF Model Eval Server Terminating"
-        self.log_event(wandb_data)
-        await asyncio.to_thread(terminate_process, server_process)
-        bt.logging.debug(f"OFFLINE: Terminated server for model: {i+1} of {len(unique_miner_hf_model_names)}")
-        wandb_data['event_name'] = "HF Model Eval Server Terminated"
-        self.log_event(wandb_data)
-
+        # -----------------------------------------
+        # Run single-turn evaluation
+        # -----------------------------------------
         these_miner_uids = hf_model_name_to_miner_uids[hf_model_name]
         responses = []
         for j, llm_response in enumerate(llm_responses):
             task = tasks[j]
             response = task.synapse.model_copy()
             response.response = llm_response.strip()
-            response.dendrite.process_time = 5.0 # TODO may be useful to test performance of the model itself
+            response.dendrite.process_time = 5.0
             response.dendrite.status_code = 200 
             response.axon.status_code = 200
             response.competition_version = self.competition_version
             responses.append(response)
 
-        # evaluate, track score and add to wandb
-        # TODO need to see if this SCORE is higher than the all-time top score
-        # TODO if so, update the all-time top score and model name and reward TOP miners
-        # TODO if not, then temporal decay of scores
-        bt.logging.debug(f"OFFLINE: Processing rewards for model: {i+1} of {len(unique_miner_hf_model_names)}, for miners: {these_miner_uids}")
-        wandb_data['event_name'] = "Processing Rewards"
+        # Get single-turn score
+        bt.logging.debug(f"OFFLINE: Processing single-turn rewards for model {i+1} of {len(unique_miner_hf_model_names)}")
+        wandb_data['event_name'] = "Processing Single-Turn Rewards"
         self.log_event(wandb_data)
+        
+        # Get the single-turn score 
+        st_score = await process_rewards_update_scores_for_many_tasks_and_many_miners(
+            self, tasks=tasks, responses=responses, miner_uids=these_miner_uids, wandb_data=wandb_data
+        )
 
-        # TODO This is blocking the main loop
-        # blocking due to await, attempting to remove await and create a task and move on
+        # Run multi-turn evaluation 
+        bt.logging.debug(f"OFFLINE: Starting multi-turn evaluation for model {i+1} of {len(unique_miner_hf_model_names)}")
+        wandb_data['event_name'] = "Starting Multi-Turn Evaluation"
+        self.log_event(wandb_data)
+        
+        # The server is already running from the single-turn evaluation
+        mt_score = 0.0
+        
+        # Use temporary_logging_state to silence BFCL logging
+        # with temporary_logging_state('Warning'):
+        try:
+            # Create evaluator instance for multi-turn evaluation
+            # Set verbose=False to avoid any model info leaking
+            with temporary_logging_state('Warning'):
+                evaluator = BFCLEvaluator(verbose=True, project_root=None)
+                mt_results = evaluator.evaluate_model(
+                    model_name="BitAgent",
+                    endpoint="localhost",
+                    port=self.config.validator_hf_server_port,
+                    test_category="multi_turn_base",
+                    backend="sglang",
+                    cleanup_files=True
+                )
+                mt_score = mt_results.get("overall_score", 0.0)
+            bt.logging.info(f"OFFLINE: Multi-turn evaluation score: {mt_score:.4f}")
+            
+        except Exception as e:
+            # Avoid including model info in error messages
+            bt.logging.error(f"OFFLINE: Error in multi-turn evaluation: {str(e).replace(model_path, 'REDACTED')}")
+            mt_score = 0.0
+        
+        wandb_data['event_name'] = "Completed Multi-Turn Evaluation"
+        wandb_data['multi_turn_score'] = mt_score
+        self.log_event(wandb_data)
+        wandb_data.pop('multi_turn_score', None)
+        
+        # -----------------------------------------
+        # Calculate combined score
 
-        #await process_rewards_update_scores_for_many_tasks_and_many_miners(self, tasks=tasks, responses=responses, miner_uids=these_miner_uids, wandb_data=wandb_data)
-        asyncio.create_task(process_rewards_update_scores_for_many_tasks_and_many_miners(self, tasks=tasks, responses=responses, miner_uids=these_miner_uids, wandb_data=wandb_data))
-                            
+        combined_score = st_score * 0.5 + mt_score * 0.5
+        
+        bt.logging.info(f"OFFLINE: Combined score for model {i+1} of {len(unique_miner_hf_model_names)}: {combined_score:.4f}")
+        
+        wandb_data['event_name'] = "Final Combined Scores"
+        wandb_data['single_turn_score'] = st_score
+        wandb_data['multi_turn_score'] = mt_score
+        wandb_data['combined_score'] = combined_score
+        wandb_data['miner_uids'] = these_miner_uids
+        self.log_event(wandb_data)
+        wandb_data.pop('single_turn_score', None)
+        wandb_data.pop('multi_turn_score', None)
+        wandb_data.pop('combined_score', None)
+        wandb_data.pop('miner_uids', None)
+        
+        # Update scores with the combined score instead of just single-turn
+        self.update_offline_scores([combined_score] * len(these_miner_uids), these_miner_uids)
+
+        # terminate the server after getting all the responses
+        bt.logging.debug(f"OFFLINE: Terminating server for model {i+1} of {len(unique_miner_hf_model_names)}")
+        wandb_data['event_name'] = "HF Model Eval Server Terminating"
+        self.log_event(wandb_data)
+        await asyncio.to_thread(terminate_process, server_process)
+        bt.logging.debug(f"OFFLINE: Terminated server for model {i+1} of {len(unique_miner_hf_model_names)}")
+        wandb_data['event_name'] = "HF Model Eval Server Terminated"
+        self.log_event(wandb_data)
 
         # remove newly downloaded files from HF cache if were not already in cache
         # todo re-evaluate how we handle storage of models
@@ -504,8 +553,6 @@ async def offline_task(self, wandb_data):
             wandb_data['event_name'] = "NOT Deleting HF Model from Cache - snapshot found, so no new download to revert"
             self.log_event(wandb_data)
 
-        # TODO handle temporal decay of scores if no miners outperform all time top score
-        # TODO handle temporal decay of all scores depending on a) if no new TOP score and b) if new TOP score
         wandb_data['event_name'] = "Finished Processing Rewards"
         wandb_data['miner_uids'] = these_miner_uids
         self.log_event(wandb_data)
