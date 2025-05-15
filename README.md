@@ -19,6 +19,7 @@
   - [Validator](#validator)
     - [Dependencies](#dependencies)
     - [PM2 Installation](#pm2-installation)
+    - [BFCL Setup for Validators](#bfcl-setup-for-validators)
     - [sglang Setup for Validators](#sglang-setup-for-validators)
     - [Recommended Startup](#recommended-startup)
     - [Alternative Startup](#alternative-startup)
@@ -46,6 +47,8 @@
 
 **Key Features**
 - Working our way up the [Berkeley Function Calling Leaderboard](https://gorilla.cs.berkeley.edu/leaderboard.html#leaderboard) (BFCL)
+  - We now fully support BFCL's multi-turn simulation environment! 
+  - We are currently evaluating on multi-turn base like tasks and are working on scaling into more complex tool usage. 
 - No API / subscription requirements
 - Run light models (8B parameter) for huge impact
 - FINETUNED MODEL evaluation of tool calling language model fine tunes
@@ -101,6 +104,25 @@ Install [PM2](https://pm2.io/docs/runtime/guide/installation/) and the [`jq` pac
    ```bash
    brew update && brew install jq && brew install npm && sudo npm install pm2 -g && pm2 update
    ```
+
+#### BFCL Setup for Validators
+
+You'll need to install BFCL into the base .venv virtual environment by running the installation script:
+
+```bash
+source ./.venv/bin/activate
+chmod +x ./scripts/bfcl_install.sh
+./bfcl_install.sh
+```
+
+**Test that the BFCL installation was successful with the BitAgent venv:**
+```
+source ./.venv/bin/activate
+python3 scripts/test_bfcl.py
+```
+
+You should see the message "BFCL modules imported successfully!"
+If you see an import error something went wrong in the installation and you should restart or reach out to a subnet developer. 
 
 #### sglang Setup for Validators
 
@@ -215,7 +237,12 @@ See [Miner Configuration Considerations](#miner-configuration-considerations) fo
 #### Miner Emissions
 
 Miner emissions are based soley on FINETUNED SUBMISSION evaluation:
-- 100% of the miner's score is determined by the persistent abilty of their FINETUNED SUBMISSION to be evaluated by the validators on the validators' machines.
+- 80% of the miner's score is determined by the persistent abilty of their FINETUNED SUBMISSION to be evaluated by the validators on the validators' machines.
+  - Half of this 80% is determined by their single-turn performance on the current test dataset.
+  - The other half of this 80% is determined by their multi-turn performance on the current test dataset (Using BFCLs evaluation environment)
+- 20% of the miner's score is determined by their model lonevity, our unique evalaution strategy to determine model tool calling generality.
+  - Model longevity is calculated by the performance on each dataset cached up to the last 10 datasets, i.e. each prior dataset up to 10 is worth 2% of total emissions
+  - If a model were to score 89% on the current dataset, and then a new dataset is pushed where they get 100% accuracy, the miner would receive up to 81.78% emission and accumulate a score for each subsequent dataset. 
 - Miners' submissions are locked in and cannot be changed after submission.  Miners may, of course, register their new model as a new miner.
 - New datasets are pushed out to ensure miners are not overfitting and will be used by the validators to reevaluate the miners' models.
   
