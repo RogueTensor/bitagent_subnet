@@ -119,6 +119,11 @@ def has_chat_template(model_id: str) -> bool:
 # TODO also run the bfcl suite on the validator - but skip the API calls, don't use those at first
 # TODO store TOP score from last round and all-time in validator state
 async def offline_task(self, wandb_data):
+
+    # evaluate single turn logic
+    st = False
+
+
     bt.logging.debug("OFFLINE: Starting offline task")
     self.running_offline_mode = True
     wandb_data['event_name'] = "offline_task_started"
@@ -369,7 +374,6 @@ async def offline_task(self, wandb_data):
                 --revision {model_commit} \
                 --host 0.0.0.0 \
                 --mem-fraction-static {self.config.validator_hf_server_mem_fraction_static} \
-                --context-length 25000
                 --disable-cuda-graph
                 """, 
                 model_path
@@ -453,32 +457,35 @@ async def offline_task(self, wandb_data):
         # -----------------------------------------
         # Run single-turn evaluation
         # -----------------------------------------
+        st_score = 0.0
         these_miner_uids = hf_model_name_to_miner_uids[hf_model_name]
-        responses = []
-        for j, llm_response in enumerate(llm_responses):
-            task = tasks[j]
-            response = task.synapse.model_copy()
-            response.response = llm_response.strip()
-            response.dendrite.process_time = 5.0
-            response.dendrite.status_code = 200 
-            response.axon.status_code = 200
-            response.competition_version = self.competition_version
-            responses.append(response)
+        if st:
+            
+            responses = []
+            for j, llm_response in enumerate(llm_responses):
+                task = tasks[j]
+                response = task.synapse.model_copy()
+                response.response = llm_response.strip()
+                response.dendrite.process_time = 5.0
+                response.dendrite.status_code = 200 
+                response.axon.status_code = 200
+                response.competition_version = self.competition_version
+                responses.append(response)
 
-        # Get single-turn score
-        bt.logging.debug(f"OFFLINE: Processing single-turn rewards for model {i+1} of {len(unique_miner_hf_model_names)}")
-        wandb_data['event_name'] = "Processing Single-Turn Rewards"
-        self.log_event(wandb_data)
-        
-        # Get the single-turn score 
-        st_score = await process_rewards_update_scores_for_many_tasks_and_many_miners(
-            self, tasks=tasks, responses=responses, miner_uids=these_miner_uids, wandb_data=wandb_data
-        )
+            # Get single-turn score
+            bt.logging.debug(f"OFFLINE: Processing single-turn rewards for model {i+1} of {len(unique_miner_hf_model_names)}")
+            wandb_data['event_name'] = "Processing Single-Turn Rewards"
+            self.log_event(wandb_data)
+            
+            # Get the single-turn score 
+            st_score = await process_rewards_update_scores_for_many_tasks_and_many_miners(
+                self, tasks=tasks, responses=responses, miner_uids=these_miner_uids, wandb_data=wandb_data
+            )
 
-        # Run multi-turn evaluation 
-        bt.logging.debug(f"OFFLINE: Starting multi-turn evaluation for model {i+1} of {len(unique_miner_hf_model_names)}")
-        wandb_data['event_name'] = "Starting Multi-Turn Evaluation"
-        self.log_event(wandb_data)
+            # Run multi-turn evaluation 
+            bt.logging.debug(f"OFFLINE: Starting BFCL evaluation for model {i+1} of {len(unique_miner_hf_model_names)}")
+            wandb_data['event_name'] = "Starting BFCL Evaluation"
+            self.log_event(wandb_data)
         
         # The server is already running from the single-turn evaluation
         mt_score = 0.0
@@ -499,33 +506,33 @@ async def offline_task(self, wandb_data):
                     cleanup_files=True
                 )
                 mt_score = mt_results.get("overall_score", 0.0)
-            bt.logging.info(f"OFFLINE: Multi-turn evaluation score: {mt_score:.4f}")
+            bt.logging.info(f"OFFLINE: BFCL evaluation score: {mt_score:.4f}")
             
         except Exception as e:
             # Avoid including model info in error messages
-            bt.logging.error(f"OFFLINE: Error in multi-turn evaluation: {str(e).replace(model_path, 'REDACTED')}")
+            bt.logging.error(f"OFFLINE: Error in BFCL evaluation: {str(e).replace(model_path, 'REDACTED')}")
             mt_score = 0.0
         
-        wandb_data['event_name'] = "Completed Multi-Turn Evaluation"
-        wandb_data['multi_turn_score'] = mt_score
+        wandb_data['event_name'] = "Completed BFCL Evaluation"
+        wandb_data['BFCL_score'] = mt_score
         self.log_event(wandb_data)
-        wandb_data.pop('multi_turn_score', None)
+        wandb_data.pop('BFCL_score', None)
         
         # -----------------------------------------
         # Calculate combined score
 
-        combined_score = st_score * 0.5 + mt_score * 0.5
+        combined_score = mt_score
         
         bt.logging.info(f"OFFLINE: Combined score for model {i+1} of {len(unique_miner_hf_model_names)}: {combined_score:.4f}")
         
         wandb_data['event_name'] = "Final Combined Scores"
         wandb_data['single_turn_score'] = st_score
-        wandb_data['multi_turn_score'] = mt_score
+        wandb_data['BFCL_score'] = mt_score
         wandb_data['combined_score'] = combined_score
         wandb_data['miner_uids'] = these_miner_uids
         self.log_event(wandb_data)
         wandb_data.pop('single_turn_score', None)
-        wandb_data.pop('multi_turn_score', None)
+        wandb_data.pop('BFCL_score', None)
         wandb_data.pop('combined_score', None)
         wandb_data.pop('miner_uids', None)
         
