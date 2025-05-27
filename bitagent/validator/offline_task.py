@@ -374,7 +374,8 @@ async def offline_task(self, wandb_data):
                 --revision {model_commit} \
                 --host 0.0.0.0 \
                 --mem-fraction-static {self.config.validator_hf_server_mem_fraction_static} \
-                --disable-cuda-graph
+                --disable-cuda-graph \
+                --context-length 25000
                 """, 
                 model_path
             )
