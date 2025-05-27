@@ -23,8 +23,9 @@ import asyncio
 import threading
 import numpy as np
 import bittensor as bt
+from pathlib import Path
 from datetime import datetime, timezone, date
-from huggingface_hub import dataset_info
+from huggingface_hub import dataset_info, snapshot_download
 from third_party.patches.bfcl_patch import apply_bfcl_patch
 from scoring_utils import score_spreading
 from common.utils.uids import get_alive_uids
@@ -57,6 +58,10 @@ class BaseValidatorNeuron(BaseNeuron):
         self.dataset_history_len  = 10
         self.dataset_scores       = {}
         self.competition_version = f"{COMPETITION_PREFIX}-0"
+
+
+        # Bounty system configuration
+        self.bounty_hotkey = "5ELzxmkDC1coUByipnAZq8zfAKEwUM5oy2dpMXaDizhfWHhz"
         
         # etwork interfaces
         self.dendrite = bt.dendrite(wallet=self.wallet)
@@ -111,6 +116,9 @@ class BaseValidatorNeuron(BaseNeuron):
         # Apply BFCL patch for changes to the BFCL module
         apply_bfcl_patch(verbose=True)
 
+        # Download BFCL dataset
+        self.download_bfcl_dataset()
+
         # Axon serve
         if not self.config.neuron.axon_off:
 
@@ -157,6 +165,35 @@ class BaseValidatorNeuron(BaseNeuron):
         ]
         await asyncio.gather(*coroutines,return_exceptions=True)
 
+
+    def download_bfcl_dataset(self, repo_id="BitAgent/tool_shuffle_small"):
+        return
+        try:
+            # Find the BFCL data directory
+            third_party_dirs = os.listdir("third_party")
+            gorilla_dirs = [d for d in third_party_dirs if d.startswith("gorilla_")]
+            if not gorilla_dirs:
+                bt.logging.error("Could not find BFCL data directory. Make sure BFCL is installed.")
+                return
+            
+            data_dir = Path("third_party") / gorilla_dirs[0] / "berkeley-function-call-leaderboard" / "data"
+            
+            bt.logging.info(f"Downloading dataset {repo_id} to {data_dir}")
+            
+            # Download all bitagent files using pattern matching
+            snapshot_download(
+                repo_id=repo_id,
+                repo_type="dataset",
+                allow_patterns=["bitagent_*.json", "possible_answer/bitagent_*.json"],
+                local_dir=data_dir,
+                local_dir_use_symlinks=False
+            )
+            
+            bt.logging.info("Successfully downloaded BFCL dataset files")
+        except Exception as e:
+            bt.logging.error(f"Error downloading BFCL dataset: {e}")
+            raise
+
     def tool_dataset_regen(self):
         try:
             mod_date = dataset_info("BitAgent/tool_shuffle_small").last_modified.strftime("%Y%m%d%H")
@@ -166,8 +203,9 @@ class BaseValidatorNeuron(BaseNeuron):
         
         if mod_date != self.regrade_version:
             bt.logging.info(f"Dataset Regeneration: Regrade version{self.regrade_version} has changed, updating to {mod_date}")
-            self.tool_dataset = ToolDataset(False, self.seed)
-            self.task_dataset = ToolDataset(True, self.seed)
+            # self.tool_dataset = ToolDataset(False, self.seed)
+            # self.task_dataset = ToolDataset(True, self.seed)
+            self.download_bfcl_dataset()
             self.regrade_version = mod_date
             self.update_competition_numbers()
             bt.logging.debug("Data regenerated.")
@@ -322,6 +360,13 @@ class BaseValidatorNeuron(BaseNeuron):
         w[order[top_n:bot_cut]]   = 0.25 * raw_scores[order[top_n:bot_cut]] / s_mid
         return w
 
+    def find_bounty_uid(self):
+        """Find the UID of the bounty hotkey."""
+        for uid, hotkey in enumerate(self.metagraph.hotkeys):
+            if hotkey == self.bounty_hotkey:
+                return uid
+        return None
+
 
     def set_weights(self):
         """
@@ -334,20 +379,29 @@ class BaseValidatorNeuron(BaseNeuron):
         # self.divisions = int(np.floor(self.block / 1000))
         # current_odds = self.offline_scores[self.competition_version]
         # current_odds[current_odds < 0] = 0
+
+            # Find bounty UID
+        bounty_uid = self.find_bounty_uid()
+        if bounty_uid is None:
+            bt.logging.error(f"Bounty hotkey {self.bounty_hotkey} not found in metagraph! Cannot set weights.")
+            return
+        bt.logging.info(f"Found bounty hotkey at UID {bounty_uid}")
+
+            
+            
         bt.logging.info(f"Raw Offline Scores: {self.offline_scores[self.competition_version]}")
         current_scores = self.offline_scores[self.competition_version].copy()
         current_scores[current_scores < 0] = 0          # safety
-
         # handle model longevity, if a miner got a score of 0.80 or higher, they get their 2% credit for that dataset, up to the past 10 datasets
-        current_scores = self.offline_scores[self.competition_version]
-        past_scores = [self.dataset_scores[k] for k in sorted(self.dataset_scores)[-10:]]
-        if past_scores:
-            past = np.stack(past_scores).mean(axis=0)       # mean of up‑to‑10
-            blended = 0.80 * current_scores + 0.20 * past           # each past == 2 %
-        else:
-            blended = current_scores.copy()                         # cold start
+        # past_scores = [self.dataset_scores[k] for k in sorted(self.dataset_scores)[-10:]]
+        # if past_scores:
+        #     past = np.stack(past_scores).mean(axis=0)       # mean of up‑to‑10
+        #     blended = 0.80 * current_scores + 0.20 * past           # each past == 2 %
+        # else:
+        #     blended = current_scores.copy()                         # cold start
 
-        bt.logging.info(f"Blended Scores: {blended}")
+        # bt.logging.info(f"Blended Scores: {blended}")
+        
         # Check if self.scores contains any NaN values and log a warning if it does.
         if np.isnan(self.scores).any():
             bt.logging.warning(
@@ -363,11 +417,34 @@ class BaseValidatorNeuron(BaseNeuron):
                 self.offline_miners_scored[self.competition_version][self.regrade_version].append(uid)
                 self.offline_model_names[self.competition_version][uid] = ""
 
+        # BOUNTY SYSTEM: Set bounty score to achieve exactly 25% allocation
+        miner_scores_sum = np.sum(current_scores)
+        bounty_score = miner_scores_sum / 3  # This gives exactly 25% after normalization
+
+        if miner_scores_sum <= 0:
+            # All miners scored zero/negative - give all emissions to bounty vault
+            bt.logging.info("All miners scored zero or negative - allocating 100% to bounty vault")
+            current_scores[:] = 0  # Reset all scores to zero
+            current_scores[bounty_uid] = 1.0  # Give bounty vault all emissions
+        else:
+            # Normal case: 25% to bounty, 75% distributed among miners by performance
+            bounty_score = miner_scores_sum / 3  # This gives exactly 25% after normalization
+            current_scores[bounty_uid] = bounty_score
+            
+            bt.logging.info(f"Miner scores sum: {miner_scores_sum}")
+            bt.logging.info(f"Bounty score set to: {bounty_score}")
+            bt.logging.info(f"Total after bounty: {np.sum(current_scores)}")
+            bt.logging.info(f"Bounty percentage: {bounty_score / np.sum(current_scores) * 100:.1f}%")
+
+
+        # Use the current_scores directly as weights (no longevity curve needed)
+        weighted_scores = current_scores
+
         # always fit scores to weighted curve
         # to change random seed to be encoded regrade version based later
         np.random.seed(self.seed)
         #weighted_scores = score_spreading(current_odds,self.divisions,self.min_div,self.max_div, kurtosis_factor=0.5, divisions=np.random.randint(2,7))
-        weighted_scores = self.longevity_curve(blended)
+        # weighted_scores = self.longevity_curve(blended)
         bt.logging.debug(f"Final Weighted Scores: {weighted_scores}")
 
         # Calculate the average reward for each uid across non-zero values.
@@ -620,11 +697,10 @@ class BaseValidatorNeuron(BaseNeuron):
             if not isinstance(self.offline_miners_scored[self.competition_version], dict):
                 self.offline_miners_scored[self.competition_version] = {}
 
-            self.record_dataset_scores()  
-
             if self.offline_miners_scored[self.competition_version].get(self.regrade_version) is None:
                 self.offline_miners_scored[self.competition_version][self.regrade_version] = []
 
+            self.record_dataset_scores()  
 
             # SETUP OFFLINE MODEL NAMES
             if self.offline_model_names.get(self.competition_version) is None:
