@@ -508,6 +508,8 @@ async def offline_task(self, wandb_data):
                 )
                 mt_score = mt_results.get("overall_score", 0.0)
             bt.logging.info(f"OFFLINE: BFCL evaluation score: {mt_score:.4f}")
+            if mt_score <= 0.0:
+                mt_score = 0.02
             
         except Exception as e:
             # Avoid including model info in error messages
