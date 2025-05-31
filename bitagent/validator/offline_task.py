@@ -169,8 +169,13 @@ async def offline_task(self, wandb_data):
                         self.offline_model_names[self.competition_version][uid] = hf_model_name_hash
                     except Exception as e:
                         bt.logging.error(f"OFFLINE: Error getting model info for a miner: {e}")
-                        # Keep them at "" if we can't validate or retrieve a commit
-                        self.offline_model_names[self.competition_version][uid] = ""
+                        # if the model is not found, set the score to 0.02 and remove the miner from the list of miners to score    
+                        if "404" in str(e):
+                            bt.logging.error(f"OFFLINE: Model not found, setting score to 0.02 and removing miner from list of miners to score")
+                            self.offline_model_names[self.competition_version][uid] = "404"
+                        
+                        if self.offline_model_names[self.competition_version][uid] != "404":
+                            self.offline_model_names[self.competition_version][uid] = ""
                 else:
                     # No valid model => remain empty
                     self.offline_model_names[self.competition_version][uid] = ""
@@ -221,6 +226,8 @@ async def offline_task(self, wandb_data):
     models_to_skip = []
     
     for hfmn in unique_miner_hf_model_names:
+
+
         uids_with_same_model = []
         scores_with_same_model = []
         for k, model_name in self.offline_model_names[self.competition_version].items():
@@ -239,7 +246,11 @@ async def offline_task(self, wandb_data):
             
             # Process the miners
             the_uids = hf_model_name_to_miner_uids[hfmn]
+
             bt.logging.debug(f"OFFLINE: Found miner with same model, using existing score")
+            if hfmn == "404":
+                max_score_for_model = 0.02
+
             for uid in the_uids:
                 self.offline_scores[self.competition_version][uid] = max_score_for_model
             self.update_offline_scores([max_score_for_model] * len(the_uids), the_uids)
