@@ -77,7 +77,7 @@ class BaseValidatorNeuron(BaseNeuron):
         self.offline_status        = None
 
         # 3. Dataset / re‑grade bookkeeping
-        self.regrade_version = dataset_info("BitAgent/tool_shuffle_small").last_modified.strftime("%Y%m%d%H")
+        self.regrade_version = dataset_info("BitAgent/bfcl_shuffle_small").last_modified.strftime("%Y%m%d%H")
         self.max_div = 0.0006
         self.min_div = 0.00015
 
@@ -166,8 +166,7 @@ class BaseValidatorNeuron(BaseNeuron):
         await asyncio.gather(*coroutines,return_exceptions=True)
 
 
-    def download_bfcl_dataset(self, repo_id="BitAgent/tool_shuffle_small"):
-        return
+    def download_bfcl_dataset(self, repo_id="BitAgent/bfcl_shuffle_small"):
         try:
             # Find the BFCL data directory
             third_party_dirs = os.listdir("third_party")
@@ -184,7 +183,7 @@ class BaseValidatorNeuron(BaseNeuron):
             snapshot_download(
                 repo_id=repo_id,
                 repo_type="dataset",
-                allow_patterns=["bitagent_*.json", "possible_answer/bitagent_*.json"],
+                allow_patterns=["BFCL_v3_*.json", "possible_answer/BFCL_v3_*.json"],
                 local_dir=data_dir,
                 local_dir_use_symlinks=False
             )
@@ -196,7 +195,7 @@ class BaseValidatorNeuron(BaseNeuron):
 
     def tool_dataset_regen(self):
         try:
-            mod_date = dataset_info("BitAgent/tool_shuffle_small").last_modified.strftime("%Y%m%d%H")
+            mod_date = dataset_info("BitAgent/bfcl_shuffle_small").last_modified.strftime("%Y%m%d%H")
         except Exception as e:
             bt.logging.error(f"Error getting dataset info: {e}")
             return
