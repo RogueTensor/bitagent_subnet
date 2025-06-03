@@ -427,7 +427,7 @@ class BaseValidatorNeuron(BaseNeuron):
             current_scores[bounty_uid] = 1.0  # Give bounty vault all emissions
         else:
             # Normal case: 25% to bounty, 75% distributed among miners by performance
-            bounty_score = miner_scores_sum / 3  # This gives exactly 25% after normalization
+            bounty_score = miner_scores_sum * 3  # This gives exactly 25% after normalization
             current_scores[bounty_uid] = bounty_score
             
             bt.logging.info(f"Miner scores sum: {miner_scores_sum}")
