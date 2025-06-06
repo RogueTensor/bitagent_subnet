@@ -513,7 +513,8 @@ async def offline_task(self, wandb_data):
                     model_name="BitAgent",
                     endpoint="localhost",
                     port=self.config.validator_hf_server_port,
-                    test_category="multi_turn_base",
+                    # to do - add irrelevance
+                    test_categories=['multi_turn_base', 'live_simple', 'simple'],
                     backend="sglang",
                     cleanup_files=True
                 )
