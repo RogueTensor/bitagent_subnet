@@ -436,8 +436,21 @@ class BaseValidatorNeuron(BaseNeuron):
             bt.logging.info(f"Bounty percentage: {bounty_score / np.sum(current_scores) * 100:.1f}%")
 
 
-        # Use the current_scores directly as weights (no longevity curve needed)
-        weighted_scores = current_scores
+        exponential_scores = current_scores.copy()
+        if miner_scores_sum > 0:
+            # Apply exponential transformation to all miners (excluding bounty)
+            miner_mask = np.arange(len(current_scores)) != bounty_uid
+            if np.any(miner_mask):
+                # Normalize miner scores to 0-1 range first
+                miner_scores = current_scores[miner_mask]
+                if np.max(miner_scores) > 0:
+                    normalized_miner_scores = miner_scores / np.max(miner_scores)
+                    # Apply exponential curve (adjust exponent for desired steepness)
+                    exponential_miner_scores = np.power(normalized_miner_scores, 3)  # cube for strong exponential effect
+                    # Restore original scale
+                    exponential_scores[miner_mask] = exponential_miner_scores * np.sum(miner_scores)
+
+        weighted_scores = exponential_scores
 
         # always fit scores to weighted curve
         # to change random seed to be encoded regrade version based later
