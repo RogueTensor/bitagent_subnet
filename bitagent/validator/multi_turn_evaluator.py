@@ -140,20 +140,20 @@ class BFCLEvaluator:
         model_name: str = "BitAgent",
         endpoint: str = "localhost", 
         port: int = 51001,
-        test_category: str = "multi_turn_base",
+        test_categories: List[str] = ["multi_turn_base"],
         temperature: float = 0.001,
         backend: str = "sglang",
         cleanup_files: bool = True
     ) -> Dict[str, Any]:
         
         """
-        Evaluate a model using BFCL's multi_turn_runner directly.
+        Evaluate a model using BFCL's evaluation runners directly.
         
         Args:
             model_name: Name to use for the model in BFCL
             endpoint: Host where the model is being served
             port: Port where the model is being served
-            test_category: BFCL test category
+            test_categories: List of BFCL test categories
             temperature: Temperature parameter for the model
             backend: Backend used (vllm or sglang)
             cleanup_files: Whether to clean up files after evaluation
@@ -185,7 +185,7 @@ class BFCLEvaluator:
             # Create arguments for generation
             gen_args = SimpleNamespace(
                 model=[model_name],
-                test_category=[test_category],
+                test_category=test_categories,
                 temperature=temperature,
                 include_input_log=False,
                 exclude_state_log=False,
@@ -193,60 +193,101 @@ class BFCLEvaluator:
                 num_threads=1,
                 gpu_memory_utilization=0.9,
                 backend=backend,
-                skip_server_setup=True,  # Skip server setup since one is already running
+                skip_server_setup=True,
                 local_model_path=None,
                 result_dir=str(self.result_dir),
                 allow_overwrite=True,
                 run_ids=False
             )
             
-            # Run generation to create model responses (with silenced output if not verbose)
+            # Run generation to create model responses
             with self._silence_output():
                 generation_main(gen_args)
             
-            # Verify result file exists
-            result_file = os.path.join(model_result_dir, f"{self.VERSION_PREFIX}_{test_category}_result.json")
-            if not os.path.exists(result_file):
-                raise FileNotFoundError(f"Result file not found: {result_file}")
+            # Process each category and combine results
+            total_correct = 0
+            total_count = 0
             
-            # Fix any decoding issues in the result file
-            with self._silence_output():
-                self._fix_decode_errors(result_file, test_category)
-            
-            # Load files and get handler with silenced output
-            with self._silence_output():
-                # Load the model results
-                model_result = self.load_file(result_file, sort_by_id=True)
+            for test_category in test_categories:
+                # Verify result file exists
+                result_file = os.path.join(model_result_dir, f"{self.VERSION_PREFIX}_{test_category}_result.json")
+                if not os.path.exists(result_file):
+                    continue
+                    
+                # Fix any decoding issues in the result file
+                with self._silence_output():
+                    self._fix_decode_errors(result_file, test_category)
                 
-                # Find and load the prompt and possible answer files
-                prompt_file = self.find_file_with_suffix(self.PROMPT_PATH, test_category)
-                prompt = self.load_file(prompt_file, sort_by_id=True)
+                # Load files and get handler with silenced output
+                with self._silence_output():
+                    model_result = self.load_file(result_file, sort_by_id=True)
+                    handler = self.get_handler(model_name)
+                    
+                    # Load prompt for all categories
+                    prompt_file = self.find_file_with_suffix(self.PROMPT_PATH, test_category)
+                    prompt = self.load_file(prompt_file, sort_by_id=True)
                 
-                # Find and load the possible answer file
-                possible_answer_file = self.find_file_with_suffix(self.POSSIBLE_ANSWER_PATH, test_category)
-                possible_answer = self.load_file(possible_answer_file, sort_by_id=True)
+                # Run the evaluation with silenced output - use appropriate runner
+                with self._silence_output():
+                    if self.is_multi_turn(test_category):
+                        # Load possible answer for multi-turn
+                        possible_answer_file = self.find_file_with_suffix(self.POSSIBLE_ANSWER_PATH, test_category)
+                        possible_answer = self.load_file(possible_answer_file, sort_by_id=True)
+                        
+                        # Use multi-turn runner
+                        accuracy, count = self.multi_turn_runner(
+                            handler,
+                            model_result,
+                            prompt,
+                            possible_answer,
+                            model_dir_name,
+                            test_category,
+                            self.score_dir
+                        )
+                    elif "irrelevance" in test_category or "relevance" in test_category:
+                        # Import and use relevance runner
+                        from bfcl.eval_checker.eval_runner import relevance_file_runner
+                        accuracy, count = relevance_file_runner(
+                            handler, model_result, prompt, model_dir_name, test_category, self.score_dir
+                        )
+                    else:
+                        # Single-turn AST evaluation
+                        from bfcl.eval_checker.eval_runner import ast_file_runner
+                        
+                        # Load possible answer for single-turn
+                        possible_answer_file = self.find_file_with_suffix(self.POSSIBLE_ANSWER_PATH, test_category)
+                        possible_answer = self.load_file(possible_answer_file, sort_by_id=True)
+                        
+                        # Determine language
+                        language = "Python"
+                        if "java" in test_category.lower():
+                            language = "Java"
+                        elif "javascript" in test_category.lower():
+                            language = "JavaScript"
+                        
+                        accuracy, count = ast_file_runner(
+                            handler,
+                            model_result,
+                            prompt,
+                            possible_answer,
+                            language,
+                            test_category,
+                            model_dir_name,
+                            self.score_dir,
+                        )
                 
-                # Get the appropriate handler for this model
-                handler = self.get_handler(model_name)
+                # Accumulate results
+                total_correct += int(accuracy * count)
+                total_count += count
             
-            # Run the evaluation with silenced output
-            with self._silence_output():
-                # Call multi_turn_runner directly to get accuracy and total_count
-                accuracy, total_count = self.multi_turn_runner(
-                    handler,
-                    model_result,
-                    prompt,
-                    possible_answer,
-                    model_dir_name,  # Use directory name (with _ instead of /)
-                    test_category,
-                    self.score_dir
-                )
+            # Calculate overall accuracy
+            overall_accuracy = total_correct / total_count if total_count > 0 else 0.0
             
-            # Create minimal result dictionary
+            # Create result dictionary
             result = {
-                "overall_score": accuracy,
+                "overall_score": overall_accuracy,
                 "total_count": total_count,
-                "correct_count": int(accuracy * total_count)
+                "correct_count": total_correct
             }
             
             # Clean up if requested
