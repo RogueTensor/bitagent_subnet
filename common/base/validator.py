@@ -416,26 +416,8 @@ class BaseValidatorNeuron(BaseNeuron):
                 self.offline_miners_scored[self.competition_version][self.regrade_version].append(uid)
                 self.offline_model_names[self.competition_version][uid] = ""
 
-        # BOUNTY SYSTEM: Set bounty score to achieve exactly 25% allocation
+
         miner_scores_sum = np.sum(current_scores)
-        bounty_score = miner_scores_sum / 3  # This gives exactly 25% after normalization
-
-        if miner_scores_sum <= 0:
-            # All miners scored zero/negative - give all emissions to bounty vault
-            bt.logging.info("All miners scored zero or negative - allocating 100% to bounty vault")
-            current_scores[:] = 0  # Reset all scores to zero
-            current_scores[bounty_uid] = 1.0  # Give bounty vault all emissions
-        else:
-            # Normal case: 25% to bounty, 75% distributed among miners by performance
-            bounty_score = miner_scores_sum * 3  # This gives exactly 25% after normalization
-            current_scores[bounty_uid] = bounty_score
-            
-            bt.logging.info(f"Miner scores sum: {miner_scores_sum}")
-            bt.logging.info(f"Bounty score set to: {bounty_score}")
-            bt.logging.info(f"Total after bounty: {np.sum(current_scores)}")
-            bt.logging.info(f"Bounty percentage: {bounty_score / np.sum(current_scores) * 100:.1f}%")
-
-
         exponential_scores = current_scores.copy()
         if miner_scores_sum > 0:
             # Apply exponential transformation to all miners (excluding bounty)
@@ -451,6 +433,24 @@ class BaseValidatorNeuron(BaseNeuron):
                     exponential_scores[miner_mask] = exponential_miner_scores * np.sum(miner_scores)
 
         weighted_scores = exponential_scores
+
+        # BOUNTY SYSTEM: Set bounty score to achieve exactly 75% allocation
+        miner_scores_sum = np.sum(weighted_scores)
+        bounty_score = miner_scores_sum * 3  # This gives exactly 75% after normalization
+
+        if miner_scores_sum <= 0:
+            # All miners scored zero/negative - give all emissions to bounty vault
+            bt.logging.info("All miners scored zero or negative - allocating 100% to bounty vault")
+            weighted_scores[:] = 0  # Reset all scores to zero
+            weighted_scores[bounty_uid] = 1.0  # Give bounty vault all emissions
+        else:
+            weighted_scores[bounty_uid] = bounty_score
+            bt.logging.info(f"Miner scores sum: {miner_scores_sum}")
+            bt.logging.info(f"Bounty score set to: {bounty_score}")
+            bt.logging.info(f"Total after bounty: {np.sum(weighted_scores)}")
+            bt.logging.info(f"Bounty percentage: {bounty_score / np.sum(weighted_scores) * 100:.1f}%")
+
+
 
         # always fit scores to weighted curve
         # to change random seed to be encoded regrade version based later
