@@ -114,7 +114,7 @@ class BaseValidatorNeuron(BaseNeuron):
 
 
         # Apply BFCL patch for changes to the BFCL module
-        apply_bfcl_patch(verbose=True)
+        #apply_bfcl_patch(verbose=True)
 
         # Download BFCL dataset
         self.download_bfcl_dataset()
