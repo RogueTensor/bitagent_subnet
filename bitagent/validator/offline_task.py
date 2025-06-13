@@ -6,9 +6,11 @@ import subprocess
 import time
 import csv
 import bittensor as bt
+from common.utils.shell import execute_shell_command
 from huggingface_hub import model_info, snapshot_download
 from bitagent.protocol import GetHFModelName
 from typing import Dict, List, Optional
+
 
 
 
@@ -145,39 +147,52 @@ async def offline_task(self, wandb_data):
             os.makedirs(result_dir, exist_ok=True)
             os.makedirs(score_dir, exist_ok=True)
             
+
             # 4. Run BFCL generate
-            generate_cmd = [
-                "bfcl", "generate",
-                "--model", base_model_name,
-                "--test-category", "simple,parallel,multiple,parallel_multiple,java,javascript,irrelevance,live_simple,live_multiple,live_parallel,live_parallel_multiple,live_irrelevance,live_relevance,multi_turn_base,multi_turn_miss_func,multi_turn_miss_param",
-                "--backend", "vllm",
-                "--num-gpus", "1",
-                "--gpu-memory-utilization", str(self.config.validator_hf_server_mem_fraction_static),
-                "--local-model-path", model_path,
-                "--result-dir", result_dir
-            ]
-            
+# 4. Run BFCL generate
+# 4. Run BFCL generate
+            venv_path = f"{os.getcwd()}/.venvbfcl"
+            generate_cmd = f"""
+/bin/bash -c "
+export PATH={venv_path}/bin:$PATH && \
+export PYTHONPATH={venv_path}/lib/python*/site-packages:$PYTHONPATH && \
+export VIRTUAL_ENV={venv_path} && \
+{venv_path}/bin/python -m bfcl generate \
+--model {base_model_name} \
+--test-category simple,parallel,multiple,parallel_multiple,java,javascript,irrelevance,live_simple,live_multiple,live_parallel,live_parallel_multiple,live_irrelevance,live_relevance,multi_turn_base,multi_turn_miss_func,multi_turn_miss_param \
+--backend vllm \
+--num-gpus 1 \
+--gpu-memory-utilization {self.config.validator_hf_server_mem_fraction_static} \
+--local-model-path {model_path} \
+--result-dir {result_dir}
+"
+"""
+
             bt.logging.debug(f"OFFLINE: Running BFCL Generate...")
-            result = await asyncio.to_thread(subprocess.run, generate_cmd, capture_output=True, text=True)
-            if result.returncode != 0:
-                bt.logging.error(f"OFFLINE: Generate failed: {result.stderr}")
+            process = await asyncio.to_thread(execute_shell_command, generate_cmd, model_path)
+            returncode = await asyncio.to_thread(process.wait)
+            if returncode != 0:
+                bt.logging.error(f"OFFLINE: Generate failed with return code: {returncode}")
                 raise Exception("Generate failed")
-            
-            # 5. Run BFCL evaluate
-            evaluate_cmd = [
-                "bfcl", "evaluate",
-                "--model", base_model_name,
-                "--test-category", "simple,parallel,multiple,parallel_multiple,java,javascript,irrelevance,live_simple,live_multiple,live_parallel,live_parallel_multiple,live_irrelevance,live_relevance,multi_turn_base,multi_turn_miss_func,multi_turn_miss_param",
-                "--result-dir", result_dir,
-                "--score-dir", score_dir
-            ]
-            
+
+            # 5. Run BFCL evaluate  
+            evaluate_cmd = f"""
+{os.getcwd()}/.venvbfcl/bin/python -m bfcl evaluate \
+--model {base_model_name} \
+--test-category simple,parallel,multiple,parallel_multiple,java,javascript,irrelevance,live_simple,live_multiple,live_parallel,live_parallel_multiple,live_irrelevance,live_relevance,multi_turn_base,multi_turn_miss_func,multi_turn_miss_param \
+--result-dir {result_dir} \
+--score-dir {score_dir}
+"""
+
             bt.logging.debug(f"OFFLINE: Running BFCL Evaluate...")
-            result = await asyncio.to_thread(subprocess.run, evaluate_cmd, capture_output=True, text=True)
-            if result.returncode != 0:
-                bt.logging.error(f"OFFLINE: Evaluate failed: {result.stderr}")
+            process = await asyncio.to_thread(execute_shell_command, evaluate_cmd, model_path)
+            returncode = await asyncio.to_thread(process.wait)
+            if returncode != 0:
+                bt.logging.error(f"OFFLINE: Evaluate failed with return code: {returncode}")
                 raise Exception("Evaluate failed")
             
+            time.sleep(60)
+                        
             # 6. Parse the score CSV file
             overall_csv_path = os.path.join(score_dir, "data_overall.csv")
             await asyncio.sleep(2)
