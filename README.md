@@ -20,7 +20,7 @@
     - [Dependencies](#dependencies)
     - [PM2 Installation](#pm2-installation)
     - [BFCL Setup for Validators](#bfcl-setup-for-validators)
-    - [sglang Setup for Validators](#sglang-setup-for-validators)
+    - [BFCL VENV Setup for Validators](#vllm-setup-for-validators)
     - [Recommended Startup](#recommended-startup)
     - [Alternative Startup](#alternative-startup)
     - [Verify Validator is Working](#verify-validator-is-working)
@@ -124,26 +124,18 @@ python3 scripts/test_bfcl.py
 You should see the message "BFCL modules imported successfully!"
 If you see an import error something went wrong in the installation and you should restart or reach out to a subnet developer. 
 
-#### sglang Setup for Validators
+#### BFCL Venv Setup for Validators
 
-You'll need to create a virtual env and install the requirements for sglang:
+You'll need to create a virtual env and install the requirements for BFCL:
 ```bash
-python3 -m venv .venvsglang
-# note to change cu121 in this path according to this page: https://docs.flashinfer.ai/installation.html
-./.venvsglang/bin/pip install flashinfer -i https://flashinfer.ai/whl/cu121/torch2.4/ 
-./.venvsglang/bin/pip install -r requirements.sglang.txt
+python3 -m venv .venvbfcl
+
+./.venvbfcl/bin/pip install -r requirements.bfcl.txt
 ```
 
-**Test that it's working with:**
-```
-.venvsglang/bin/python -m sglang.launch_server --model-path Salesforce/xLAM-7b-r --port 8028 --host 0.0.0.0 --mem-fraction-static 0.40
-```
-
-You should not run out of memory and it should eventually show that the Salesforce model loaded correclty.
 
 #### Recommended Startup
 
-First, make sure you do the [sglang setup](#sglang-setup-for-validators) above.
 
 ```bash
 # for mainnet with AUTO UPDATES (recommended)
@@ -152,9 +144,6 @@ pm2 start run.sh --name bitagent_validators_autoupdate -- --wallet.path <YOUR PA
 
 Double check everything is working by following [these steps](#verify-validator-is-working).
 
-#### Alternative Startup
-
-First, make sure you do the [sglang setup](#sglang-setup-for-validators) above.
 
 ```bash
 # for testnet
@@ -200,7 +189,7 @@ After you've launched and pm2 is running, here's what to expect:\
 
 #### Validator Hardware Requirements
 
-Validators have hardware requirements. A series of LLMs must be loaded via sglang for evaluation:
+Validators have hardware requirements. A series of LLMs must be loaded via vllm for evaluation:
   - Each LLM is a miner's tool calling model fetched from Hugging Face, one at a time to be evaluated OFFLINE for FINETUNED SUBMISSION and takes up 25GB to 32GB of VRAM.
   - See [min_compute.yml](./min_compute.yml).
 
@@ -252,9 +241,7 @@ The miners must finetune an 8B model (or less) to perform well on tasks similar 
 The default miner is all you need, just make sure you update the parameters described in [Default Miner](#default-miner).  
 For your consideration:
 1) Use pm2 to launch your miner for easy management and reconfiguration as needed.
-2) We use [SGLang](https://sgl-project.github.io/start/install.html) to run your hugging face models, please make sure your model loads with SGLang.
-3) See how [we are running sglang](https://github.com/RogueTensor/bitagent_subnet/blob/e0e09470bb10b27779c0c00f9ebaabe016505832/bitagent/validator/offline_task.py#L309) to make sure you run it the same way in your testing.
-4) Don't make it obvious to other miners where your HuggingFace submission is, manage this discretely.
+2) Don't make it obvious to other miners where your HuggingFace submission is, manage this discretely.
 
 #### Example Task
 Here's an example task you can expect your model to see in FINETUNED SUBMISSION mode:
@@ -388,12 +375,12 @@ A: We provide two parameters for this: \
 Example usage: To use the 2nd CUDA Device, you would add these to your parameters: \
   `--neuron.visible_devices 1 --neuron.device cuda:0`
 
-**Q: My validator is running out of GPU memory when loading OFFLINE models via sglang.** \
+**Q: My validator is running out of GPU memory when loading OFFLINE models via vllm.** \
 A: You can use this parameter: `--validator-hf-server-mem-fraction-static` to increase or decrease the amount of the GPU VRAM to use.\
 It defaults to 0.85 of the VRAM.
 
 **Q: My vTrust is low and it looks like I'm not setting OFFLINE weights.**\
-A: Please test your sglang setup - check [here](#sglang-setup-for-validators).
+A: Please test your vllm setup - check [here](#vllm-setup-for-validators).
 
 **Q: I'm validating and seeing errors like:**
 - TimeoutError
