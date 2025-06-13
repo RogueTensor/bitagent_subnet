@@ -23,7 +23,6 @@ import bittensor as bt
 from datetime import datetime
 from bitagent.datasources import ToolDataset
 from langchain_openai import ChatOpenAI
-from sentence_transformers import util
 
 # setup validator with wandb
 # clear out the old wandb dirs if possible
