@@ -147,11 +147,21 @@ async def offline_task(self, wandb_data):
             os.makedirs(result_dir, exist_ok=True)
             os.makedirs(score_dir, exist_ok=True)
             
+            venv_path = f"{os.getcwd()}/.venvbfcl"
+            # Test the full environment
+            test_cmd = f"""
+/bin/bash -c '
+export PATH={venv_path}/bin:$PATH && \
+export PYTHONPATH={venv_path}/lib/python*/site-packages:$PYTHONPATH && \
+export VIRTUAL_ENV={venv_path} && \
+{venv_path}/bin/python -c "import bfcl; print('"'"'BFCL imported successfully'"'"')"
+'
+"""
+            test_process = await asyncio.to_thread(execute_shell_command, test_cmd, model_path)
+            test_returncode = await asyncio.to_thread(test_process.wait)
+            bt.logging.info(f"BFCL import test returned: {test_returncode}")
 
             # 4. Run BFCL generate
-# 4. Run BFCL generate
-# 4. Run BFCL generate
-            venv_path = f"{os.getcwd()}/.venvbfcl"
             generate_cmd = f"""
 /bin/bash -c "
 export PATH={venv_path}/bin:$PATH && \
