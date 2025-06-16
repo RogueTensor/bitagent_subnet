@@ -25,7 +25,7 @@ def execute_shell_command(command: str, model_name: str) -> subprocess.Popen:
         def stream_output(stream, stream_name):
             for line in iter(stream.readline, ''):
                 line = line.rstrip('\n')
-                if stream_name == "STDERR":
+                if stream_name == "STDERR" or stream_name == "STDOUT":
                     # log everything except for token generation metrics
                     if "#new-token" not in line and "Decode batch." not in line:
                         redacted_line = line.replace(model_name, "[REDACTED]")
