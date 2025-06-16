@@ -57,10 +57,10 @@ class Validator(BaseValidatorNeuron):
                 del os.environ["CUDA_VISIBLE_DEVICES"]
                 
         # check if the sglang python executable exists
-        python_path = f"{os.getcwd()}/.venvsglang/bin/python"
+        python_path = f"{os.getcwd()}/.venvbfcl/bin/python"
         if not os.path.exists(python_path):
-            raise FileNotFoundError(f"The required sglang python executable does not exist at {python_path}")
-        bt.logging.info(f"sglang python executable found at {python_path}")
+            raise FileNotFoundError(f"The required BFCL python executable does not exist at {python_path}")
+        bt.logging.info(f"BFCL python executable found at {python_path}")
 
 
     async def forward(self, synapse: bitagent.protocol.QueryTask=None):
