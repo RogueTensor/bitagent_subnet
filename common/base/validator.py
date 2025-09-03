@@ -77,7 +77,7 @@ class BaseValidatorNeuron(BaseNeuron):
         self.offline_status        = None
 
         # 3. Dataset / re‑grade bookkeeping
-        self.regrade_version = dataset_info("BitAgent/bfcl_shuffle_small").last_modified.strftime("%Y%m%d%H")
+        self.regrade_version = dataset_info("BitAgent/bfcl_shuffle_full").last_modified.strftime("%Y%m%d%H")
         self.max_div = 0.0006
         self.min_div = 0.00015
 
@@ -166,7 +166,7 @@ class BaseValidatorNeuron(BaseNeuron):
         await asyncio.gather(*coroutines,return_exceptions=True)
 
 
-    def download_bfcl_dataset(self, repo_id="BitAgent/bfcl_shuffle_small"):
+    def download_bfcl_dataset(self, repo_id="BitAgent/bfcl_shuffle_full"):
         try:
             # Find the BFCL data directory
             third_party_dirs = os.listdir("third_party")
@@ -195,7 +195,7 @@ class BaseValidatorNeuron(BaseNeuron):
 
     def tool_dataset_regen(self):
         try:
-            mod_date = dataset_info("BitAgent/bfcl_shuffle_small").last_modified.strftime("%Y%m%d%H")
+            mod_date = dataset_info("BitAgent/bfcl_shuffle_full").last_modified.strftime("%Y%m%d%H")
         except Exception as e:
             bt.logging.error(f"Error getting dataset info: {e}")
             return
@@ -438,17 +438,19 @@ class BaseValidatorNeuron(BaseNeuron):
         miner_scores_sum = np.sum(weighted_scores)
         bounty_score = miner_scores_sum * 3  # This gives exactly 75% after normalization
 
-        if miner_scores_sum <= 0:
+        # if miner_scores_sum <= 0:
             # All miners scored zero/negative - give all emissions to bounty vault
-            bt.logging.info("All miners scored zero or negative - allocating 100% to bounty vault")
-            weighted_scores[:] = 0  # Reset all scores to zero
-            weighted_scores[bounty_uid] = 1.0  # Give bounty vault all emissions
-        else:
-            weighted_scores[bounty_uid] = bounty_score
-            bt.logging.info(f"Miner scores sum: {miner_scores_sum}")
-            bt.logging.info(f"Bounty score set to: {bounty_score}")
-            bt.logging.info(f"Total after bounty: {np.sum(weighted_scores)}")
-            bt.logging.info(f"Bounty percentage: {bounty_score / np.sum(weighted_scores) * 100:.1f}%")
+
+        # move all emissions to bounty temprorarily 
+
+        weighted_scores[:] = 0  # Reset all scores to zero
+        weighted_scores[bounty_uid] = 1.0  # Give bounty vault all emissions
+        # else:
+        #     weighted_scores[bounty_uid] = bounty_score
+        #     bt.logging.info(f"Miner scores sum: {miner_scores_sum}")
+        #     bt.logging.info(f"Bounty score set to: {bounty_score}")
+        #     bt.logging.info(f"Total after bounty: {np.sum(weighted_scores)}")
+        #     bt.logging.info(f"Bounty percentage: {bounty_score / np.sum(weighted_scores) * 100:.1f}%")
 
 
 
