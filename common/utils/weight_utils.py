@@ -20,6 +20,10 @@ def normalize_max_weight(
         y (:obj:`np.ndarray`):
             Normalized x array.
     """
+    # Ensure x is an array and at least 1-D to safely use len() and vector ops
+    x = np.asarray(x, dtype=np.float32)
+    if x.ndim == 0:
+        x = x[None]
     epsilon = 1e-7  # For numerical stability after normalization
 
     weights = x.copy()
@@ -74,6 +78,11 @@ def convert_weights_and_uids_for_emit(
     # Checks.
     uids = np.asarray(uids)
     weights = np.asarray(weights)
+    # Ensure both are at least 1-D
+    if weights.ndim == 0:
+        weights = weights[None]
+    if uids.ndim == 0:
+        uids = uids[None]
 
     # Get non-zero weights and corresponding uids
     non_zero_weights = weights[weights > 0]
@@ -146,9 +155,11 @@ def process_weights_for_netuid(
     if metagraph is None:
         metagraph = subtensor.metagraph(netuid)
 
-    # Cast weights to floats.
+    # Cast weights to floats and ensure 1-D
     if not isinstance(weights, np.ndarray) or weights.dtype != np.float32:
-        weights = weights.astype(np.float32)
+        weights = np.asarray(weights, dtype=np.float32)
+    if weights.ndim == 0:
+        weights = weights[None]
 
     # Network configuration parameters from an subtensor.
     # These parameters determine the range of acceptable weights for each neuron.
@@ -160,12 +171,16 @@ def process_weights_for_netuid(
     bittensor.logging.debug("max_weight_limit", max_weight_limit)
 
     # Find all non zero weights.
-    non_zero_weight_idx = np.argwhere(weights > 0).squeeze()
+    non_zero_weight_idx = np.where(weights > 0)[0]
     non_zero_weight_uids = uids[non_zero_weight_idx]
     non_zero_weights = weights[non_zero_weight_idx]
-    if non_zero_weights.size == 0 or metagraph.n < min_allowed_weights:
+    # Ensure 1-D for downstream ops
+    non_zero_weight_uids = np.atleast_1d(non_zero_weight_uids)
+    non_zero_weights = np.atleast_1d(non_zero_weights)
+
+    if non_zero_weights.size == 0 or int(metagraph.n) < min_allowed_weights:
         bittensor.logging.warning("No non-zero weights returning all ones.")
-        final_weights = np.ones(metagraph.n) / metagraph.n
+        final_weights = np.ones(int(metagraph.n)) / int(metagraph.n)
         bittensor.logging.debug("final_weights", final_weights)
         return np.arange(len(final_weights)), final_weights
 
@@ -174,7 +189,7 @@ def process_weights_for_netuid(
             "No non-zero weights less then min allowed weight, returning all ones."
         )
         weights = (
-                np.ones(metagraph.n) * 1e-5
+                np.ones(int(metagraph.n)) * 1e-5
         )  # creating minimum even non-zero weights
         weights[non_zero_weight_idx] += non_zero_weights
         bittensor.logging.debug("final_weights", weights)
